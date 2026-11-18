@@ -431,16 +431,16 @@ a.art { text-decoration: none; color: inherit; }
 .sw[aria-checked="true"] .sw__k { transform: translateX(20px); }
 .sw[disabled] { opacity: .55; cursor: progress; }
 
-/* 전역 로더(shell.js): 공 두 개가 끈적하게 모였다 벌어지며 돈다. 앱 틀(430px) 전체를 덮고, 끝나면 서서히 사라진다. */
-.gl { position: fixed; inset: 0; z-index: 100; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; place-content: center; justify-items: center; gap: 10px; background: var(--paper); transition: opacity .28s ease, visibility 0s .28s; }
+/* 전역 로더(shell.js): 마스코트가 콩콩 뛴다(착지할 때 납작, 뜰 때 길쭉). 앱 틀(430px) 전체를 덮고, 끝나면 서서히 사라진다. */
+.gl { position: fixed; inset: 0; z-index: 100; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--paper); transition: opacity .28s ease, visibility 0s .28s; }
 .gl.is-off { opacity: 0; visibility: hidden; pointer-events: none; }
-.gl__svg { width: 72px; height: 72px; color: var(--pink-deep); fill: currentColor; }
-.gl__spin { transform-origin: 12px 12px; animation: gl-rot .75s linear infinite; }
-.gl__a { animation: gl-a 2s infinite; }
-.gl__c { animation: gl-c 2s infinite; }
-.gl__t { margin: 0; font-size: .875rem; font-weight: 800; letter-spacing: -.01em; color: var(--ink); }
-.gl__t i { font-style: normal; color: var(--pink-deep); margin: 0 .1em; }
-@keyframes gl-rot { to { transform: rotate(360deg); } }
-@keyframes gl-a { 0% { transform: translateX(0); animation-timing-function: cubic-bezier(.36,.62,.43,.99); } 50% { transform: translateX(3px); animation-timing-function: cubic-bezier(.79,0,.58,.57); } 100% { transform: translateX(0); } }
-@keyframes gl-c { 0% { transform: translateX(0); animation-timing-function: cubic-bezier(.36,.62,.43,.99); } 50% { transform: translateX(-3px); animation-timing-function: cubic-bezier(.79,0,.58,.57); } 100% { transform: translateX(0); } }
-@media (prefers-reduced-motion: reduce) { .gl__spin, .gl__a, .gl__c { animation: none; } .gl { transition: none; } }
+.gl__m { position: relative; display: grid; justify-items: center; width: 96px; height: 124px; }
+.gl__img { width: 96px; height: 96px; margin-top: 16px; border-radius: 24%; box-shadow: 0 6px 18px rgb(231 127 176 / .35); transform-origin: 50% 100%; animation: gl-hop .9s ease-in-out infinite; }
+.gl__sh { position: absolute; bottom: 2px; width: 70px; height: 10px; border-radius: 50%; background: rgb(87 74 140 / .2); animation: gl-sh .9s ease-in-out infinite; }
+.gl__t { margin: 0; font-size: .9375rem; font-weight: 800; color: var(--ink); }
+.gl__d b { font-weight: 800; color: var(--pink-deep); animation: gl-dot 1.2s infinite; }
+.gl__d b:nth-child(2) { animation-delay: .2s; } .gl__d b:nth-child(3) { animation-delay: .4s; }
+@keyframes gl-hop { 0%, 100% { transform: translateY(0) scale(1.1, .88); } 15%, 85% { transform: translateY(-6px) scale(.96, 1.05); } 50% { transform: translateY(-26px) scale(1, 1); } }
+@keyframes gl-sh { 0%, 100% { transform: scale(1.1); opacity: 1; } 50% { transform: scale(.55); opacity: .45; } }
+@keyframes gl-dot { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gl__img, .gl__sh, .gl__d b { animation: none; } .gl { transition: none; } }

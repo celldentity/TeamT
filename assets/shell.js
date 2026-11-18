@@ -11,9 +11,8 @@
   const MIN = 600;
   let busy = 0, shownAt = Date.now(), offT = 0, failT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
   document.body.insertAdjacentHTML("afterbegin",
-    `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="gl-goo"><feGaussianBlur in="SourceGraphic" stdDeviation="1" result="y"/><feColorMatrix in="y" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7" result="z"/><feBlend in="SourceGraphic" in2="z"/></filter></defs></svg>` +
-    `<svg class="gl__svg" viewBox="0 0 24 24" aria-hidden="true"><g class="gl__spin" filter="url(#gl-goo)"><circle class="gl__b gl__a" cx="5" cy="12" r="4"/><circle class="gl__b gl__c" cx="19" cy="12" r="4"/></g></svg>` +
-    `<p class="gl__t">HR T<i>|</i>니핑</p></div>`);
+    `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><img class="gl__img" src="/assets/icons/icon-v3-192.png" alt="" width="96" height="96" decoding="async"><i class="gl__sh"></i></div>` +
+    `<p class="gl__t">불러오는 중<span class="gl__d" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></p></div>`);
   const glEl = document.getElementById("gl");
   const gl = {
     show() { clearTimeout(offT); clearTimeout(failT); shownAt = Date.now(); glEl.classList.remove("is-off"); },

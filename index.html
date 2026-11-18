@@ -97,7 +97,7 @@
   .foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; }
 
   /* 하단 고정 메뉴 — HSMnT 사원포털처럼 430px 틀 안에서 화면 아래에 붙어 스크롤해도 변하지 않는다 */
-  .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+  .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
   .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; padding: 6px 4px; text-decoration: none; font-size: .75rem; font-weight: 500; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
   .tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .tab__ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 99px; transition: background-color .15s; }
@@ -105,6 +105,34 @@
   .tab[aria-current="page"] .tab__ic { background: var(--pink); }
   .tab:active .tab__ic { background: var(--lavender); }
   .app { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+  .tab__av { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: var(--pink); color: var(--ink); font-size: .8125rem; font-weight: 800; }
+  .tab__av img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* 내 정보 — 로그인·가입, 닉네임, 프로필 사진 */
+  [hidden] { display: none !important; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 20px; background: #f1f1f4; border-radius: 14px; }
+  .seg button { min-height: 44px; border: 0; border-radius: 10px; font: 700 .9375rem/1 "Noto Sans KR", var(--font); color: var(--ink-soft); background: transparent; cursor: pointer; }
+  .seg button[aria-pressed="true"] { color: var(--ink); background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .14); }
+  .form { display: grid; gap: 14px; margin-top: 18px; }
+  .field { display: grid; gap: 6px; font-weight: 700; font-size: .875rem; }
+  .field small { font-weight: 400; color: var(--ink-soft); }
+  .field input { width: 100%; min-height: 52px; padding: 0 14px; font: 400 1rem/1.4 "Noto Sans KR", var(--font); color: var(--ink); background: #fff; border: 1.5px solid #d6d6dc; border-radius: 12px; }
+  .field input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--lavender); }
+  .msg { min-height: 1.4em; font-size: .875rem; color: var(--ink-soft); }
+  .msg--err { color: #c0262d; }
+  .me .btn { width: 100%; margin-top: 0; }
+  .btn--ghost { color: var(--ink); background: #fff; border: 1.5px solid #d6d6dc; }
+  .btn--ghost:hover { background: #f5f5f7; }
+  .btn[disabled] { opacity: .55; pointer-events: none; }
+  .me-card { display: grid; justify-items: center; gap: 4px; margin-top: 20px; padding: 28px 16px 20px; background: var(--blush); border-radius: 24px; text-align: center; }
+  .avatar { display: grid; place-items: center; width: 112px; height: 112px; margin-bottom: 8px; overflow: hidden; border: 4px solid #fff; border-radius: 50%; background: var(--pink); font-weight: 800; font-size: 2.5rem; box-shadow: 0 2px 12px rgb(231 127 176 / .4); }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .me-name { font-weight: 800; font-size: 1.25rem; line-height: 1.4; word-break: break-all; }
+  .me-mail { font-size: .875rem; color: var(--ink-soft); word-break: break-all; }
+  .photo-btn { position: relative; margin-top: 14px; }
+  .photo-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
+  .photo-btn:focus-within { outline: 3px solid var(--ink); outline-offset: 3px; }
+  .me-sec { margin-top: 20px; }
 
   /* 반응형 */
   @media (max-width: 400px) {
@@ -191,6 +219,55 @@
       <p class="sec__lead">HR 이야기가 끊임없이 이어지길 바라는 마음으로, Midfielder 8기 T조가 AI와 함께 아티클을 만듭니다. 팀원 소개는 준비 중입니다.</p>
     </div>
   </section>
+  <section class="sec me" id="me" aria-labelledby="me-title">
+    <div class="wrap">
+      <h2 class="sec__title" id="me-title">내 정보</h2>
+      <p class="sec__lead" id="me-lead">로그인하면 닉네임과 프로필 사진을 정할 수 있어요.</p>
+
+      <div id="auth">
+        <div class="seg" role="group" aria-label="로그인 또는 가입">
+          <button type="button" data-mode="login" aria-pressed="true">로그인</button>
+          <button type="button" data-mode="signup" aria-pressed="false">가입</button>
+        </div>
+        <form class="form" id="authForm" novalidate>
+          <label class="field">이메일
+            <input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" required>
+          </label>
+          <label class="field">비밀번호
+            <input name="password" type="password" autocomplete="current-password" minlength="8" required>
+          </label>
+          <label class="field" data-only="signup" hidden>닉네임 <small>2~20자, 나중에 바꿀 수 있어요</small>
+            <input name="nickname" type="text" autocomplete="nickname" maxlength="20">
+          </label>
+          <label class="field" data-only="signup" hidden>가입 코드 <small>T조 단톡방에서 안내한 코드</small>
+            <input name="code" type="text" autocomplete="off" autocapitalize="none">
+          </label>
+          <p class="msg msg--err" id="authErr" role="alert"></p>
+          <button class="btn" type="submit" id="authBtn">로그인</button>
+        </form>
+      </div>
+
+      <div id="profile" hidden>
+        <div class="me-card">
+          <div class="avatar" id="avatar" aria-hidden="true"></div>
+          <p class="me-name" id="meName"></p>
+          <p class="me-mail" id="meMail"></p>
+          <label class="btn btn--ghost photo-btn">사진 바꾸기
+            <input id="photo" type="file" accept="image/*" aria-label="프로필 사진 고르기">
+          </label>
+          <p class="msg msg--err" id="photoMsg" role="alert"></p>
+        </div>
+        <form class="form me-sec" id="nickForm" novalidate>
+          <label class="field">닉네임
+            <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
+          </label>
+          <p class="msg" id="nickMsg" role="status"></p>
+          <button class="btn" type="submit" id="nickBtn">닉네임 저장</button>
+        </form>
+        <button class="btn btn--ghost me-sec" type="button" id="logoutBtn">로그아웃</button>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
@@ -210,6 +287,9 @@
   <a class="tab" href="#team">
     <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg></span>T조 소개
   </a>
+  <a class="tab" href="#me">
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></span>내 정보
+  </a>
 </nav>
 </div>
 <script>
@@ -228,6 +308,90 @@
   addEventListener("scroll", () => { if (!tick) { tick = true; requestAnimationFrame(mark); } }, { passive: true });
   addEventListener("resize", mark);
   mark();
+</script>
+<script>
+  // 로그인·가입·닉네임·프로필 사진. 서버는 /api/*(Vercel 함수), 세션은 HttpOnly 쿠키.
+  (() => {
+    const $ = (s) => document.querySelector(s);
+    const authBox = $("#auth"), prof = $("#profile"), lead = $("#me-lead"), form = $("#authForm");
+    const tabIc = $('.tab[href="#me"] .tab__ic'), tabIcDefault = tabIc.innerHTML;
+    let mode = "login";
+
+    async function call(path, method = "GET", body) {
+      const r = await fetch(path, { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "요청에 실패했습니다. 잠시 뒤 다시 시도해 주세요.");
+      return j;
+    }
+    const initial = (u) => [...u.nickname][0] || "T";
+    function setMode(m) {
+      mode = m;
+      document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+      form.querySelectorAll("[data-only=signup]").forEach((el) => (el.hidden = m !== "signup"));
+      form.password.autocomplete = m === "signup" ? "new-password" : "current-password";
+      $("#authBtn").textContent = m === "signup" ? "가입하기" : "로그인";
+      $("#authErr").textContent = "";
+    }
+    function render(u) {
+      authBox.hidden = !!u; prof.hidden = !u;
+      lead.textContent = u ? `${u.nickname}님, 반가워요.` : "로그인하면 닉네임과 프로필 사진을 정할 수 있어요.";
+      if (!u) { tabIc.innerHTML = tabIcDefault; return; }
+      const av = $("#avatar");
+      av.innerHTML = u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : "";
+      if (!u.photoUrl) av.textContent = initial(u);
+      $("#meName").textContent = u.nickname; $("#meMail").textContent = u.email;
+      $("#nickInput").value = u.nickname;
+      tabIc.innerHTML = `<span class="tab__av">${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : ""}</span>`;
+      if (!u.photoUrl) tabIc.firstChild.textContent = initial(u);
+    }
+    const busy = (btn, on, label) => { btn.disabled = on; if (label) btn.textContent = on ? "잠시만요…" : label; };
+
+    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = $("#authBtn"), label = btn.textContent, err = $("#authErr");
+      err.textContent = "";
+      const d = Object.fromEntries(new FormData(form));
+      if (!d.email || !d.password) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
+      busy(btn, true, label);
+      try {
+        const { user } = await call(`/api/auth?a=${mode}`, "POST", mode === "signup" ? d : { email: d.email, password: d.password });
+        form.reset(); render(user);
+      } catch (x) { err.textContent = x.message; }
+      busy(btn, false, label);
+    });
+
+    $("#nickForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = $("#nickBtn"), msg = $("#nickMsg"); msg.className = "msg"; msg.textContent = "";
+      busy(btn, true, "닉네임 저장");
+      try { const { user } = await call("/api/me", "PATCH", { nickname: $("#nickInput").value }); render(user); msg.textContent = "저장했어요."; }
+      catch (x) { msg.className = "msg msg--err"; msg.textContent = x.message; }
+      busy(btn, false, "닉네임 저장");
+    });
+
+    // 사진은 브라우저에서 가운데를 정사각형으로 잘라 256px JPEG 로 줄여 올린다(서버·R2 용량 절약).
+    async function toJpeg(file) {
+      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const s = Math.min(bmp.width, bmp.height), c = document.createElement("canvas");
+      c.width = c.height = 256;
+      c.getContext("2d").drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, 256, 256);
+      return c.toDataURL("image/jpeg", 0.85);
+    }
+    $("#photo").addEventListener("change", async (e) => {
+      const f = e.target.files[0], msg = $("#photoMsg"); msg.textContent = "";
+      if (!f) return;
+      try { const { user } = await call("/api/photo", "POST", { image: await toJpeg(f) }); render(user); }
+      catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
+      e.target.value = "";
+    });
+
+    $("#logoutBtn").addEventListener("click", async () => { try { await call("/api/auth?a=logout", "POST", {}); } catch {} render(null); setMode("login"); });
+
+    setMode("login");
+    call("/api/me").then(({ user }) => render(user)).catch(() => render(null));
+  })();
 </script>
 </body>
 </html>

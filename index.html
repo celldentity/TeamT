@@ -29,19 +29,20 @@
     --line: #ececf0;
     --paper: #ffffff;
     --font: "Malgun Gothic", "맑은 고딕", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --gutter: clamp(16px, 5vw, 24px);
-    --app-w: 480px;           /* 화면 폭 상한 = 실제 폰 크기. PC 에서도 이 폭으로 가운데 정렬 */
+    --gutter: clamp(16px, 5vw, 21.5px);
+    --app-w: 430px;           /* HSMnT 사원포털과 같은 430px 모바일 틀. 이 폭에서 멈춘다(글자·여백도 430px 값이 상한) */
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100%; }
-  body { margin: 0; background: #efedf2; color: var(--ink); font: 400 1rem/1.7 "Noto Sans KR", var(--font); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  html { background: #e6e6ea; }
+  body { margin: 0; background: #e6e6ea; color: var(--ink); font: 400 1rem/1.7 "Noto Sans KR", var(--font); word-break: keep-all; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, p, ul { margin: 0; }
   ul { padding: 0; list-style: none; }
   a { color: inherit; }
   :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
 
   .app { width: min(100%, var(--app-w)); min-height: 100vh; min-height: 100dvh; margin-inline: auto; background: var(--paper); overflow-x: clip; }
-  @media (min-width: 481px) { .app { box-shadow: 0 0 0 1px var(--line), 0 24px 64px rgb(23 23 25 / .08); } }
+  @media (min-width: 431px) { .app { box-shadow: 0 20px 25px -5px rgb(23 23 25 / .12), 0 8px 10px -6px rgb(23 23 25 / .12); } }
   .wrap { width: calc(100% - 2 * var(--gutter)); margin-inline: auto; }
   .skip { position: absolute; left: 16px; top: -64px; background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 20; }
   .skip:focus { top: 12px; }
@@ -59,8 +60,8 @@
   .hero { padding: 16px 0 0; }
   .hero__in { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 8px; align-items: center; background: var(--blush); border-radius: 28px; padding: 24px 20px; }
   .eyebrow { font-weight: 700; font-size: .75rem; line-height: 1.4; letter-spacing: .02em; color: var(--pink-ink); }
-  .hero__title { margin-top: 14px; font-weight: 800; font-size: clamp(1.75rem, 8.2vw, 2.375rem); line-height: 1.22; letter-spacing: -.04em; }
-  .hero__lead { margin-top: 16px; font-size: clamp(.9375rem, 3.6vw, 1.0625rem); color: var(--ink-soft); }
+  .hero__title { margin-top: 14px; font-weight: 800; font-size: clamp(1.75rem, 8.2vw, 2.2rem); line-height: 1.22; letter-spacing: -.04em; }
+  .hero__lead { margin-top: 16px; font-size: clamp(.9375rem, 3.6vw, .96875rem); color: var(--ink-soft); }
   .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 24px; margin-top: 28px; font: 700 1rem/1 "Noto Sans KR", var(--font); text-decoration: none; color: #fff; background: var(--brand); border-radius: 12px; transition: background-color .15s, transform .1s; }
   .btn:hover { background: var(--brand-strong); }
   .btn:active { transform: scale(.98); }
@@ -71,7 +72,7 @@
 
   /* 공통 섹션 */
   .sec { padding: 44px 0 48px; }
-  .sec__title { font-weight: 800; font-size: clamp(1.5rem, 6vw, 1.75rem); line-height: 1.3; letter-spacing: -.04em; }
+  .sec__title { font-weight: 800; font-size: clamp(1.5rem, 6vw, 1.6rem); line-height: 1.3; letter-spacing: -.04em; }
   .sec__lead { margin-top: 10px; color: var(--ink-soft); max-width: 32em; }
 
   /* 아티클 */
@@ -94,6 +95,16 @@
 
   .foot { padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); font-size: .875rem; color: var(--ink-soft); }
   .foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; }
+
+  /* 하단 고정 메뉴 — HSMnT 사원포털처럼 430px 틀 안에서 화면 아래에 붙어 스크롤해도 변하지 않는다 */
+  .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+  .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; padding: 6px 4px; text-decoration: none; font-size: .75rem; font-weight: 500; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
+  .tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tab__ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 99px; transition: background-color .15s; }
+  .tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
+  .tab[aria-current="page"] .tab__ic { background: var(--pink); }
+  .tab:active .tab__ic { background: var(--lavender); }
+  .app { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 
   /* 반응형 */
   @media (max-width: 400px) {
@@ -188,6 +199,35 @@
     <p>© 2026 Midfielder 8th · Team T</p>
   </div>
 </footer>
+
+<nav class="tabbar" aria-label="하단 메뉴">
+  <a class="tab" href="#home" aria-current="page">
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>홈
+  </a>
+  <a class="tab" href="#articles">
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg></span>아티클
+  </a>
+  <a class="tab" href="#team">
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg></span>T조 소개
+  </a>
+</nav>
 </div>
+<script>
+  // 하단 메뉴: 지금 보고 있는 구간을 표시한다(스크롤 위치 기준, 맨 아래면 마지막 구간).
+  const tabs = [...document.querySelectorAll(".tab")];
+  const secs = tabs.map(t => document.querySelector(t.getAttribute("href")));
+  let tick = false;
+  function mark() {
+    tick = false;
+    const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
+    let on = 0;
+    secs.forEach((s, i) => { if (s.getBoundingClientRect().top <= innerHeight * 0.4) on = i; });
+    if (atEnd) on = secs.length - 1;
+    tabs.forEach((t, i) => i === on ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
+  }
+  addEventListener("scroll", () => { if (!tick) { tick = true; requestAnimationFrame(mark); } }, { passive: true });
+  addEventListener("resize", mark);
+  mark();
+</script>
 </body>
 </html>

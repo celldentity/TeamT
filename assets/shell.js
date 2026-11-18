@@ -6,9 +6,9 @@
   const html = document.documentElement;
   html.classList.add("pending");
 
-  // ── 전역 로더: 페이지가 열리는 동안(로그인 확인·첫 데이터 불러오기까지)과 안쪽 링크로 옮겨 가는 동안 «공 두 개» 가 돈다.
-  // 최소 MIN ms 는 떠 있다가 내려간다(너무 번쩍 사라지면 오히려 깜박여 보인다). TT.loader.show()/hide() 로 페이지가 직접 켜고 끌 수도 있다.
-  const MIN = 600;
+  // ── 전역 로더: 페이지가 열리는 동안(로그인 확인·첫 데이터 불러오기까지)과 안쪽 링크로 옮겨 가는 동안 마스코트가 콩콩 뛴다.
+  // 상단바·하단바는 가리지 않는다(그 사이 본문 자리만 덮는다). 최소 MIN ms 는 떠 있다가 내려간다(너무 번쩍 사라지면 오히려 깜박여 보인다). TT.loader.show()/hide() 로 페이지가 직접 켜고 끌 수도 있다.
+  const MIN = 500;   // 최소 0.5초(2026-11-18 요청) — 이보다 빨리 준비돼도 이만큼은 보여 준 뒤 내린다
   let busy = 0, shownAt = Date.now(), offT = 0, failT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
   document.body.insertAdjacentHTML("afterbegin",
     `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><img class="gl__img" src="/assets/icons/icon-v3-192.png" alt="" width="96" height="96" decoding="async"><i class="gl__sh"></i></div>` +
@@ -27,7 +27,7 @@
     gl.show();
   });
   addEventListener("pageshow", (e) => { if (e.persisted) gl.hide(); });
-  failT = setTimeout(() => gl.hide(), 10000);   // 무슨 일이 있어도 10초 뒤에는 화면을 돌려준다
+  failT = setTimeout(() => gl.hide(), 4000);   // 무슨 일이 있어도 4초 뒤에는 화면을 돌려준다
 
   const IC = {
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
@@ -238,9 +238,9 @@
     async refresh() { if (!pushOK() || Notification.permission !== "granted") return; try { if (sessionStorage.getItem("tt_push_ref")) return; sessionStorage.setItem("tt_push_ref", "1"); } catch {} await subscribe(false).catch(() => {}); },
   };
   TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); } });
-  // 로더 내리기: 로그인 확인 + 페이지 로드가 끝나고, 페이지가 시작한 서버 호출까지 모두 끝나면(첫 틱 뒤에 확인해야 페이지 스크립트가 호출을 시작한 뒤가 된다)
+  // 로더 내리기: 로그인 확인 + 화면 뼈대(DOM)가 준비되고, 페이지가 시작한 서버 호출까지 모두 끝나면(첫 틱 뒤에 확인해야 페이지 스크립트가 호출을 시작한 뒤가 된다)
   const settle = () => (busy ? setTimeout(settle, 60) : gl.hide());
-  Promise.all([TT.ready, new Promise((r) => (document.readyState === "complete" ? r() : addEventListener("load", r, { once: true })))]).then(() => setTimeout(settle, 0));
+  Promise.all([TT.ready, new Promise((r) => (document.readyState !== "loading" ? r() : addEventListener("DOMContentLoaded", r, { once: true })))]).then(() => setTimeout(settle, 0));   // 사진·글꼴이 다 받아질 때까지(load) 기다리지 않는다 — 그게 로더가 오래 떠 있던 주된 이유
   // 발표 버튼: 현재 가입한 5명(users.presenter)에게만 보인다(기기 상관없이). 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
   // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
   TT.ready.then((u) => {

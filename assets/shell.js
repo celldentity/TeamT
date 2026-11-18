@@ -21,23 +21,13 @@
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
     (GATE ? "" : `<nav class="nav" aria-label="주요 메뉴">${TABS.slice(0, 3).map(([p, l]) => `<a href="${p}"${cur(p)}>${l}</a>`).join("")}</nav>`) +
     `</div></header>`);
-  // 하단 메뉴는 가입 화면(/join)에도 둔다. 로그인 전에는 마이페이지(=가입·로그인)만 열리고 나머지는 잠금 표시.
-  const tabHtml = ([p, l, ic]) => {
-    const locked = GATE && p !== "/me", on = GATE ? p === "/me" : p === path;
-    return `<a class="tab${locked ? " tab--locked" : ""}" href="${GATE ? "/join" : p}"${on ? ' aria-current="page"' : ""}${locked ? ' aria-disabled="true"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
-  };
-  s.insertAdjacentHTML("afterend", `<nav class="tabbar" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
-  if (GATE) {
-    document.body.insertAdjacentHTML("beforeend", '<p class="toast" id="toast" role="status" aria-live="polite" hidden></p>');
-    let timer;
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".tab--locked")) return;
-      e.preventDefault();
-      const t = document.getElementById("toast");
-      t.textContent = "초대장으로 가입하거나 로그인하면 볼 수 있어요."; t.hidden = false;
-      clearTimeout(timer); timer = setTimeout(() => (t.hidden = true), 2400);
-    });
-  }
+  // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
+  // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
+  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === path ? ' aria-current="page"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
+  s.insertAdjacentHTML("afterend", GATE
+    ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
+    : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
+  try { if (localStorage.getItem("tt_in") === "1") html.classList.add("known"); } catch {}
 
   // 스크롤 진행 표시: 헤더 아래 경계선이 왼쪽에서 오른쪽으로 차오른다
   const top = document.getElementById("top");
@@ -70,6 +60,7 @@
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;
+    try { user ? localStorage.setItem("tt_in", "1") : localStorage.removeItem("tt_in"); } catch {}
     if (!user && !GATE) { location.replace("/join"); return never; }
     if (user && GATE) { location.replace("/"); return never; }
     const me = document.querySelector('.tab[href="/me"] .tab__ic');

@@ -85,9 +85,8 @@ module.exports = async (req, res) => {
       if (bad) return L.json(res, 400, { error: bad });
       const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body) VALUES (?, ?, ?, ?, ?)", [me.id, f.ai, f.category, f.title, f.body]);
       if (f.media && f.media.length) await setMedia(db, r.insertId, f.media);
-      // 새 글 폰 푸시: 알림을 켠 다른 팀원에게. 실패해도 글쓰기는 성공으로 돌려준다.
-      try { await require("./_push").sendToAll({ title: "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}` }, me.id); }
-      catch (e) { console.error("push fanout", e); }
+      // 새 글 폰 알림: 알림을 켠 다른 팀원 모두에게. 실패해도 글쓰기는 성공으로 돌려준다.
+      await require("./_push").notify(null, () => ({ title: "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }), [me.id]).catch((e) => console.error("push post", e));
       return L.json(res, 201, { id: r.insertId });
     }
 

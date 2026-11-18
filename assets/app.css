@@ -412,3 +412,11 @@ a.art { text-decoration: none; color: inherit; }
 .mg__add input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
 .mg__add:focus-within { outline: 3px solid var(--ink); outline-offset: 2px; }
 .mg__hint { margin-top: 0; font-weight: 400; }
+
+/* 알림 켜기 권유 카드(홈·아티클·글 보기 위쪽, shell.js nudge) */
+.nudge { display: grid; gap: 10px; margin: 12px 0 16px; padding: 14px 14px 12px 16px; background: var(--lavender-tint); border: 1.5px solid var(--lavender-deep); border-radius: 18px; }
+.nudge__t { display: grid; gap: 2px; font-size: .875rem; line-height: 1.5; color: var(--ink-soft); }
+.nudge__t b { font-size: 1rem; color: var(--ink); }
+.nudge__b { display: flex; gap: 8px; }
+.nudge__b .btn { flex: 1; text-decoration: none; }
+.nudge .msg { margin: 0; }

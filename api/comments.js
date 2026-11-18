@@ -26,6 +26,18 @@ module.exports = async (req, res) => {
         parentId = par[0].parent_id || par[0].id; // 답글에 답해도 같은 댓글 아래에 모은다(한 단계)
       }
       const [r] = await db.query("INSERT INTO comments (post_id, parent_id, author_id, body) VALUES (?, ?, ?, ?)", [postId, parentId, me.id, text]);
+      // 폰 알림: 내 글에 댓글이 달리면 글쓴이에게, 내 댓글에 답글이 달리면 그 댓글을 쓴 사람에게. 한 사람에게 한 번만, 나 자신은 뺀다(알림 페이지의 규칙과 같다).
+      try {
+        const [[info]] = await db.query("SELECT p.author_id AS post_author, p.title, pc.author_id AS parent_author FROM posts p LEFT JOIN comments pc ON pc.id = ? WHERE p.id = ?", [parentId, postId]);
+        const to = new Map();
+        if (info.parent_author && info.parent_author !== me.id) to.set(info.parent_author, "reply");
+        if (info.post_author && info.post_author !== me.id && !to.has(info.post_author)) to.set(info.post_author, "comment");
+        const snip = text.replace(/\s+/g, " ").slice(0, 90);
+        await require("./_push").notify([...to.keys()], (uid) => ({
+          title: to.get(uid) === "reply" ? `${me.nickname}님이 답글을 남겼어요` : `${me.nickname}님이 내 글에 댓글을 남겼어요`,
+          body: snip, url: `/article?id=${postId}#c${r.insertId}`, tag: `c-${r.insertId}`, badge: "auto",
+        }));
+      } catch (e) { console.error("push comment", e); }
       return L.json(res, 201, { id: r.insertId });
     }
 

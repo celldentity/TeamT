@@ -2,13 +2,19 @@
 // 인터넷이 끊겼을 때 페이지 이동만 안내 문구로 받아 준다.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
-// 폰 푸시: 서버(api/_push.js)가 {title, body, url, tag} 를 보내면 알림을 띄우고, 누르면 그 글로 간다.
+// 폰 푸시: 서버(api/_push.js)가 {title, body, url, tag, badge?} 를 보내면 알림을 띄우고, 누르면 그 글로 간다.
+// badge(안 읽은 알림 수)가 오면 앱 아이콘 위 숫자도 바꾼다(0 이면 지운다) — 설치한 앱(홈 화면 아이콘)에서 보인다.
 self.addEventListener("push", (e) => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch {}
-  e.waitUntil(self.registration.showNotification(d.title || "HR T | 니핑", {
-    body: d.body || "", tag: d.tag, data: { url: d.url || "/" },
-    icon: "/assets/icons/icon-v3-192.png",
-  }));
+  e.waitUntil((async () => {
+    await self.registration.showNotification(d.title || "HR T | 니핑", {
+      body: d.body || "", tag: d.tag, data: { url: d.url || "/" },
+      icon: "/assets/icons/icon-v3-192.png",
+    });
+    if (typeof d.badge === "number" && self.navigator) {
+      try { if (d.badge > 0 && self.navigator.setAppBadge) await self.navigator.setAppBadge(d.badge); else if (self.navigator.clearAppBadge) await self.navigator.clearAppBadge(); } catch {}
+    }
+  })());
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();

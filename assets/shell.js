@@ -180,7 +180,61 @@
     return user;
   }).catch((e) => { html.classList.remove("pending"); console.error(e); return null; });
   // 상단 알림 숫자(0 이면 숨김), 로그아웃
-  TT.setBell = (n) => { const b = document.getElementById("bellN"); if (!b) return; b.hidden = !n; b.textContent = n > 99 ? "99+" : n; document.querySelector(".bell")?.setAttribute("aria-label", n ? `알림 ${n}개` : "알림"); };
+  // 앱 아이콘 위 숫자(배지) — 홈 화면에 추가한 앱에서 보인다. 상단 종 숫자(안 읽은 알림 수)와 같은 값.
+  const appBadge = (n) => { try { const r = n > 0 ? navigator.setAppBadge?.(n) : navigator.clearAppBadge?.(); r?.catch?.(() => {}); } catch {} };
+  TT.setBell = (n) => { appBadge(n); const b = document.getElementById("bellN"); if (!b) return; b.hidden = !n; b.textContent = n > 99 ? "99+" : n; document.querySelector(".bell")?.setAttribute("aria-label", n ? `알림 ${n}개` : "알림"); };
+  // ── 폰 알림(웹 푸시): 이 기기에서 켜고 끄기 ──
+  const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  const swReg = () => Promise.race([navigator.serviceWorker.ready, new Promise((r) => setTimeout(() => r(null), 6000))]).catch(() => null);   // 서비스워커 등록이 안 되면 ready 가 영영 안 끝난다
+  const b64 = (b) => Uint8Array.from(atob(b.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+  async function subscribe(welcome) {
+    const reg = await swReg(); if (!reg) throw new Error("알림을 준비하지 못했어요. 새로고침한 뒤 다시 시도해 주세요.");
+    const { publicKey } = await call("/api/push");
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(publicKey) });
+    return call("/api/push", "POST", { subscription: sub.toJSON(), welcome: !!welcome });
+  }
+  TT.push = {
+    supported: pushOK,
+    async state() {   // unsupported | denied | on | off
+      if (!pushOK()) return "unsupported";
+      if (Notification.permission === "denied") return "denied";
+      const reg = await swReg(); if (!reg) return "unsupported";
+      return (await reg.pushManager.getSubscription()) && Notification.permission === "granted" ? "on" : "off";
+    },
+    // 버튼을 누른 바로 그 순간에 불러야 한다(권한 창은 사용자가 눌러야만 뜬다). 성공하면 «켜졌어요» 알림이 이 기기로 바로 온다.
+    async enable() {
+      if ((await Notification.requestPermission()) !== "granted") throw new Error("알림이 차단돼 있어요. 폰(또는 브라우저) 설정에서 이 사이트의 알림을 허용해 주세요.");
+      return subscribe(true);
+    },
+    async disable() { const reg = await swReg(), sub = reg && await reg.pushManager.getSubscription(); if (sub) { await call("/api/push", "DELETE", { endpoint: sub.endpoint }).catch(() => {}); await sub.unsubscribe(); } },
+    // 이미 허용된 기기는 조용히 «지금 로그인한 사람의 기기»로 다시 맞춘다(같은 폰에서 계정이 바뀌었거나 구독이 만료됐을 때). 세션당 한 번.
+    async refresh() { if (!pushOK() || Notification.permission !== "granted") return; try { if (sessionStorage.getItem("tt_push_ref")) return; sessionStorage.setItem("tt_push_ref", "1"); } catch {} await subscribe(false).catch(() => {}); },
+  };
+  // 처음 들어온 사람에게 한 번 «알림 켜기» 를 권한다(홈·아티클·글 보기 위쪽에 끼워 넣는 카드). «나중에» 는 3일 동안 다시 묻지 않는다.
+  // 아이폰은 사파리 탭에서는 알림이 안 되고 «홈 화면에 추가한 앱» 에서만 되므로, 그 안내 카드로 바꿔 보여 준다.
+  async function nudge() {
+    if (GATE || !["/", "/articles", "/team", "/article"].includes(path)) return;
+    try { if (Date.now() - Number(localStorage.getItem("tt_nudge") || 0) < 3 * 864e5) return; } catch {}
+    const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+    let kind = null;
+    if (pushOK()) { if ((await TT.push.state()) === "off") kind = "ask"; } else if (ios && !standalone) kind = "ios";
+    if (!kind) return;
+    const el = document.createElement("section"); el.className = "nudge"; el.setAttribute("aria-label", "알림 켜기");
+    el.innerHTML = kind === "ask"
+      ? `<div class="nudge__t"><b>폰 알림 켜기</b><span>새 글·내 글의 댓글과 좋아요를 앱을 열지 않아도 바로 알려드려요.</span></div><div class="nudge__b"><button class="btn btn--sm" type="button" data-n="on">알림 켜기</button><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div><p class="msg msg--err" role="alert"></p>`
+      : `<div class="nudge__t"><b>폰 알림 받으려면</b><span>아이폰은 이 사이트를 <b>홈 화면에 추가</b>한 앱에서만 알림이 와요.</span></div><div class="nudge__b"><a class="btn btn--sm" href="/me#install">방법 보기</a><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div>`;
+    (document.querySelector("main .wrap") || document.querySelector("main")).prepend(el);
+    el.addEventListener("click", async (e) => {
+      const act = e.target.closest("[data-n]")?.dataset.n; if (!act) return;
+      if (act === "no") { try { localStorage.setItem("tt_nudge", String(Date.now())); } catch {} el.remove(); return; }
+      const btn = e.target.closest("button"), err = el.querySelector(".msg"); btn.disabled = true; err.textContent = "";
+      try { await TT.push.enable(); el.innerHTML = '<div class="nudge__t"><b>알림이 켜졌어요 🔔</b><span>방금 이 폰으로 확인 알림을 보냈어요.</span></div>'; setTimeout(() => el.remove(), 4000); }
+      catch (x) { err.textContent = x.message || "알림을 켜지 못했어요. 잠시 뒤 다시 시도해 주세요."; btn.disabled = false; }
+    });
+  }
+  TT.nudge = nudge;
+  TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); nudge(); } });
   if (!GATE) {   // 로그아웃: 아이콘을 누르면 가운데 창에서 한 번 더 묻는다
     document.body.insertAdjacentHTML("beforeend", `<div class="dlg" id="logoutDlg" role="alertdialog" aria-modal="true" aria-labelledby="logoutT" hidden><div class="dlg__card">
       <h2 class="dlg__t" id="logoutT">로그아웃 하시겠습니까?</h2><p class="dlg__p">다시 들어오려면 이메일과 비밀번호가 필요해요.</p>

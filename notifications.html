@@ -26,9 +26,9 @@
   <section class="sec" aria-labelledby="n-title">
     <div class="wrap">
       <h1 class="sec__title" id="n-title">알림</h1>
-      <p class="sec__lead" id="n-lead">내 글과 댓글에 생긴 일을 모아 보여 줘요.</p>
+      <p class="sec__lead" id="n-lead">새 글과, 내 글·내 댓글에 생긴 일을 모아 보여 줘요.</p>
       <ul class="noti-list" id="list"></ul>
-      <div class="empty" id="empty" hidden>아직 알림이 없어요.<br>내 글이나 댓글에 댓글·답글·좋아요가 생기면 여기에 쌓여요.</div>
+      <div class="empty" id="empty" hidden>아직 알림이 없어요.<br>새 글이 올라오거나 내 글·댓글에 댓글·답글·좋아요가 생기면 여기에 쌓여요.</div>
       <p class="msg msg--err" id="err" role="alert"></p>
     </div>
   </section>
@@ -39,7 +39,8 @@
     if (!user) return;
     const $ = (s) => document.querySelector(s);
     const text = (n) => {
-      const a = `<b>${TT.esc(n.actor.nickname)}</b>님이`, t = `내 글 «${TT.esc(n.postTitle)}»`;
+      const a = n.actor.id ? `<b>${TT.esc(n.actor.nickname)}</b>님이` : `<b>T조 AI</b>가`, t = `내 글 «${TT.esc(n.postTitle)}»`;
+      if (n.kind === "post") return `${a} 새 글을 올렸어요`;
       return n.kind === "comment" ? `${a} ${t}에 댓글을 남겼어요`
         : n.kind === "reply" ? `${a} 내 댓글에 답글을 남겼어요`
         : n.kind === "like_post" ? `${a} ${t}을 좋아해요`
@@ -52,7 +53,7 @@
       $("#list").innerHTML = items.map((n) => `<li><a class="noti${n.isNew ? " noti--new" : ""}" href="/article?id=${n.postId}${n.kind === "comment" || n.kind === "reply" ? "#c" + n.refId : ""}">
         <span class="noti__av">${TT.avatar(n.actor)}</span>
         <div><p class="noti__txt">${text(n)}${n.isNew ? '<span class="noti__new" aria-label="새 알림"></span>' : ""}</p>
-        ${n.snippet ? `<p class="noti__snip">${TT.esc(n.snippet.replace(/\s+/g, " "))}</p>` : ""}<p class="noti__time">${TT.ago(n.createdAt)}</p></div></a></li>`).join("");
+        ${n.kind === "post" ? `<p class="noti__snip">${TT.esc(n.postTitle)}</p>` : n.snippet ? `<p class="noti__snip">${TT.esc(n.snippet.replace(/\s+/g, " "))}</p>` : ""}<p class="noti__time">${TT.ago(n.createdAt)}</p></div></a></li>`).join("");
       // 목록을 보여 준 뒤 «확인함»으로 표시(상단 숫자도 지운다). 이번에 본 새 알림은 위에서 이미 강조해 두었다.
       if (unread) { await TT.call("/api/notifications", "POST", { read: true }); TT.setBell(0); }
     } catch (e) { $("#err").textContent = e.message; }

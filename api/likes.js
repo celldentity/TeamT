@@ -17,6 +17,20 @@ module.exports = async (req, res) => {
     let liked = false;
     if (del.affectedRows === 0) { await db.query("INSERT IGNORE INTO likes (target_type, target_id, user_id) VALUES (?, ?, ?)", [type, id, me.id]); liked = true; }
     const [n] = await db.query("SELECT COUNT(*) AS n FROM likes WHERE target_type = ? AND target_id = ?", [type, id]);
+    // 폰 알림: 좋아요를 «켰을» 때만, 내 글·내 댓글을 쓴 사람에게(T조 AI 글은 받는 사람이 없다). 같은 대상은 tag 가 같아 기기에서 하나로 합쳐진다.
+    if (liked) {
+      try {
+        const [[o]] = type === "p"
+          ? await db.query("SELECT author_id AS owner, id AS post_id, title AS what FROM posts WHERE id = ?", [id])
+          : await db.query("SELECT c.author_id AS owner, c.post_id, LEFT(c.body, 60) AS what FROM comments c WHERE c.id = ?", [id]);
+        if (o && o.owner && o.owner !== me.id) {
+          await require("./_push").notify([o.owner], () => ({
+            title: `${me.nickname}님이 ${type === "p" ? "내 글을" : "내 댓글을"} 좋아해요`,
+            body: type === "p" ? `«${o.what}»` : String(o.what).replace(/\s+/g, " "), url: `/article?id=${o.post_id}${type === "c" ? "#c" + id : ""}`, tag: `like-${type}-${id}`, badge: "auto",
+          }));
+        }
+      } catch (e) { console.error("push like", e); }
+    }
     return L.json(res, 200, { liked, count: Number(n[0].n) });
   } catch (e) {
     console.error("likes", e);

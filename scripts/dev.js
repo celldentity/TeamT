@@ -6,7 +6,7 @@ for (const l of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n/))
 const TYPES = { ".webmanifest": "application/manifest+json", ".png": "image/png", ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");
-  const api = /^\/api\/([a-z]+)$/.exec(u.pathname);
+  const api = /^\/api\/([a-z-]+)$/.exec(u.pathname);
   if (api && fs.existsSync(path.join(root, "api", api[1] + ".js"))) {
     req.query = Object.fromEntries(u.searchParams);
     let raw = ""; for await (const c of req) raw += c;

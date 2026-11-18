@@ -48,11 +48,12 @@ const clearSession = (req, res) => res.setHeader("Set-Cookie", `tt_s=; HttpOnly;
 
 async function currentUser(req) {
   const s = readSession(req); if (!s) return null;
-  const [rows] = await db().query("SELECT id, email, nickname, bio, photo_v FROM users WHERE id = ?", [s.uid]);
+  const [rows] = await db().query("SELECT id, email, nickname, bio, photo_v, cover_v FROM users WHERE id = ?", [s.uid]);
   return rows[0] || null;
 }
 const photoUrl = (u) => (u.photo_v > 0 ? `/api/photo?u=${u.id}&v=${u.photo_v}` : null);
-const publicUser = (u) => ({ id: u.id, email: u.email, nickname: u.nickname, bio: u.bio || "", photoUrl: photoUrl(u) });
+const coverUrl = (u) => (u.cover_v > 0 ? `/api/photo?u=${u.id}&k=cover&v=${u.cover_v}` : null);
+const publicUser = (u) => ({ id: u.id, email: u.email, nickname: u.nickname, bio: u.bio || "", photoUrl: photoUrl(u), coverUrl: coverUrl(u) });
 const len = (s) => [...String(s)].length; // 이모지도 1글자로 센다
 
 // 초대장 정책 — 숫자 하나로 조정한다

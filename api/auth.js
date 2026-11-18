@@ -34,7 +34,7 @@ async function signup(req, res, { email, password, nickname, code }) {
 }
 
 async function login(req, res, { email, password }) {
-  const [rows] = await L.db().query("SELECT id, email, nickname, bio, photo_v, pw_hash FROM users WHERE email = ?", [email]);
+  const [rows] = await L.db().query("SELECT id, email, nickname, bio, photo_v, cover_v, pw_hash FROM users WHERE email = ?", [email]);
   const u = rows[0];
   const ok = await L.checkPw(password, u ? u.pw_hash : DUMMY);
   if (!u || !ok) return { status: 401, error: "이메일 또는 비밀번호가 맞지 않습니다." };

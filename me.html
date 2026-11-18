@@ -29,6 +29,11 @@
       <p class="sec__lead" id="me-lead"></p>
 
       <div class="me-card">
+        <div class="me-cover" id="cover">
+          <label class="cover-btn">커버 바꾸기
+            <input id="coverFile" type="file" accept="image/*" aria-label="커버 사진 고르기">
+          </label>
+        </div>
         <div class="avatar" id="avatar" aria-hidden="true"></div>
         <p class="me-name" id="meName"></p>
         <p class="me-mail" id="meMail"></p>
@@ -36,6 +41,7 @@
           <input id="photo" type="file" accept="image/*" aria-label="프로필 사진 고르기">
         </label>
         <p class="msg msg--err" id="photoMsg" role="alert"></p>
+        <p class="msg msg--err" id="coverMsg" role="alert"></p>
       </div>
 
       <form class="form me-sec" id="profForm" novalidate>
@@ -58,6 +64,7 @@
       <section class="install" id="install" aria-labelledby="inst-title" hidden>
         <h2 id="inst-title">홈 화면에 추가</h2>
         <p id="instLead"></p>
+        <p><b>안드로이드는 Chrome, 아이폰은 Safari</b> 브라우저로 이 사이트를 열어야 홈 화면에 추가할 수 있어요. 카카오톡·인스타그램 같은 앱 안의 브라우저에서는 안 돼요.</p>
         <ol id="instSteps" hidden></ol>
         <button class="btn btn--block" type="button" id="instBtn" hidden></button>
       </section>
@@ -76,6 +83,8 @@
     function render(u) {
       TT.user = u; TT.setTabUser(u);
       $("#avatar").innerHTML = TT.avatar(u);
+      $("#cover").classList.toggle("me-cover--img", !!u.coverUrl);
+      $("#cover").style.backgroundImage = u.coverUrl ? `url("${u.coverUrl}")` : "";
       $("#meName").textContent = u.nickname; $("#meMail").textContent = u.email;
       $("#nickInput").value = u.nickname; $("#bioInput").value = u.bio || "";
       $("#me-lead").textContent = u.nickname + "님, 반가워요.";
@@ -91,21 +100,25 @@
       busy(btn, false, "저장");
     });
 
-    // 사진은 브라우저에서 가운데를 정사각형으로 잘라 256px JPEG 로 줄여 올린다(서버·R2 용량 절약).
-    async function toJpeg(file) {
+    // 사진은 브라우저에서 가운데를 w:h 비율로 잘라 JPEG 로 줄여 올린다(서버·R2 용량 절약). 프로필 = 256x256, 커버 = 960x320(3:1).
+    async function toJpeg(file, w, h) {
       const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-      const s = Math.min(bmp.width, bmp.height), c = document.createElement("canvas");
-      c.width = c.height = 256;
-      c.getContext("2d").drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, 256, 256);
+      const sw = Math.min(bmp.width, bmp.height * (w / h)), sh = sw / (w / h), c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, 0, 0, w, h);
       return c.toDataURL("image/jpeg", 0.85);
     }
-    $("#photo").addEventListener("change", async (e) => {
-      const f = e.target.files[0], msg = $("#photoMsg"); msg.textContent = "";
-      if (!f) return;
-      try { const { user: u } = await TT.call("/api/photo", "POST", { image: await toJpeg(f) }); render(u); }
-      catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
-      e.target.value = "";
-    });
+    function picker(input, msgSel, url, w, h) {
+      input.addEventListener("change", async (e) => {
+        const f = e.target.files[0], msg = $(msgSel); msg.textContent = "";
+        if (!f) return;
+        try { const { user: u } = await TT.call(url, "POST", { image: await toJpeg(f, w, h) }); render(u); }
+        catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
+        e.target.value = "";
+      });
+    }
+    picker($("#photo"), "#photoMsg", "/api/photo", 256, 256);
+    picker($("#coverFile"), "#coverMsg", "/api/photo?k=cover", 960, 320);
 
     $("#logoutBtn").addEventListener("click", async () => { try { await TT.call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
 

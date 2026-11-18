@@ -13,14 +13,11 @@
     me: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg>',
   };
   const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
-  const cur = (p) => (p === path ? ' aria-current="page"' : "");
-
   const s = document.currentScript;
   s.parentElement.classList.toggle("app--gate", GATE);
   s.insertAdjacentHTML("beforebegin",
-    `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<nav class="nav" aria-label="주요 메뉴">${TABS.slice(0, 3).map(([p, l]) => `<a href="${p}"${cur(p)}>${l}</a>`).join("")}</nav>`) +
-    `</div></header>`);
+    // 상단에는 로고만 둔다 — 메뉴는 하단바에 있어서 중복으로 두지 않는다.
+    `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a></div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
   const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === path ? ' aria-current="page"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;

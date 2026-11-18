@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# 커밋 직전 검사 — 올리려는 "추가된 줄"에 비밀값·개인정보가 있으면 커밋을 막는다 (README 포함 모든 파일).
+# 켜기(한 번): git config core.hooksPath .githooks      우회(정말 괜찮을 때만): git commit --no-verify
+# 내 계정명·이메일 같은 개인 목록은 저장소에 두면 그 자체가 노출이라 .git/deny-patterns.txt 에 둔다(한 줄에 정규식 하나, # 주석).
+# ponytail: 줄 단위 정규식 — 이미지·base64 로 숨긴 값은 못 잡는다. 더 필요하면 gitleaks.
+set -u
+cd "$(git rev-parse --show-toplevel)"
+
+# 1) 애초에 올라오면 안 되는 파일
+bad=$(git diff --cached --name-only --diff-filter=AM | grep -E '(^|/)(\.env|CLAUDE\.md)$|\.(bundle|pem|key)$' || true)
+[ -n "$bad" ] && { echo "✋ 올리면 안 되는 파일: $bad"; echo "   git restore --staged <파일>"; exit 1; }
+
+# 2) 추가된 줄의 내용
+P=$(mktemp); trap 'rm -f "$P"' EXIT
+cat > "$P" <<'EOF'
+AKIA[0-9A-Z]{16}
+gh[pousr]_[A-Za-z0-9]{30,}
+-----BEGIN [A-Z ]*PRIVATE KEY
+[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}
+(password|passwd|secret|token|api_?key)[A-Za-z_]*[ ]*[:=][ ]*["']?[A-Za-z0-9+/_.-]{16,}
+mysql(\+[a-z]+)?://[^<:/ ]+:[^<@ ]{4,}@
+EOF
+[ -f .git/deny-patterns.txt ] && grep -vE '^[[:space:]]*(#|$)' .git/deny-patterns.txt >> "$P"
+
+fail=0
+for f in $(git diff --cached --name-only --diff-filter=AM); do
+  case "$f" in package-lock.json|*.png|*.jpg|*.ico) continue;; esac
+  hit=$(git diff --cached -U0 -- "$f" | grep -E '^\+[^+]' | grep -iEf "$P" | cut -c1-110 || true)
+  [ -n "$hit" ] && { echo "✋ $f"; echo "$hit" | sed 's/^/   /'; fail=1; }
+done
+[ $fail -eq 1 ] && { echo; echo "위 줄에 비밀값·개인정보로 보이는 것이 있어 커밋을 멈췄어요. 고치거나, 괜찮다면 --no-verify."; exit 1; }
+exit 0

@@ -75,6 +75,7 @@ ALTER = [
     "ALTER TABLE users ADD COLUMN bio VARCHAR(200) NOT NULL DEFAULT '' AFTER nickname",
     "ALTER TABLE users ADD COLUMN invited_by BIGINT NULL AFTER photo_v",
     "ALTER TABLE users ADD COLUMN cover_v INT NOT NULL DEFAULT 0 AFTER photo_v",   # 커버 사진(0 = 없음, 올릴 때마다 +1)
+    "ALTER TABLE users ADD COLUMN notif_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",   # 알림을 마지막으로 확인한 시각(이후 생긴 것이 «새 알림»)
 ]
 
 db = pymysql.connect(host=os.environ["TIDB_HOST"], port=int(os.environ["TIDB_PORT"]), user=os.environ["TIDB_USER"],

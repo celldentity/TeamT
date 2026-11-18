@@ -50,7 +50,14 @@
 
     async function load() {
       try { data = await TT.call("/api/posts?id=" + id); } catch (x) { fail(x.message); return; }
-      drawPost(); drawComments();
+      drawPost(); drawComments(); jump();
+    }
+    // 알림에서 들어오면(#c댓글번호) 그 댓글로 스크롤하고 잠깐 강조한다 — 처음 한 번만
+    let jumped = false;
+    function jump() {
+      if (jumped) return; jumped = true;
+      const m = /^#c(\d+)$/.exec(location.hash), el = m && document.querySelector(`[data-cid="${m[1]}"]`);
+      if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("cmt--hit"); }
     }
     const likeBtn = (cls, kind, tid, liked, n) => `<button class="${cls}" type="button" data-act="like" data-kind="${kind}" data-id="${tid}" aria-pressed="${liked}">${TT.heart}<span>${n}</span></button>`;
 

@@ -11,6 +11,7 @@ let pool, s3;
 const db = () => (pool ??= mysql.createPool({
   host: env.TIDB_HOST, port: Number(env.TIDB_PORT), user: env.TIDB_USER, password: env.TIDB_PASSWORD,
   database: env.TIDB_DATABASE, ssl: { minVersion: "TLSv1.2" }, connectionLimit: 2, charset: "utf8mb4",
+  timezone: "Z", // TiDB 는 UTC 로 시각을 돌려준다 — 서버(Vercel=UTC)나 내 PC(KST)나 같게 해석하도록 고정
 }));
 const r2 = () => (s3 ??= new S3Client({
   region: "auto", endpoint: env.R2_ENDPOINT,

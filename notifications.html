@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>알림 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="내 글과 댓글에 생긴 알림.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="n-title">
+    <div class="wrap">
+      <h1 class="sec__title" id="n-title">알림</h1>
+      <p class="sec__lead" id="n-lead">내 글과 댓글에 생긴 일을 모아 보여 줘요.</p>
+      <ul class="noti-list" id="list"></ul>
+      <div class="empty" id="empty" hidden>아직 알림이 없어요.<br>내 글이나 댓글에 댓글·답글·좋아요가 생기면 여기에 쌓여요.</div>
+      <p class="msg msg--err" id="err" role="alert"></p>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s);
+    const text = (n) => {
+      const a = `<b>${TT.esc(n.actor.nickname)}</b>님이`, t = `내 글 «${TT.esc(n.postTitle)}»`;
+      return n.kind === "comment" ? `${a} ${t}에 댓글을 남겼어요`
+        : n.kind === "reply" ? `${a} 내 댓글에 답글을 남겼어요`
+        : n.kind === "like_post" ? `${a} ${t}을 좋아해요`
+        : `${a} 내 댓글을 좋아해요`;
+    };
+    try {
+      const { items, unread } = await TT.call("/api/notifications");
+      $("#empty").hidden = items.length > 0;
+      if (unread) $("#n-lead").textContent = `새 알림 ${unread}개가 있어요.`;
+      $("#list").innerHTML = items.map((n) => `<li><a class="noti${n.isNew ? " noti--new" : ""}" href="/article?id=${n.postId}${n.kind === "comment" || n.kind === "reply" ? "#c" + n.refId : ""}">
+        <span class="noti__av">${TT.avatar(n.actor)}</span>
+        <div><p class="noti__txt">${text(n)}${n.isNew ? '<span class="noti__new" aria-label="새 알림"></span>' : ""}</p>
+        ${n.snippet ? `<p class="noti__snip">${TT.esc(n.snippet.replace(/\s+/g, " "))}</p>` : ""}<p class="noti__time">${TT.ago(n.createdAt)}</p></div></a></li>`).join("");
+      // 목록을 보여 준 뒤 «확인함»으로 표시(상단 숫자도 지운다). 이번에 본 새 알림은 위에서 이미 강조해 두었다.
+      if (unread) { await TT.call("/api/notifications", "POST", { read: true }); TT.setBell(0); }
+    } catch (e) { $("#err").textContent = e.message; }
+  });
+</script>
+</body>
+</html>

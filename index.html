@@ -2,114 +2,137 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TeamT — 팀의 한 주를 한 장에</title>
-<meta name="description" content="월요일에 목표를 정하고 금요일에 함께 돌아보는, 소규모 팀을 위한 주간 보드. 파일럿 참여 팀을 모집합니다.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HR T니핑 프로젝트 — 인사 업무의 한 주를 한 장에</title>
+<meta name="description" content="월요일에 목표를 정하고 금요일에 함께 돌아보는 HR 주간 보드. T니핑 프로젝트 파일럿 참여자를 모집합니다.">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23D4F65A'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23231A52'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230066FF'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
 <style>
-  /* TeamT — 흰 종이 위의 형광펜. 연두·보라는 AIBUNKER/HSMnT 가 거의 쓰지 않은 색조다. */
+  /* HR T니핑 — 원티드 파랑 + 중립 회색 위에 티니핑 파스텔을 포인트로. 메뉴는 상단, 모바일 우선. */
   :root {
     color-scheme: light;
+    --blue: #0066ff;
+    --blue-strong: #0054d1;
+    --blue-tint: #f2f7ff;
+    --label: #171719;
+    --label-soft: #5a5c63;
+    --line: #dbdcdf;
+    --bg-alt: #f7f7f8;
     --paper: #ffffff;
-    --grid: #e9e7f5;
-    --surface: #f1eeff;
-    --surface-deep: #d9d2ff;
-    --ink: #231a52;
-    --ink-soft: #5a5384;
-    --lime: #d4f65a;
-    --focus: #5b3fe0;
-    --display: "Black Han Sans", "IBM Plex Sans KR", system-ui, sans-serif;
-    --body: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+    /* 티니핑 파스텔 — 글자는 항상 --label 로 올린다 */
+    --pink: #ffb3d6;
+    --lilac: #d2b8ff;
+    --mint: #a8ecd8;
+    --lemon: #ffe58a;
+    --sky: #a8d8ff;
+    --font: "Malgun Gothic", "맑은 고딕", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
     --gutter: clamp(16px, 4vw, 40px);
+    --bar-h: 60px;
   }
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
-  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.7 var(--body); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  html { scroll-behavior: smooth; scroll-padding-top: calc(var(--bar-h) + 56px); -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--label); font: 400 1rem/1.7 "Noto Sans KR", var(--font); word-break: keep-all; -webkit-font-smoothing: antialiased; }
   h1, h2, h3, p, ul, ol { margin: 0; }
   ul, ol { padding: 0; list-style: none; }
   a { color: inherit; }
-  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
 
-  .wrap { width: min(1160px, 100% - 2 * var(--gutter)); margin-inline: auto; }
-  .skip { position: absolute; left: 16px; top: -64px; background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 10; }
+  .wrap { width: min(1120px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+  .skip { position: absolute; left: 16px; top: -64px; background: var(--label); color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 20; }
   .skip:focus { top: 12px; }
 
-  /* 헤더 */
-  .bar { position: sticky; top: 0; z-index: 5; background: rgb(255 255 255 / .92); backdrop-filter: blur(8px); border-bottom: 2px solid var(--ink); }
-  .bar__in { display: flex; align-items: center; gap: 24px; min-height: 64px; }
-  .logo { font: 400 1.75rem/1 var(--display); text-decoration: none; letter-spacing: -.01em; margin-right: auto; }
-  .nav { display: flex; gap: 28px; font-weight: 500; }
-  .nav a { text-decoration: none; padding: 6px 0; background: linear-gradient(var(--lime), var(--lime)) 0 100% / 0 .5em no-repeat; transition: background-size .18s ease-out; }
-  .nav a:hover { background-size: 100% .5em; }
+  /* 상단 메뉴 */
+  .top { position: sticky; top: 0; z-index: 10; background: rgb(255 255 255 / .94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
+  .candy { display: flex; height: 4px; }
+  .candy i { flex: 1; }
+  .candy i:nth-child(1) { background: var(--pink); }
+  .candy i:nth-child(2) { background: var(--lilac); }
+  .candy i:nth-child(3) { background: var(--sky); }
+  .candy i:nth-child(4) { background: var(--mint); }
+  .candy i:nth-child(5) { background: var(--lemon); }
+  .top__in { display: flex; align-items: center; gap: 28px; min-height: calc(var(--bar-h) - 4px); }
+  .logo { display: inline-flex; align-items: baseline; text-decoration: none; font-weight: 900; font-size: 1.375rem; letter-spacing: -.04em; margin-right: auto; }
+  .logo i { font-style: normal; color: var(--blue); }
+  .logo span { margin-right: 6px; padding: 2px 6px; font-weight: 700; font-size: .75rem; letter-spacing: 0; color: var(--blue); background: var(--blue-tint); border-radius: 6px; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { padding: 8px 14px; border-radius: 10px; text-decoration: none; font-weight: 500; color: var(--label-soft); transition: background-color .15s, color .15s; }
+  .nav a:hover { background: var(--bg-alt); color: var(--label); }
 
   /* 버튼 */
-  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; font: 600 1rem/1 var(--body); text-decoration: none; color: var(--ink); background: var(--lime); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 4px 4px 0 var(--ink); transition: transform .12s, box-shadow .12s; cursor: pointer; }
-  .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
-  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
-  .btn--sm { min-height: 40px; padding: 0 16px; font-size: .9375rem; box-shadow: 3px 3px 0 var(--ink); }
-  .link { font-weight: 600; text-decoration: none; background: linear-gradient(var(--lime), var(--lime)) 0 100% / 100% .45em no-repeat; padding-bottom: 2px; }
-  .link:hover { background-size: 100% 100%; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 26px; font: 700 1rem/1 "Noto Sans KR", var(--font); text-decoration: none; color: #fff; background: var(--blue); border: 0; border-radius: 12px; transition: background-color .15s, transform .1s; cursor: pointer; }
+  .btn:hover { background: var(--blue-strong); }
+  .btn:active { transform: scale(.98); }
+  .btn--sm { min-height: 40px; padding: 0 16px; font-size: .9375rem; border-radius: 10px; }
+  .link { font-weight: 700; color: var(--blue); text-decoration: none; padding: 8px 0; }
+  .link:hover { text-decoration: underline; text-underline-offset: 4px; }
 
   /* 히어로 */
-  .hero { position: relative; padding: clamp(40px, 7vw, 88px) 0 clamp(56px, 8vw, 104px); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 32px 32px; background-position: -1px -1px; }
+  .hero { padding: clamp(40px, 7vw, 96px) 0 clamp(56px, 8vw, 104px); background: linear-gradient(180deg, var(--blue-tint), var(--paper) 70%); }
   .hero__in { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
-  .hero__title { font: 400 clamp(2.75rem, 5.2vw + 1rem, 5.25rem)/1.1 var(--display); letter-spacing: -.015em; }
-  .hero__lead { margin-top: 24px; max-width: 30em; font-size: 1.125rem; color: var(--ink-soft); }
-  .hero__act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 36px; }
+  .hero__title { font-weight: 900; font-size: clamp(2.25rem, 3.2vw + 1rem, 3.75rem); line-height: 1.2; letter-spacing: -.045em; }
+  .hero__lead { margin-top: 20px; max-width: 30em; font-size: 1.125rem; color: var(--label-soft); }
+  .hero__act { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; margin-top: 32px; }
 
-  /* 주간 보드 — 이 페이지에서 기억에 남을 단 하나 */
-  .board { background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 10px 10px 0 var(--surface-deep); overflow: hidden; }
-  .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 18px; border-bottom: 2px solid var(--ink); background: var(--surface); }
-  .board__name { font: 400 1.125rem/1.3 var(--display); }
-  .board__hint { font-size: .875rem; color: var(--ink-soft); }
+  /* 주간 보드 — 요일마다 다른 티니핑 파스텔 */
+  .board { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 12px 40px rgb(0 40 120 / .1); overflow: hidden; }
+  .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .board__name { font-weight: 700; font-size: 1.0625rem; }
+  .board__hint { font-size: .875rem; color: var(--label-soft); }
   .days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .day { padding: 14px 12px 18px; border-right: 1px solid var(--grid); }
+  .day { padding: 14px 10px 18px; border-right: 1px solid var(--line); }
   .day:last-child { border-right: 0; }
-  .day__name { font: 400 1.0625rem/1 var(--display); margin-bottom: 12px; }
+  .day:nth-child(1) { --c: var(--pink); }
+  .day:nth-child(2) { --c: var(--lilac); }
+  .day:nth-child(3) { --c: var(--sky); }
+  .day:nth-child(4) { --c: var(--mint); }
+  .day:nth-child(5) { --c: var(--lemon); }
+  .day__name { display: inline-grid; place-items: center; min-width: 32px; height: 28px; padding: 0 10px; margin-bottom: 12px; font-weight: 700; font-size: .875rem; line-height: 1; background: var(--c); border-radius: 99px; }
   .tasks { display: grid; gap: 8px; }
-  .task { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 9px 10px; text-align: left; font: 500 .875rem/1.4 var(--body); color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 10px; cursor: pointer; transition: background-color .15s, transform .15s; }
-  .task::before { content: ""; flex: none; width: 16px; height: 16px; margin-top: 1px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper) center / 12px no-repeat; }
-  .task[aria-pressed="true"] { background: var(--lime); }
-  .task[aria-pressed="true"]::before { background-color: var(--ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.4l2.6 2.6L10 3.4' fill='none' stroke='%23d4f65a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
-  .task:active { transform: scale(.96); }
-  .board__foot { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 2px solid var(--ink); }
-  .board__count { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .meter { flex: 1; height: 14px; background: var(--surface); border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; }
-  .meter__fill { height: 100%; width: 0; background: var(--lime); border-right: 2px solid var(--ink); transition: width .3s ease-out; }
+  .task { display: flex; align-items: flex-start; gap: 7px; width: 100%; padding: 9px 9px; text-align: left; font: 500 .8125rem/1.4 "Noto Sans KR", var(--font); color: var(--label); background: var(--paper); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; transition: background-color .15s, border-color .15s, transform .1s; }
+  .task:hover { border-color: var(--c); }
+  .task::before { content: ""; flex: none; width: 16px; height: 16px; margin-top: 1px; border: 1.5px solid #9a9ca3; border-radius: 50%; background: var(--paper) center / 10px no-repeat; transition: background-color .15s, border-color .15s; }
+  .task[aria-pressed="true"] { background: var(--c); border-color: var(--c); }
+  .task[aria-pressed="true"]::before { background-color: var(--blue); border-color: var(--blue); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.4l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .task:active { transform: scale(.97); }
+  .board__foot { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid var(--line); background: var(--bg-alt); }
+  .board__count { flex: none; font-weight: 700; font-size: .9375rem; font-variant-numeric: tabular-nums; }
+  .meter { flex: 1; height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .meter__fill { height: 100%; width: 0; background: var(--blue); border-radius: 99px; transition: width .3s ease-out; }
 
   /* 공통 섹션 */
   .sec { padding: clamp(56px, 8vw, 104px) 0; }
-  .sec--tint { background: var(--surface); border-block: 2px solid var(--ink); }
-  .sec__title { font: 400 clamp(1.875rem, 3.2vw + .75rem, 3rem)/1.2 var(--display); letter-spacing: -.01em; }
-  .sec__lead { margin-top: 16px; max-width: 34em; color: var(--ink-soft); font-size: 1.0625rem; }
+  .sec--tint { background: var(--bg-alt); }
+  .sec__title { font-weight: 900; font-size: clamp(1.75rem, 2.6vw + .9rem, 2.75rem); line-height: 1.28; letter-spacing: -.04em; }
+  .sec__lead { margin-top: 14px; max-width: 34em; color: var(--label-soft); font-size: 1.0625rem; }
 
   /* 진행 방식 — 실제로 순서가 있는 내용이라 요일로 표시 */
-  .flow { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin-top: 56px; }
-  .step { position: relative; }
-  .step:not(:last-child)::after { content: ""; position: absolute; top: 27px; left: 68px; right: -24px; border-top: 2px dashed var(--ink); }
-  .step__day { position: relative; display: grid; place-items: center; width: 56px; height: 56px; font: 400 1.375rem/1 var(--display); background: var(--lime); border: 2px solid var(--ink); border-radius: 50%; }
-  .step__title { margin-top: 20px; font-weight: 600; font-size: 1.1875rem; line-height: 1.4; }
-  .step__text { margin-top: 8px; max-width: 24em; color: var(--ink-soft); }
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 48px; }
+  .step { padding: 28px 24px; background: var(--bg-alt); border-radius: 20px; }
+  .step:nth-child(1) { --c: var(--pink); }
+  .step:nth-child(2) { --c: var(--sky); }
+  .step:nth-child(3) { --c: var(--lemon); }
+  .step__day { display: grid; place-items: center; width: 48px; height: 48px; font-weight: 900; font-size: 1.125rem; background: var(--c); border-radius: 50%; }
+  .step__title { margin-top: 18px; font-weight: 700; font-size: 1.1875rem; line-height: 1.4; letter-spacing: -.02em; }
+  .step__text { margin-top: 8px; color: var(--label-soft); }
 
   /* 기능 */
   .feat { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 96px); align-items: start; }
-  .feat__head { position: sticky; top: 100px; }
-  .feat__list { border-top: 2px solid var(--ink); }
-  .feat__item { padding: 28px 0; border-bottom: 1px solid var(--grid); }
-  .feat__item:last-child { border-bottom: 2px solid var(--ink); }
-  .feat__name { font-weight: 600; font-size: 1.25rem; line-height: 1.4; }
-  .feat__text { margin-top: 8px; max-width: 32em; color: var(--ink-soft); }
+  .feat__head { position: sticky; top: calc(var(--bar-h) + 40px); }
+  .feat__list { border-top: 1px solid var(--label); }
+  .feat__item { padding: 26px 0; border-bottom: 1px solid var(--line); }
+  .feat__name { font-weight: 700; font-size: 1.25rem; line-height: 1.4; letter-spacing: -.02em; }
+  .feat__text { margin-top: 8px; max-width: 32em; color: var(--label-soft); }
 
   /* 신청 안내 */
-  .apply { background: var(--lime); border-block: 2px solid var(--ink); }
+  .apply { background: var(--blue); color: #fff; }
   .apply__in { display: grid; gap: 14px; max-width: 40em; }
+  .apply .sec__lead { color: rgb(255 255 255 / .92); }
 
-  .foot { padding: 28px 0 40px; font-size: .875rem; color: var(--ink-soft); }
+  .foot { padding: 28px 0 calc(40px + env(safe-area-inset-bottom)); font-size: .875rem; color: var(--label-soft); }
   .foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
 
   /* 반응형 */
@@ -118,18 +141,25 @@
     .feat__head { position: static; }
   }
   @media (max-width: 720px) {
-    .nav { display: none; }
+    :root { --bar-h: 108px; }
+    /* 모바일: 햄버거 대신 상단에 가로로 밀어 보는 메뉴 줄을 둔다 */
+    .top__in { flex-wrap: wrap; gap: 0 12px; padding-top: 6px; }
+    .logo { order: 1; }
+    .top .btn--sm { order: 2; }
+    .nav { order: 3; flex: 0 0 100%; margin: 2px calc(-1 * var(--gutter)) 0; padding: 0 var(--gutter) 8px; overflow-x: auto; scrollbar-width: none; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav a { flex: none; padding: 7px 14px; background: var(--bg-alt); }
+    .hero__act .btn { width: 100%; }
     /* 좁은 화면에서는 5열 대신 요일을 한 줄씩 쌓는다 */
     .days { grid-template-columns: minmax(0, 1fr); }
-    .day { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 4px 10px; padding: 14px 16px; border-right: 0; border-bottom: 1px solid var(--grid); }
+    .day { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 4px 10px; align-items: start; padding: 14px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
     .day:last-child { border-bottom: 0; }
-    .day__name { margin: 8px 0 0; }
-    .board { box-shadow: 6px 6px 0 var(--surface-deep); }
-    .flow { grid-template-columns: minmax(0, 1fr); gap: 36px; margin-top: 40px; }
-    .step:not(:last-child)::after { left: 27px; right: auto; top: 64px; bottom: -28px; border-top: 0; border-left: 2px dashed var(--ink); }
-    .step { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 18px; }
+    .day__name { margin: 6px 0 0; min-width: 0; width: 32px; padding: 0; }
+    .task { padding: 12px 12px; font-size: .9375rem; }
+    .flow { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 32px; }
+    .step { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 16px; padding: 20px 18px; }
     .step__day { grid-row: span 2; }
-    .step__title { margin-top: 2px; }
+    .step__title { margin-top: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
@@ -140,14 +170,17 @@
 <body>
 <a class="skip" href="#main">본문으로 건너뛰기</a>
 
-<header class="bar">
-  <div class="wrap bar__in">
-    <a class="logo" href="#top" aria-label="TeamT 처음으로">TeamT</a>
+<header class="top">
+  <div class="candy" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="wrap top__in">
+    <a class="logo" href="#top" aria-label="HR T니핑 프로젝트 처음으로"><span>HR</span><i>T</i>니핑</a>
     <nav class="nav" aria-label="주요 메뉴">
+      <a href="#top">소개</a>
       <a href="#flow">진행 방식</a>
       <a href="#features">기능</a>
+      <a href="#apply">신청 안내</a>
     </nav>
-    <a class="btn btn--sm" href="#apply">신청 안내</a>
+    <a class="btn btn--sm" href="#board">보드 체험</a>
   </div>
 </header>
 
@@ -155,8 +188,8 @@
   <section class="hero" id="top">
     <div class="wrap hero__in">
       <div>
-        <h1 class="hero__title">팀의 한 주를<br>한 장에.</h1>
-        <p class="hero__lead">월요일에 이번 주 목표를 정하고, 금요일에 함께 돌아봅니다. 흩어진 할 일을 한 화면에 모아 두는 5~10명 팀용 주간 보드입니다.</p>
+        <h1 class="hero__title">HR 업무의<br>한 주를 한 장에.</h1>
+        <p class="hero__lead">월요일에 이번 주 목표를 정하고, 금요일에 함께 돌아봅니다. 흩어진 인사 업무를 한 화면에 모아 두는 T니핑 주간 보드입니다.</p>
         <div class="hero__act">
           <a class="btn" href="#board">보드 눌러 보기</a>
           <a class="link" href="#flow">진행 방식 보기</a>
@@ -165,23 +198,23 @@
 
       <section class="board" id="board" aria-labelledby="board-name">
         <div class="board__head">
-          <h2 class="board__name" id="board-name">이번 주 보드</h2>
+          <h2 class="board__name" id="board-name">이번 주 HR 보드</h2>
           <p class="board__hint">끝낸 일을 눌러 보세요</p>
         </div>
         <ol class="days">
           <li class="day"><h3 class="day__name">월</h3><ul class="tasks">
-            <li><button class="task" type="button" aria-pressed="true">목표 3개 정하기</button></li>
-            <li><button class="task" type="button" aria-pressed="true">역할 나누기</button></li>
+            <li><button class="task" type="button" aria-pressed="true">주간 목표 3개 정하기</button></li>
+            <li><button class="task" type="button" aria-pressed="true">신규 입사자 계정 신청</button></li>
           </ul></li>
           <li class="day"><h3 class="day__name">화</h3><ul class="tasks">
-            <li><button class="task" type="button" aria-pressed="true">시안 공유</button></li>
+            <li><button class="task" type="button" aria-pressed="true">면접 일정 조율</button></li>
           </ul></li>
           <li class="day"><h3 class="day__name">수</h3><ul class="tasks">
-            <li><button class="task" type="button" aria-pressed="false">중간 점검 10분</button></li>
+            <li><button class="task" type="button" aria-pressed="false">근태 마감 확인</button></li>
             <li><button class="task" type="button" aria-pressed="false">막힌 일 꺼내기</button></li>
           </ul></li>
           <li class="day"><h3 class="day__name">목</h3><ul class="tasks">
-            <li><button class="task" type="button" aria-pressed="false">고객 의견 정리</button></li>
+            <li><button class="task" type="button" aria-pressed="false">교육 안내 공지</button></li>
           </ul></li>
           <li class="day"><h3 class="day__name">금</h3><ul class="tasks">
             <li><button class="task" type="button" aria-pressed="false">한 주 돌아보기</button></li>
@@ -204,7 +237,7 @@
         <li class="step">
           <span class="step__day" aria-hidden="true">월</span>
           <h3 class="step__title">목표를 정합니다</h3>
-          <p class="step__text">이번 주에 끝낼 일을 팀이 함께 3개 안으로 고르고, 맡을 사람을 정합니다.</p>
+          <p class="step__text">이번 주에 끝낼 일을 함께 3개 안으로 고르고, 맡을 사람을 정합니다.</p>
         </li>
         <li class="step">
           <span class="step__day" aria-hidden="true">수</span>
@@ -232,7 +265,7 @@
           <p class="feat__text">메신저와 문서를 오가며 찾지 않아도 누가 무엇을 맡았는지 바로 보입니다.</p>
         </li>
         <li class="feat__item">
-          <h3 class="feat__name">누르면 팀 진행률이 바로 바뀝니다</h3>
+          <h3 class="feat__name">누르면 진행률이 바로 바뀝니다</h3>
           <p class="feat__text">끝낸 일을 체크하면 이번 주 완료 수가 곧장 갱신됩니다. 보고용 정리가 따로 필요 없습니다.</p>
         </li>
         <li class="feat__item">
@@ -246,15 +279,15 @@
   <section class="sec apply" id="apply" aria-labelledby="apply-title">
     <div class="wrap apply__in">
       <h2 class="sec__title" id="apply-title">파일럿 신청은 곧 열립니다</h2>
-      <p class="sec__lead" style="color: var(--ink)">참여할 팀을 모으는 접수 창구를 준비하고 있습니다. 열리면 이 자리에서 바로 신청할 수 있습니다.</p>
+      <p class="sec__lead">참여할 사람을 모으는 접수 창구를 준비하고 있습니다. 열리면 이 자리에서 바로 신청할 수 있습니다.</p>
     </div>
   </section>
 </main>
 
 <footer class="foot">
   <div class="wrap foot__in">
-    <p>TeamT는 가칭이며 이름이 바뀔 수 있습니다.</p>
-    <p>© 2026 TeamT</p>
+    <p>HR T니핑 프로젝트는 가칭이며 이름이 바뀔 수 있습니다.</p>
+    <p>© 2026 T니핑</p>
   </div>
 </footer>
 

@@ -5,3 +5,6 @@
 node_modules/
 __pycache__/
 .vercel/
+
+# 작업 메모(계정·인프라 정보 포함) — 로컬에만 둔다
+CLAUDE.md

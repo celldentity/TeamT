@@ -69,13 +69,99 @@
   const bubble = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5Z"/></svg>';
   // 닉네임 옆에 아주 작은 프로필 사진(없으면 첫 글자)
   const chip = (u) => `<span class="who"><span class="who__av">${avatar(who(u))}</span>${esc(who(u).nickname)}</span>`;
+  // 글 종류 구분: 사람이 직접 / 사람이 AI 와 함께(ai=1, 글쓴이 있음) / T조 AI 가 씀(글쓴이 없음)
+  const SPARK = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M12 2.5l2.1 6.4 6.4 2.1-6.4 2.1L12 19.5l-2.1-6.4-6.4-2.1 6.4-2.1z"/></svg>';
+  const PERSON = '<svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><circle cx="12" cy="8" r="3.6" fill="currentColor"/><path fill="currentColor" d="M4.8 20c.5-3.8 3.4-6 7.2-6s6.7 2.2 7.2 6z"/></svg>';
+  const KINDS = { human: ["직접 쓴 글", PERSON], assist: ["AI와 함께", SPARK], ai: ["AI 작성", SPARK] };
+  const kind = (p) => (p.ai ? (p.author ? "assist" : "ai") : "human");
+  const kindChipOf = (k) => `<span class="chip chip--${k}">${KINDS[k][1]}${KINDS[k][0]}</span>`;
+  const kindChip = (p) => kindChipOf(kind(p));
   // 아티클 카드(목록·홈 공용)
-  const postCard = (p) => `<li><a class="art" href="/article?id=${p.id}">
-    <div class="art__meta"><span class="chip">${esc(p.category)}</span>${p.ai ? `<span class="chip chip--ai">${p.author ? "AI와 함께" : "AI 작성"}</span>` : ""}</div>
+  const postCard = (p) => `<li><a class="art art--${kind(p)}" href="/article?id=${p.id}">
+    <div class="art__meta"><span class="chip">${esc(p.category)}</span>${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>
     <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
-  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, user: null });
+  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, user: null });
+
+  // 꾸민 드롭다운: <select> 를 숨겨 두고(값은 그대로 폼에 실린다) 그 자리에 버튼+목록을 그린다.
+  // 키보드(↑↓ Enter Space Esc Home End)·스크린리더(listbox)를 지원하고, 아래 공간이 모자라면 위로 펼친다.
+  // 옵션을 다시 채우거나 .value 를 코드로 바꿨다면 el._sel.sync()(옵션을 바꿨으면 build()) 를 부른다.
+  const CHEV = '<svg class="sel__chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  let selN = 0;
+  TT.select = (native) => {
+    if (native._sel) return native._sel;
+    const uid = "sel" + ++selN, lab = native.dataset.label;
+    const wrap = document.createElement("div"); wrap.className = "sel";
+    native.parentNode.insertBefore(wrap, native);
+    const btn = document.createElement("button");
+    btn.type = "button"; btn.className = "sel__btn"; btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false");
+    btn.innerHTML = `<span class="sel__v" id="${uid}-v"></span>${CHEV}`;
+    if (lab) btn.setAttribute("aria-labelledby", `${lab} ${uid}-v`);
+    const list = document.createElement("ul"); list.className = "sel__list"; list.id = uid + "-l"; list.setAttribute("role", "listbox");
+    if (lab) list.setAttribute("aria-labelledby", lab);
+    btn.setAttribute("aria-controls", list.id);
+    wrap.append(btn, list, native);
+    native.classList.add("sel__native"); native.tabIndex = -1; native.setAttribute("aria-hidden", "true");
+    const items = () => [...list.children];
+    let act = -1;
+    const isOpen = () => wrap.classList.contains("is-open");
+    function sync() {
+      const o = native.options[native.selectedIndex];
+      document.getElementById(uid + "-v").textContent = o ? o.textContent : "";
+      items().forEach((li, i) => li.setAttribute("aria-selected", String(i === native.selectedIndex)));
+    }
+    function build() {
+      list.innerHTML = [...native.options].map((o, i) => `<li class="sel__opt" role="option" id="${uid}-o${i}" data-i="${i}" aria-selected="false">${esc(o.textContent)}${CHECK}</li>`).join("");
+      sync();
+    }
+    function setActive(i) {
+      items().forEach((li) => li.removeAttribute("data-active"));
+      act = Math.max(0, Math.min(items().length - 1, i));
+      const li = items()[act]; if (!li) return;
+      li.setAttribute("data-active", ""); btn.setAttribute("aria-activedescendant", li.id); li.scrollIntoView({ block: "nearest" });
+    }
+    const away = (e) => { if (!wrap.contains(e.target)) close(false); };
+    function open() {
+      if (isOpen() || !items().length) return;
+      wrap.classList.remove("sel--up");
+      const r = btn.getBoundingClientRect(), bar = document.querySelector(".tabbar")?.offsetHeight || 0;
+      const below = innerHeight - r.bottom - bar - 8;
+      if (below < list.offsetHeight + 8 && r.top - 8 > below) wrap.classList.add("sel--up");
+      wrap.classList.add("is-open"); btn.setAttribute("aria-expanded", "true");
+      setActive(native.selectedIndex < 0 ? 0 : native.selectedIndex);
+      document.addEventListener("pointerdown", away, true);
+    }
+    function close(focus) {
+      if (!isOpen()) return;
+      wrap.classList.remove("is-open"); btn.setAttribute("aria-expanded", "false"); btn.removeAttribute("aria-activedescendant");
+      document.removeEventListener("pointerdown", away, true);
+      if (focus) btn.focus();
+    }
+    function pick(i) {
+      if (native.selectedIndex !== i) { native.selectedIndex = i; native.dispatchEvent(new Event("change", { bubbles: true })); }
+      sync(); close(true);
+    }
+    btn.addEventListener("click", () => (isOpen() ? close(false) : open()));
+    btn.addEventListener("keydown", (e) => {
+      const k = e.key, n = items().length;
+      if (k === "ArrowDown" || k === "ArrowUp") { e.preventDefault(); if (!isOpen()) return open(); setActive(act + (k === "ArrowDown" ? 1 : -1)); }
+      else if (k === "Home" || k === "End") { if (isOpen()) { e.preventDefault(); setActive(k === "Home" ? 0 : n - 1); } }
+      else if (k === "Enter" || k === " ") { e.preventDefault(); isOpen() ? pick(act) : open(); }
+      else if (k === "Escape") { if (isOpen()) { e.preventDefault(); close(true); } }
+      else if (k === "Tab") close(false);
+      else if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {   // 첫 글자로 건너뛰기
+        const hit = items().findIndex((li, i) => i > act && li.textContent.startsWith(k)), any = items().findIndex((li) => li.textContent.startsWith(k));
+        const to = hit >= 0 ? hit : any; if (to >= 0) { if (isOpen()) setActive(to); else pick(to); }
+      }
+    });
+    list.addEventListener("pointermove", (e) => { const li = e.target.closest(".sel__opt"); if (li && +li.dataset.i !== act) setActive(+li.dataset.i); });
+    list.addEventListener("click", (e) => { const li = e.target.closest(".sel__opt"); if (li) pick(+li.dataset.i); });
+    native.addEventListener("change", sync);
+    build();
+    return (native._sel = { sync, build, open, close });
+  };
   // 홈 화면에 추가(PWA): 서비스워커 등록 + 안드로이드 설치 창 이벤트 붙잡아 두기(마이페이지의 버튼이 쓴다)
   if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); TT.installEv = e; document.dispatchEvent(new Event("tt-install")); });

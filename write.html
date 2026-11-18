@@ -29,9 +29,9 @@
       <h1 class="sec__title" id="w-title">글쓰기</h1>
       <form class="form" id="form" novalidate>
         <div class="writer" id="writer"></div>
-        <label class="field">분류
-          <select name="category" id="cat" required></select>
-        </label>
+        <div class="field"><span id="catL">분류</span>
+          <select name="category" id="cat" data-label="catL" required></select>
+        </div>
         <label class="field">제목
           <input name="title" type="text" maxlength="80" placeholder="2~80자" autocomplete="off" required>
         </label>
@@ -59,13 +59,14 @@
     try {
       const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts?limit=1");
       $("#cat").innerHTML = r.categories.map((c) => `<option>${TT.esc(c)}</option>`).join("");
+      TT.select($("#cat"));
       post = r.post || null;
     } catch (x) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = x.message; return; }
     if (id) {
       if (!post.mine) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = "내가 쓴 글만 고칠 수 있어요."; return; }
       $("#w-title").textContent = "글 수정"; $("#btn").textContent = "저장";
       $("#backLink").href = "/article?id=" + id; $("#backLink").textContent = "← 글로 돌아가기";
-      form.category.value = post.category; form.title.value = post.title; form.body.value = post.body; form.ai.checked = post.ai;
+      form.category.value = post.category; $("#cat")._sel.sync(); form.title.value = post.title; form.body.value = post.body; form.ai.checked = post.ai;
     }
     form.addEventListener("submit", async (e) => {
       e.preventDefault();

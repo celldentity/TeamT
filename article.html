@@ -66,8 +66,9 @@
     function drawPost() {
       const p = data.post, a = TT.who(p.author);
       document.title = p.title + " — HR T | 니핑 프로젝트";
+      $("#post").className = "post post--" + TT.kind(p);
       $("#post").innerHTML = `
-        <div class="art__meta" style="margin-top:4px"><span class="chip">${TT.esc(p.category)}</span>${p.ai ? `<span class="chip chip--ai">${p.author ? "AI와 함께" : "AI 작성"}</span>` : ""}</div>
+        <div class="art__meta"><span class="chip">${TT.esc(p.category)}</span>${TT.kindChip(p)}</div>
         <h1 class="post__title" id="post-title">${TT.esc(p.title)}</h1>
         <div class="by"><span class="by__av">${TT.avatar(a)}</span><div><p class="by__name">${TT.esc(a.nickname)}</p><p class="by__time">${TT.ago(p.createdAt)}${p.updatedAt ? " · 수정됨" : ""}</p></div></div>
         <div class="post__body">${TT.esc(p.body)}</div>

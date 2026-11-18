@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>T조 소개 — HR T | 니핑 프로젝트</title>
 <meta name="description" content="HR 미드필더 8기 T조 팀원 소개.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#fff6fa">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
@@ -44,6 +44,14 @@
   </section>
 </main>
 </div>
+<div class="pf" id="pf" role="dialog" aria-modal="true" aria-labelledby="pfName" hidden>
+  <div class="pf__card">
+    <div class="pf__cover" id="pfCover"><button class="pf__x" id="pfX" type="button" aria-label="닫기">✕</button></div>
+    <div class="pf__av" id="pfAv"></div>
+    <h2 class="pf__name" id="pfName"></h2>
+    <p class="pf__bio" id="pfBio"></p>
+  </div>
+</div>
 <script>
   TT.ready.then(async (user) => {
     if (!user) return;
@@ -51,12 +59,29 @@
       const { members } = await TT.call("/api/members");
       document.getElementById("mem-count").textContent = members.length + "명";
       document.getElementById("mem-empty").hidden = members.length > 0;
-      document.getElementById("members").innerHTML = members.map((m) => `
-        <li class="member${m.me ? " member--me" : ""}">
+      document.getElementById("members").innerHTML = members.map((m, i) => `
+        <li><button class="member${m.me ? " member--me" : ""}" type="button" data-i="${i}" aria-label="${TT.esc(m.nickname)} 프로필 보기">
           <div class="member__av">${TT.avatar(m)}</div>
           <p class="member__name">${TT.esc(m.nickname)}${m.me ? '<span class="badge">나</span>' : ""}</p>
           <p class="member__bio">${m.bio ? TT.esc(m.bio) : (m.me ? "마이페이지에서 한 줄 소개를 적어 보세요." : "&nbsp;")}</p>
-        </li>`).join("");
+        </button></li>`).join("");
+
+      // 팀원을 누르면 커버 사진과 프로필 사진을 크게 보여 준다
+      const pf = document.getElementById("pf"), close = () => { pf.hidden = true; document.body.style.overflow = ""; document.removeEventListener("keydown", onKey); opener && opener.focus(); };
+      const onKey = (e) => { if (e.key === "Escape") close(); };
+      let opener = null;
+      document.getElementById("members").addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-i]"); if (!b) return;
+        const m = members[Number(b.dataset.i)]; opener = b;
+        document.getElementById("pfCover").style.backgroundImage = m.coverUrl ? `url("${m.coverUrl}")` : "";
+        document.getElementById("pfAv").innerHTML = TT.avatar(m);
+        document.getElementById("pfName").textContent = m.nickname;
+        document.getElementById("pfBio").textContent = m.bio || (m.me ? "마이페이지에서 한 줄 소개를 적어 보세요." : "");
+        pf.hidden = false; document.body.style.overflow = "hidden"; document.addEventListener("keydown", onKey);
+        document.getElementById("pfX").focus();
+      });
+      document.getElementById("pfX").addEventListener("click", close);
+      pf.addEventListener("click", (e) => { if (e.target === pf) close(); });
     } catch (e) { document.getElementById("mem-err").textContent = e.message; }
   });
 </script>

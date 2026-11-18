@@ -63,4 +63,4 @@ const INVITE_MAX_ACTIVE = 3; // 한 사람이 동시에 가질 수 있는 쓰지
 const CATS = ["채용", "온보딩", "조직문화", "평가·보상", "교육", "자유"]; // 아티클 분류
 const normCode = (c) => String(c || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
-module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser, photoUrl, len, CATS, INVITE_DAYS, INVITE_MAX_ACTIVE, normCode };
+module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser, photoUrl, coverUrl, len, CATS, INVITE_DAYS, INVITE_MAX_ACTIVE, normCode };

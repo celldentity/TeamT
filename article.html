@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>아티클 — HR T | 니핑 프로젝트</title>
 <meta name="description" content="아티클 읽기와 댓글.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#fff6fa">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
@@ -31,6 +31,7 @@
       <section id="cmSec" aria-labelledby="cm-title" hidden>
         <h2 class="sec__h3" id="cm-title">댓글 <span id="cmN" style="color:var(--ink-soft);font-weight:500"></span></h2>
         <form class="cmt-form" id="cmForm">
+          <div class="writer" id="cmWho"></div>
           <textarea class="ta" name="body" rows="3" maxlength="1000" placeholder="댓글을 남겨 보세요 (1000자까지)" aria-label="댓글 쓰기"></textarea>
           <p class="msg msg--err" id="cmErr" role="alert"></p>
           <button class="btn btn--sm" type="submit">댓글 등록</button>
@@ -46,6 +47,7 @@
     if (!me) return;
     const $ = (s) => document.querySelector(s), id = Number(new URLSearchParams(location.search).get("id")) || 0;
     let data = null, replying = 0, editing = 0;
+    $("#cmWho").innerHTML = TT.chip(me);
     const fail = (m) => { $("#post").innerHTML = ""; $("#cmSec").hidden = true; $("#gone").hidden = false; $("#gone").textContent = m; };
 
     async function load() {
@@ -79,12 +81,12 @@
       const a = TT.who(c.author), isEdit = editing === c.id;
       return `<div class="cmt" data-cid="${c.id}"><span class="cmt__av">${TT.avatar(a)}</span><div>
         <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span><span class="cmt__time">${TT.ago(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
-        ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><p class="msg msg--err" role="alert"></p>
+        ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
           : `<p class="cmt__txt">${TT.esc(c.body)}</p>
         <div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}${reply ? "" : `<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>`}
           ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}
-        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><p class="msg msg--err" role="alert"></p>
+        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">답글 등록</button></div></form>` : ""}
       </div></div>`;
     }

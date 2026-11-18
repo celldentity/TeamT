@@ -11,6 +11,7 @@
     doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg>',
     team: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle class="f" cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg>',
     me: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg>',
+    out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 6 20h3M16 8l4 4-4 4M20 12H9"/></svg>',
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
   };
   const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
@@ -19,7 +20,7 @@
   s.insertAdjacentHTML("beforebegin",
     // 상단: 로고 + (로그인한 뒤) 알림·로그아웃. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<div class="top__r"><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop">로그아웃</button></div>`) +
+    (GATE ? "" : `<div class="top__r"><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
     `</div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
@@ -29,6 +30,9 @@
     ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
     : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
   try { if (localStorage.getItem("tt_in") === "1") html.classList.add("known"); } catch {}
+  // 아티클 목록·글 보기에서는 하단바 바로 위 오른쪽에 둥근 분홍 «글쓰기» 버튼을 띄운다
+  if (/^\/(articles|article)$/.test(path)) document.body.insertAdjacentHTML("beforeend",
+    '<a class="fab" href="/write" aria-label="글쓰기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17zM13.5 7.5l3 3"/></svg></a>');
 
   // 스크롤 진행 표시: 헤더 아래 경계선이 왼쪽에서 오른쪽으로 차오른다
   const top = document.getElementById("top");
@@ -63,13 +67,15 @@
   };
   const heart = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 20.5C5.5 15.8 3 12.6 3 9.4 3 7 4.8 5.2 7.1 5.2c1.9 0 3.7 1 4.9 2.8 1.2-1.8 3-2.8 4.9-2.8C19.2 5.2 21 7 21 9.4c0 3.2-2.5 6.4-9 11.1Z"/></svg>';
   const bubble = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5Z"/></svg>';
+  // 닉네임 옆에 아주 작은 프로필 사진(없으면 첫 글자)
+  const chip = (u) => `<span class="who"><span class="who__av">${avatar(who(u))}</span>${esc(who(u).nickname)}</span>`;
   // 아티클 카드(목록·홈 공용)
   const postCard = (p) => `<li><a class="art" href="/article?id=${p.id}">
     <div class="art__meta"><span class="chip">${esc(p.category)}</span>${p.ai ? `<span class="chip chip--ai">${p.author ? "AI와 함께" : "AI 작성"}</span>` : ""}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>
-    <div class="art__foot"><span>${esc(who(p.author).nickname)}</span><span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
-  const TT = (window.TT = { call, esc, initial, avatar, who, ago, heart, bubble, postCard, user: null });
+    <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
+  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, user: null });
   // 홈 화면에 추가(PWA): 서비스워커 등록 + 안드로이드 설치 창 이벤트 붙잡아 두기(마이페이지의 버튼이 쓴다)
   if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); TT.installEv = e; document.dispatchEvent(new Event("tt-install")); });
@@ -87,7 +93,17 @@
   }).catch((e) => { html.classList.remove("pending"); console.error(e); return null; });
   // 상단 알림 숫자(0 이면 숨김), 로그아웃
   TT.setBell = (n) => { const b = document.getElementById("bellN"); if (!b) return; b.hidden = !n; b.textContent = n > 99 ? "99+" : n; document.querySelector(".bell")?.setAttribute("aria-label", n ? `알림 ${n}개` : "알림"); };
-  document.getElementById("logoutTop")?.addEventListener("click", async () => { try { await call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
+  if (!GATE) {   // 로그아웃: 아이콘을 누르면 가운데 창에서 한 번 더 묻는다
+    document.body.insertAdjacentHTML("beforeend", `<div class="dlg" id="logoutDlg" role="alertdialog" aria-modal="true" aria-labelledby="logoutT" hidden><div class="dlg__card">
+      <h2 class="dlg__t" id="logoutT">로그아웃 하시겠습니까?</h2><p class="dlg__p">다시 들어오려면 이메일과 비밀번호가 필요해요.</p>
+      <div class="dlg__btns"><button class="btn btn--ghost" type="button" id="logoutNo">취소</button><button class="btn" type="button" id="logoutYes">로그아웃</button></div></div></div>`);
+    const dlg = document.getElementById("logoutDlg"), closeDlg = () => { dlg.hidden = true; document.removeEventListener("keydown", onEsc); document.getElementById("logoutTop")?.focus(); };
+    const onEsc = (e) => { if (e.key === "Escape") closeDlg(); };
+    document.getElementById("logoutTop")?.addEventListener("click", () => { dlg.hidden = false; document.addEventListener("keydown", onEsc); document.getElementById("logoutNo").focus(); });
+    document.getElementById("logoutNo").addEventListener("click", closeDlg);
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) closeDlg(); });
+    document.getElementById("logoutYes").addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
+  }
   // 로그인 상태가 바뀌면 하단 메뉴 아이콘 갱신
   TT.setTabUser = (u) => { const me = document.querySelector('.tab[href="/me"] .tab__ic'); if (me) me.innerHTML = u ? `<span class="tab__av">${avatar(u)}</span>` : TABS[3][2]; };
 })();

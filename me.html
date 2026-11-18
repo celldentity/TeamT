@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>마이페이지 — HR T | 니핑 프로젝트</title>
 <meta name="description" content="내 프로필과 초대장.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#fff6fa">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
@@ -68,11 +68,18 @@
         <ol id="instSteps" hidden></ol>
         <button class="btn btn--block" type="button" id="instBtn" hidden></button>
       </section>
-
-      <button class="btn btn--ghost btn--block" type="button" id="logoutBtn" style="margin-top:32px">로그아웃</button>
     </div>
   </section>
 </main>
+</div>
+<div class="crop" id="crop" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
+  <div class="crop__sheet">
+    <h2 class="crop__title" id="cropTitle">사진 자르기</h2>
+    <p class="crop__hint">사진을 끌어서 위치를 맞추고, 아래 막대나 두 손가락으로 크기를 조절해요.</p>
+    <div class="crop__box" id="cropBox" tabindex="0" aria-label="자를 영역. 방향키로 이동, 더하기·빼기로 크기 조절"><canvas id="cropCv"></canvas></div>
+    <label class="crop__zoom">확대 <input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1"></label>
+    <div class="crop__btns"><button class="btn btn--ghost" type="button" id="cropCancel">취소</button><button class="btn" type="button" id="cropOk">적용</button></div>
+  </div>
 </div>
 <script>
   TT.ready.then((user) => {
@@ -100,27 +107,66 @@
       busy(btn, false, "저장");
     });
 
-    // 사진은 브라우저에서 가운데를 w:h 비율로 잘라 JPEG 로 줄여 올린다(서버·R2 용량 절약). 프로필 = 256x256, 커버 = 960x320(3:1).
-    async function toJpeg(file, w, h) {
-      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-      const sw = Math.min(bmp.width, bmp.height * (w / h)), sh = sw / (w / h), c = document.createElement("canvas");
-      c.width = w; c.height = h;
-      c.getContext("2d").drawImage(bmp, (bmp.width - sw) / 2, (bmp.height - sh) / 2, sw, sh, 0, 0, w, h);
-      return c.toDataURL("image/jpeg", 0.85);
-    }
-    function picker(input, msgSel, url, w, h) {
-      input.addEventListener("change", async (e) => {
-        const f = e.target.files[0], msg = $(msgSel); msg.textContent = "";
-        if (!f) return;
-        try { const { user: u } = await TT.call(url, "POST", { image: await toJpeg(f, w, h) }); render(u); }
-        catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
-        e.target.value = "";
+    // 사진을 고르면 «사진 자르기» 창이 열린다 — 끌어서 위치, 막대·휠·두 손가락으로 크기를 맞춘 뒤 «적용».
+    // 보이는 그대로 JPEG 로 줄여 올린다(서버·R2 용량 절약). 프로필 = 256x256(동그랗게 보임), 커버 = 960x320(3:1).
+    function crop(file, w, h, round) {
+      return new Promise(async (resolve) => {
+        let bmp;
+        try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); } catch { return resolve({ error: true }); }
+        const dlg = $("#crop"), box = $("#cropBox"), cv = $("#cropCv"), zoomEl = $("#cropZoom");
+        $("#cropTitle").textContent = round ? "프로필 사진 자르기" : "커버 사진 자르기";
+        box.classList.toggle("crop__box--round", round);
+        dlg.hidden = false; document.body.style.overflow = "hidden";
+        const Bw = Math.min(360, dlg.querySelector(".crop__sheet").clientWidth - 36), Bh = Math.round((Bw * h) / w), dpr = Math.min(2, devicePixelRatio || 1);
+        box.style.width = Bw + "px"; box.style.height = Bh + "px"; cv.width = Bw * dpr; cv.height = Bh * dpr;
+        const s0 = Math.max(Bw / bmp.width, Bh / bmp.height);          // 상자를 꽉 채우는 기본 배율
+        let z = 1, x = (Bw - bmp.width * s0) / 2, y = (Bh - bmp.height * s0) / 2;  // 확대 배율, 사진 왼쪽 위 위치
+        const clamp = () => { const s = s0 * z; x = Math.min(0, Math.max(Bw - bmp.width * s, x)); y = Math.min(0, Math.max(Bh - bmp.height * s, y)); };
+        const paint = (c, cw, ch) => { const s = s0 * z; c.fillStyle = "#fff"; c.fillRect(0, 0, cw, ch); c.drawImage(bmp, -x / s, -y / s, Bw / s, Bh / s, 0, 0, cw, ch); };
+        const draw = () => { clamp(); paint(cv.getContext("2d"), cv.width, cv.height); };
+        const setZoom = (nz) => {   // 상자 한가운데를 기준으로 확대·축소
+          nz = Math.min(4, Math.max(1, nz)); const s = s0 * z, cx = (Bw / 2 - x) / s, cy = (Bh / 2 - y) / s;
+          z = nz; x = Bw / 2 - cx * s0 * z; y = Bh / 2 - cy * s0 * z; zoomEl.value = z; draw();
+        };
+        zoomEl.value = 1; draw();
+
+        const ptrs = new Map(); let pinch = 0;
+        box.onpointerdown = (e) => { box.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); pinch = 0; };
+        box.onpointermove = (e) => {
+          const p = ptrs.get(e.pointerId); if (!p) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+          if (ptrs.size === 1) { x += e.clientX - p[0]; y += e.clientY - p[1]; draw(); }
+          else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch) setZoom((z * d) / pinch); pinch = d; }
+        };
+        box.onpointerup = box.onpointercancel = (e) => { ptrs.delete(e.pointerId); pinch = 0; };
+        box.onwheel = (e) => { e.preventDefault(); setZoom(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); };
+        box.onkeydown = (e) => {   // 키보드: 방향키로 이동, +/- 로 크기
+          const k = { ArrowLeft: [10, 0], ArrowRight: [-10, 0], ArrowUp: [0, 10], ArrowDown: [0, -10] }[e.key];
+          if (k) { e.preventDefault(); x += k[0]; y += k[1]; draw(); } else if (e.key === "+" || e.key === "=") setZoom(z * 1.1); else if (e.key === "-") setZoom(z / 1.1);
+        };
+        zoomEl.oninput = () => setZoom(Number(zoomEl.value));
+
+        const done = (v) => { dlg.hidden = true; document.body.style.overflow = ""; document.removeEventListener("keydown", onKey); bmp.close?.(); resolve(v); };
+        const onKey = (e) => { if (e.key === "Escape") done(null); };
+        document.addEventListener("keydown", onKey);
+        $("#cropCancel").onclick = () => done(null);
+        $("#cropOk").onclick = () => { const out = document.createElement("canvas"); out.width = w; out.height = h; paint(out.getContext("2d"), w, h); done({ url: out.toDataURL("image/jpeg", 0.85) }); };
+        $("#cropOk").focus();
       });
     }
-    picker($("#photo"), "#photoMsg", "/api/photo", 256, 256);
-    picker($("#coverFile"), "#coverMsg", "/api/photo?k=cover", 960, 320);
-
-    $("#logoutBtn").addEventListener("click", async () => { try { await TT.call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
+    function picker(input, msgSel, url, w, h, round) {
+      input.addEventListener("change", async (e) => {
+        const f = e.target.files[0], msg = $(msgSel); msg.textContent = "";
+        e.target.value = "";                       // 같은 사진을 다시 골라도 반응하도록
+        if (!f) return;
+        const r = await crop(f, w, h, round);
+        if (!r) return;                            // 취소
+        if (r.error) { msg.textContent = "이 사진은 열 수 없어요. 다른 사진으로 해 보세요."; return; }
+        try { const { user: u } = await TT.call(url, "POST", { image: r.url }); render(u); }
+        catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
+      });
+    }
+    picker($("#photo"), "#photoMsg", "/api/photo", 256, 256, true);
+    picker($("#coverFile"), "#coverMsg", "/api/photo?k=cover", 960, 320, false);
 
     // ── 홈 화면에 추가(PWA) ──
     (() => {

@@ -7,7 +7,7 @@ self.addEventListener("push", (e) => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch {}
   e.waitUntil(self.registration.showNotification(d.title || "HR T | 니핑", {
     body: d.body || "", tag: d.tag, data: { url: d.url || "/" },
-    icon: "/assets/icons/icon-v2-192.png",
+    icon: "/assets/icons/icon-v3-192.png",
   }));
 });
 self.addEventListener("notificationclick", (e) => {

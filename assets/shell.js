@@ -6,6 +6,30 @@
   const html = document.documentElement;
   html.classList.add("pending");
 
+  // ── 전역 로더: 페이지가 열리는 동안(로그인 확인·첫 데이터 불러오기까지)과 안쪽 링크로 옮겨 가는 동안 «공 두 개» 가 돈다.
+  // 최소 MIN ms 는 떠 있다가 내려간다(너무 번쩍 사라지면 오히려 깜박여 보인다). TT.loader.show()/hide() 로 페이지가 직접 켜고 끌 수도 있다.
+  const MIN = 600;
+  let busy = 0, shownAt = Date.now(), offT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
+  document.body.insertAdjacentHTML("afterbegin",
+    `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="gl-goo"><feGaussianBlur in="SourceGraphic" stdDeviation="1" result="y"/><feColorMatrix in="y" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7" result="z"/><feBlend in="SourceGraphic" in2="z"/></filter></defs></svg>` +
+    `<svg class="gl__svg" viewBox="0 0 24 24" aria-hidden="true"><g class="gl__spin" filter="url(#gl-goo)"><circle class="gl__b gl__a" cx="5" cy="12" r="4"/><circle class="gl__b gl__c" cx="19" cy="12" r="4"/></g></svg>` +
+    `<p class="gl__t">HR T<i>|</i>니핑</p></div>`);
+  const glEl = document.getElementById("gl");
+  const gl = {
+    show() { clearTimeout(offT); shownAt = Date.now(); glEl.classList.remove("is-off"); },
+    hide() { clearTimeout(offT); offT = setTimeout(() => glEl.classList.add("is-off"), Math.max(0, MIN - (Date.now() - shownAt))); },
+  };
+  // 안쪽 페이지로 가는 링크를 누르면(새 탭·다운로드·API 주소·같은 주소 제외) 다음 화면이 뜰 때까지 로더로 덮는다. 뒤로 가기로 되돌아오면(bfcache) 내린다.
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (a.target && a.target !== "_self") || a.hasAttribute("download")) return;
+    const u = new URL(a.href, location.href);
+    if (u.origin !== location.origin || u.pathname.startsWith("/api/") || (u.pathname === location.pathname && u.search === location.search)) return;
+    gl.show();
+  });
+  addEventListener("pageshow", (e) => { if (e.persisted) gl.hide(); });
+  setTimeout(() => gl.hide(), 10000);   // 무슨 일이 있어도 10초 뒤에는 화면을 돌려준다
+
   const IC = {
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
     doc: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg>',
@@ -13,6 +37,7 @@
     me: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg>',
     out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 6 20h3M16 8l4 4-4 4M20 12H9"/></svg>',
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
+    present: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 4.5h17M5 4.5v10.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4.5M12 16v4M8.5 20.5h7M9.5 11l2-2.2 1.6 1.6 2.4-2.9"/></svg>',
   };
   const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
   const s = document.currentScript;
@@ -20,7 +45,7 @@
   s.insertAdjacentHTML("beforebegin",
     // 상단: 로고 + (로그인한 뒤) 알림·로그아웃. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<div class="top__r"><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
+    (GATE ? "" : `<div class="top__r"><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)" hidden>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
     `</div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
@@ -49,10 +74,13 @@
 
   // 서버 호출 + 로그인 확인
   async function call(url, method = "GET", body) {
-    const r = await fetch(url, { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || "요청에 실패했습니다. 잠시 뒤 다시 시도해 주세요.");
-    return j;
+    busy++;
+    try {
+      const r = await fetch(url, { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "요청에 실패했습니다. 잠시 뒤 다시 시도해 주세요.");
+      return j;
+    } finally { busy--; }
   }
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const initial = (u) => [...u.nickname][0] || "T";
@@ -84,7 +112,7 @@
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p></div>${thumb(p.cover)}
     <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
-  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, user: null });
+  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, user: null, loader: gl });
 
   // 꾸민 드롭다운: <select> 를 숨겨 두고(값은 그대로 폼에 실린다) 그 자리에 버튼+목록을 그린다.
   // 키보드(↑↓ Enter Space Esc Home End)·스크린리더(listbox)를 지원하고, 아래 공간이 모자라면 위로 펼친다.
@@ -210,32 +238,21 @@
     // 이미 허용된 기기는 조용히 «지금 로그인한 사람의 기기»로 다시 맞춘다(같은 폰에서 계정이 바뀌었거나 구독이 만료됐을 때). 세션당 한 번.
     async refresh() { if (!pushOK() || Notification.permission !== "granted") return; try { if (sessionStorage.getItem("tt_push_ref")) return; sessionStorage.setItem("tt_push_ref", "1"); } catch {} await subscribe(false).catch(() => {}); },
   };
-  // 처음 들어온 사람에게 한 번 «알림 켜기» 를 권한다(홈·아티클·글 보기 위쪽에 끼워 넣는 카드). «나중에» 는 3일 동안 다시 묻지 않는다.
-  // 아이폰은 사파리 탭에서는 알림이 안 되고 «홈 화면에 추가한 앱» 에서만 되므로, 그 안내 카드로 바꿔 보여 준다.
-  async function nudge() {
-    if (GATE || !["/", "/articles", "/team", "/article"].includes(path)) return;
-    try { if (Date.now() - Number(localStorage.getItem("tt_nudge") || 0) < 3 * 864e5) return; } catch {}
-    const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-    let kind = null;
-    if (pushOK()) { if ((await TT.push.state()) === "off") kind = "ask"; } else if (ios && !standalone) kind = "ios";
-    if (!kind) return;
-    const el = document.createElement("section"); el.className = "nudge"; el.setAttribute("aria-label", "알림 켜기");
-    el.innerHTML = kind === "ask"
-      ? `<div class="nudge__t"><b>폰 알림 켜기</b><span>새 글·내 글의 댓글과 좋아요를 앱을 열지 않아도 바로 알려드려요.</span></div><div class="nudge__b"><button class="btn btn--sm" type="button" data-n="on">알림 켜기</button><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div><p class="msg msg--err" role="alert"></p>`
-      : `<div class="nudge__t"><b>폰 알림 받으려면</b><span>아이폰은 이 사이트를 <b>홈 화면에 추가</b>한 앱에서만 알림이 와요.</span></div><div class="nudge__b"><a class="btn btn--sm" href="/me#install">방법 보기</a><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div>`;
-    // 페이지 맨 위(본문 폭에 맞춘 틀 안)에 끼운다. 홈에서는 첫 .wrap 이 히어로 칸 안이라 거기 넣으면 레이아웃이 깨진다.
-    const holder = document.createElement("div"); holder.className = "wrap"; holder.append(el); document.querySelector("main").prepend(holder);
-    el.addEventListener("click", async (e) => {
-      const act = e.target.closest("[data-n]")?.dataset.n; if (!act) return;
-      if (act === "no") { try { localStorage.setItem("tt_nudge", String(Date.now())); } catch {} holder.remove(); return; }
-      const btn = e.target.closest("button"), err = el.querySelector(".msg"); btn.disabled = true; err.textContent = "";
-      try { await TT.push.enable(); el.innerHTML = '<div class="nudge__t"><b>알림이 켜졌어요 🔔</b><span>방금 이 폰으로 확인 알림을 보냈어요.</span></div>'; setTimeout(() => holder.remove(), 4000); }
-      catch (x) { err.textContent = x.message || "알림을 켜지 못했어요. 잠시 뒤 다시 시도해 주세요."; btn.disabled = false; }
+  TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); } });
+  // 로더 내리기: 로그인 확인 + 페이지 로드가 끝나고, 페이지가 시작한 서버 호출까지 모두 끝나면(첫 틱 뒤에 확인해야 페이지 스크립트가 호출을 시작한 뒤가 된다)
+  const settle = () => (busy ? setTimeout(settle, 60) : gl.hide());
+  Promise.all([TT.ready, new Promise((r) => (document.readyState === "complete" ? r() : addEventListener("load", r, { once: true })))]).then(() => setTimeout(settle, 0));
+  // 발표 버튼: 현재 가입한 5명(users.presenter)에게만, 마우스를 쓰는 PC 에서만 보인다. 주소창 없는 전체화면 창으로 /present 를 연다.
+  TT.ready.then((u) => {
+    const b = document.getElementById("presentTop");
+    if (!b || !u || !u.presenter || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    b.hidden = false;
+    b.addEventListener("click", () => {
+      const w = screen.availWidth, h = screen.availHeight;
+      const win = window.open("/present", "tt-present", `popup=yes,left=${screen.availLeft || 0},top=${screen.availTop || 0},width=${w},height=${h}`);
+      if (win) win.focus(); else location.href = "/present";   // 팝업이 막혔으면 이 탭에서 연다
     });
-  }
-  TT.nudge = nudge;
-  TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); nudge(); } });
+  });
   if (!GATE) {   // 로그아웃: 아이콘을 누르면 가운데 창에서 한 번 더 묻는다
     document.body.insertAdjacentHTML("beforeend", `<div class="dlg" id="logoutDlg" role="alertdialog" aria-modal="true" aria-labelledby="logoutT" hidden><div class="dlg__card">
       <h2 class="dlg__t" id="logoutT">로그아웃 하시겠습니까?</h2><p class="dlg__p">다시 들어오려면 이메일과 비밀번호가 필요해요.</p>

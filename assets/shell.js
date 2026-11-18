@@ -192,9 +192,8 @@
     build();
     return (native._sel = { sync, build, open, close });
   };
-  // 홈 화면에 추가(PWA): 서비스워커 등록 + 안드로이드 설치 창 이벤트 붙잡아 두기(마이페이지의 버튼이 쓴다)
+  // 서비스워커 등록(폰 알림·홈 화면 앱에 필요)
   if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
-  addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); TT.installEv = e; document.dispatchEvent(new Event("tt-install")); });
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;

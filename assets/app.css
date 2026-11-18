@@ -152,12 +152,6 @@ input, select, textarea { accent-color: var(--pink-ink); }
 /* 초대 링크로 들어온 사람용 가입 화면 */
 .swap { justify-self: center; min-height: 44px; padding: 0 12px; font: 500 .9375rem/1 "Noto Sans KR", var(--font); color: var(--ink-soft); background: none; border: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
-/* 홈 화면에 추가 */
-.install { margin-top: 24px; padding: 18px 16px; background: var(--lavender-tint); border-radius: 20px; }
-.install h2 { font-weight: 800; font-size: 1.0625rem; letter-spacing: -.02em; }
-.install p { margin-top: 6px; font-size: .875rem; line-height: 1.6; color: var(--ink-soft); }
-.install ol { display: grid; gap: 6px; margin-top: 10px; padding-left: 20px; list-style: decimal; font-size: .875rem; line-height: 1.6; }
-.install .btn { margin-top: 12px; }
 
 /* 마이페이지 */
 .me-card { display: grid; justify-items: center; gap: 4px; margin-top: 20px; padding: 0 16px 20px; overflow: hidden; background: var(--blush); border-radius: 24px; text-align: center; }

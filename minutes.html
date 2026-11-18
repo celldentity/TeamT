@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>회의록 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="조모임 회의록 (비공개)">
+<meta name="theme-color" content="#fff6fa">
+<meta name="color-scheme" content="light">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v3.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" href="/assets/icons/icon-v3-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="mTitle">
+    <div class="wrap">
+      <a class="back" href="/">← 홈</a>
+      <h1 class="sec__title" id="mTitle">회의록</h1>
+      <p class="sec__lead" id="mMeta"></p>
+      <ul class="mt-att" id="att" aria-label="참석자"></ul>
+      <div class="empty" id="empty" hidden>아직 올라온 회의록이 없어요.</div>
+      <p class="msg msg--err" id="err" role="alert"></p>
+
+      <div id="doc" hidden>
+        <nav class="mt-nav" aria-label="회의록 목차">
+          <a href="#sum">한눈에</a><a href="#dec">결정</a><a href="#todo">추가로 만들 것</a><a href="#tl">시간대별</a><a href="#who">발언</a><a href="#full">전사</a>
+        </nav>
+
+        <section class="mt-sec" id="sum" aria-labelledby="h-sum">
+          <h2 class="mt-h" id="h-sum">오늘 이야기, 한눈에</h2>
+          <ol class="mt-ov" id="ov"></ol>
+          <ul class="mt-kw" id="kw" aria-label="키워드"></ul>
+          <p class="mt-note" id="note"></p>
+        </section>
+
+        <section class="mt-sec" id="dec" aria-labelledby="h-dec">
+          <h2 class="mt-h" id="h-dec">정해진 것</h2>
+          <ul class="mt-list" id="decList"></ul>
+        </section>
+
+        <section class="mt-sec" id="todo" aria-labelledby="h-todo">
+          <h2 class="mt-h" id="h-todo">추가로 만들어야 할 것</h2>
+          <h3 class="mt-h3">발표(12/17) 전에 챙길 일 <small>체크하면 이 기기에 기억돼요</small></h3>
+          <ul class="mt-check" id="before"></ul>
+          <h3 class="mt-h3">만들 기능</h3>
+          <div class="mt-pri" id="build"></div>
+        </section>
+
+        <section class="mt-sec" id="risk" aria-labelledby="h-risk">
+          <h2 class="mt-h" id="h-risk">걱정되는 점</h2>
+          <ul class="mt-list mt-list--soft" id="riskList"></ul>
+        </section>
+
+        <section class="mt-sec" id="tl" aria-labelledby="h-tl">
+          <h2 class="mt-h" id="h-tl">시간대별로 오간 이야기</h2>
+          <ol class="mt-tl" id="tlList"></ol>
+        </section>
+
+        <section class="mt-sec" id="who" aria-labelledby="h-who">
+          <h2 class="mt-h" id="h-who">누가 얼마나 말했나</h2>
+          <ul class="mt-bars" id="bars"></ul>
+        </section>
+
+        <section class="mt-sec" id="full" aria-labelledby="h-full">
+          <h2 class="mt-h" id="h-full">전체 전사</h2>
+          <p class="mt-note">녹음을 글로 옮긴 거라 틀린 곳이 있을 수 있어요. 개인 사담은 뺐어요.</p>
+          <label class="field mt-q"><span class="sr">전사에서 찾기</span><input id="q" type="search" placeholder="전사에서 찾기 (예: 일력, 알림, 12월)" autocomplete="off"></label>
+          <p class="msg" id="qn" role="status"></p>
+          <ol class="mt-tr" id="tr"></ol>
+        </section>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (me) => {
+    if (!me) return;
+    if (!me.presenter) { location.replace("/"); return; }
+    const $ = (s) => document.querySelector(s), esc = TT.esc;
+    const ini = (p) => (p.named ? [...p.name][0] : [...p.name].at(-1));
+    const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+    const KST = { timeZone: "Asia/Seoul" };
+    let m;
+    try {
+      const { meetings } = await TT.call("/api/minutes");
+      if (!meetings.length) { $("#empty").hidden = false; return; }
+      m = await TT.call("/api/minutes?id=" + meetings[0].id);
+    } catch (x) { if (/403|볼 수/.test(x.message)) { location.replace("/"); return; } $("#err").textContent = x.message; return; }
+    const S = m.summary, spk = Object.fromEntries(S.speakers.map((p) => [p.key, p]));
+    document.title = m.title + " — HR T | 니핑 프로젝트";
+
+    // 머리: 제목·일시·길이·참석자
+    const d = new Date(m.heldAt);
+    $("#mTitle").textContent = m.title;
+    $("#mMeta").textContent = `${d.toLocaleString("ko-KR", { ...KST, month: "long", day: "numeric", weekday: "short", hour: "numeric", minute: "2-digit" })} 시작 · ${Math.round(m.durationS / 60)}분 · 참석 ${S.attendees.length}명`;
+    $("#att").innerHTML = S.attendees.map((n) => `<li class="chip">${esc(n)}</li>`).join("");
+
+    $("#ov").innerHTML = S.overview.map((t) => `<li>${esc(t)}</li>`).join("");
+    $("#kw").innerHTML = S.keywords.map((k) => `<li class="chip chip--ai">${esc(k)}</li>`).join("");
+    $("#note").textContent = S.note || "";
+    const at = (s) => `<button class="mt-at" type="button" data-at="${s}" aria-label="전사 ${mmss(s)} 위치로">${mmss(s)}</button>`;
+    $("#decList").innerHTML = S.decisions.map((x) => `<li>${esc(x.text)} ${at(x.at)}</li>`).join("");
+    $("#riskList").innerHTML = S.risks.map((x) => `<li>${esc(x.text)} ${at(x.at)}</li>`).join("");
+
+    // 할 일: 발표 전 체크리스트(이 기기에 기억), 만들 기능은 우선순위별로
+    let done = {}; try { done = JSON.parse(localStorage.getItem("tt_mt_done") || "{}"); } catch {}
+    $("#before").innerHTML = S.todo.before.map((x, i) => `<li><label class="mt-ck"><input type="checkbox" data-i="${i}"${done[i] ? " checked" : ""}><span><b>${esc(x.text)}</b><em>${esc(x.who)}</em></span></label> ${at(x.at)}</li>`).join("");
+    $("#before").addEventListener("change", (e) => { const c = e.target.closest("input[data-i]"); if (!c) return; done[c.dataset.i] = c.checked; try { localStorage.setItem("tt_mt_done", JSON.stringify(done)); } catch {} });
+    const PRI = { 1: ["먼저", "발표 전에 보여 줄 수 있게"], 2: ["그다음", "있으면 좋은 것"], 3: ["나중에", "발표 뒤에 천천히 / 아이디어"] };
+    $("#build").innerHTML = [1, 2, 3].map((p) => `<div class="mt-p mt-p--${p}"><h4><span>${PRI[p][0]}</span>${PRI[p][1]}</h4><ul>${S.todo.build.filter((x) => x.p === p).map((x) => `<li>${esc(x.text)} ${at(x.at)}</li>`).join("")}</ul></div>`).join("");
+
+    // 시간대별
+    $("#tlList").innerHTML = S.timeline.map((t) => `<li class="mt-t${/사담/.test(t.title) ? " mt-t--mute" : ""}"><time>${mmss(t.from)}–${mmss(t.to)}</time><h3>${esc(t.title)}</h3><ul>${t.points.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></li>`).join("");
+
+    // 발언 비중
+    $("#bars").innerHTML = S.speakers.map((p) => `<li><div class="mt-bar__h"><span class="mt-av mt-av--${p.key}">${esc(ini(p))}</span><b>${esc(p.name)}</b><span>${p.share}% · ${Math.round(p.secs / 60)}분</span></div><div class="mt-bar"><i style="width:${p.share}%"></i></div><p class="mt-hint">${esc(p.hint)}</p></li>`).join("");
+
+    // 전체 전사: 같은 사람이 이어서 말한 건 한 덩어리로
+    const blocks = [];
+    for (const t of m.transcript) {
+      const last = blocks[blocks.length - 1];
+      if (last && last.sp === t.sp && !t.x && t.s - last.e < 8) { last.t += " " + t.t; last.e = t.e; } else blocks.push({ ...t });
+    }
+    let drawn = false;
+    const draw = (q) => {
+      const re = q ? new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi") : null;
+      const rows = blocks.filter((b) => !re || (re.lastIndex = 0, re.test(b.t)));
+      $("#qn").textContent = q ? `${rows.length}곳에서 찾았어요.` : "";
+      $("#tr").innerHTML = rows.map((b) => {
+        const txt = esc(b.t), hit = re ? txt.replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), (x) => `<mark>${x}</mark>`) : txt;
+        return b.x ? `<li class="mt-r mt-r--x" id="tr-${b.s}"><time>${mmss(b.s)}</time><p>${hit}</p></li>`
+          : `<li class="mt-r" id="tr-${b.s}"><time>${mmss(b.s)}</time><div><span class="mt-av mt-av--${b.sp}">${esc(ini(spk[b.sp] || { name: "?", named: true }))}</span><b>${esc((spk[b.sp] || { name: "?" }).name)}</b><p>${hit}</p></div></li>`;
+      }).join("");
+      drawn = true;
+    };
+    draw("");
+    let qt = 0; $("#q").addEventListener("input", (e) => { clearTimeout(qt); qt = setTimeout(() => draw(e.target.value.trim()), 150); });
+    // 시각 버튼: 전사의 그 위치로 이동
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest(".mt-at"); if (!b) return;
+      $("#q").value = ""; draw("");
+      const t = Number(b.dataset.at), el = [...document.querySelectorAll(".mt-r")].reverse().find((x) => Number(x.id.slice(3)) <= t);
+      if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("mt-r--hit"); setTimeout(() => el.classList.remove("mt-r--hit"), 2400); }
+    });
+    $("#doc").hidden = false;
+  });
+</script>
+</body>
+</html>

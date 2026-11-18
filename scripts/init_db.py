@@ -60,6 +60,17 @@ CREATE = [
       KEY ix_comments_post (post_id),
       KEY ix_comments_parent (parent_id)
     ) CHARACTER SET utf8mb4""",
+    # 회의록(비공개 페이지 /minutes): 요약·시간대별 이야기·전사 본문을 JSON 글자로 담는다. 내용은 저장소에 없고 DB 에만 있다(scripts/add_meeting.js 로 넣는다).
+    """CREATE TABLE IF NOT EXISTS meetings (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      title      VARCHAR(120) NOT NULL,
+      held_at    DATETIME NOT NULL,            -- 시작 시각(UTC)
+      duration_s INT NOT NULL,
+      summary    MEDIUMTEXT NOT NULL,          -- JSON: 한눈에·결정·할 일·시간대별·발언 비중 …
+      transcript LONGTEXT NOT NULL,            -- JSON: [{s, e, sp, t}]  (초, 초, 발언자 이름, 글)
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY ix_meetings_held (held_at)
+    ) CHARACTER SET utf8mb4""",
     # 폰 푸시 알림 구독(브라우저·기기마다 하나). endpoint 는 길어서 해시로 중복을 막는다.
     """CREATE TABLE IF NOT EXISTS push_subs (
       id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -124,6 +135,6 @@ with db.cursor() as cur:
         except pymysql.err.OperationalError as e:
             if e.args[0] != 1060:
                 raise
-    for t in ("users", "invites", "posts", "comments", "likes", "post_media"):
+    for t in ("users", "invites", "posts", "comments", "likes", "post_media", "meetings"):
         cur.execute(f"SHOW COLUMNS FROM {t}")
         print(t, [r[0] for r in cur.fetchall()])

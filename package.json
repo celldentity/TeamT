@@ -1,5 +1,5 @@
 {
-  "name": "teamt",
+  "name": "t-niping",
   "private": true,
   "description": "HR T | 니핑 프로젝트 (T조) — 정적 페이지 + Vercel 함수(api/)",
   "dependencies": {

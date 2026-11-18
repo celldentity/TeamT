@@ -72,6 +72,9 @@
   "functions": {
     "api/cron.js": {
       "maxDuration": 120
+    },
+    "api/ask.js": {
+      "maxDuration": 60
     }
   }
 }

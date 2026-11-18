@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI에게 물어보기 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="사이트의 글과 댓글을 찾아 읽고 요약·분석해 주는 T조 AI 도우미.">
+<meta name="theme-color" content="#fff6fa">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v3.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" href="/assets/icons/icon-v3-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app app--ai">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec ai" aria-labelledby="ai-title">
+    <div class="wrap">
+      <div class="ai__head">
+        <h1 class="sec__title" id="ai-title">AI에게 물어보기</h1>
+        <button class="ai__new" type="button" id="newChat" hidden>새 대화</button>
+      </div>
+      <p class="sec__lead">사이트에 올라온 글과 댓글을 찾아 읽고, 요약·분석해서 답해 드려요. 다른 사람의 개인정보는 알려 드리지 않아요.</p>
+      <div class="ai__starter" id="starter"></div>
+      <ol class="ai__log" id="log" aria-live="polite"></ol>
+      <p class="msg msg--err" id="err" role="alert"></p>
+    </div>
+  </section>
+</main>
+<form class="ai__bar" id="form" autocomplete="off">
+  <label class="sr" for="q">AI에게 물어볼 내용</label>
+  <textarea id="q" rows="1" maxlength="3000" placeholder="무엇이든 물어보세요"></textarea>
+  <button class="ai__send" id="send" type="submit" aria-label="보내기" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/></svg></button>
+</form>
+</div>
+<script>
+  TT.ready.then((user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s), KEY = "tt_ai_" + user.id, ICON = "/assets/icons/icon-v3-192.png";
+    const STARTERS = ["지금까지 올라온 글을 한눈에 정리해 줘", "이번 주 토론 내용을 요약하고 쟁점을 분석해 줘", "오늘의 질문에 사람들이 어떻게 답했는지 알려 줘", "채용 관련 글에서 공통된 의견이 뭐야?", "우리가 다음에 쓰면 좋을 글감을 추천해 줘"];
+    let hist = []; try { hist = JSON.parse(localStorage.getItem(KEY) || "[]").filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"); } catch {}
+    let busy = false;
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(hist.slice(-30))); } catch {} };
+
+    // 답변 꾸미기: 안전하게 이스케이프한 뒤 **굵게**, - 목록, 1. 목록, [#글번호] 링크만 살린다
+    const inline = (t) => TT.esc(t).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\[#(\d{1,9})\]/g, '<a class="ai__ref" href="/article?id=$1">글 #$1</a>');
+    function fmt(text) {
+      const out = []; let list = null;
+      const flush = () => { if (list) { out.push(`<${list.t}>${list.items.map((i) => `<li>${i}</li>`).join("")}</${list.t}>`); list = null; } };
+      for (const para of String(text).replace(/\r/g, "").split(/\n{2,}/)) {
+        let buf = [];
+        const flushP = () => { if (buf.length) { flush(); out.push(`<p>${buf.map(inline).join("<br>")}</p>`); buf = []; } };
+        for (const line of para.split("\n")) {
+          const ul = /^\s*[-•]\s+(.*)$/.exec(line), ol = /^\s*\d{1,2}[.)]\s+(.*)$/.exec(line);
+          if (ul || ol) { flushP(); const t = ul ? "ul" : "ol"; if (!list || list.t !== t) { flush(); list = { t, items: [] }; } list.items.push(inline((ul || ol)[1])); }
+          else if (line.trim()) { if (list) flush(); buf.push(line); }
+        }
+        flushP();
+      }
+      flush(); return out.join("");
+    }
+    const bubble = (m) => m.role === "user"
+      ? `<li class="ai__m ai__m--me"><div class="ai__b">${TT.esc(m.content).replace(/\n/g, "<br>")}</div></li>`
+      : `<li class="ai__m ai__m--ai"><img class="ai__av" src="${ICON}" alt="" width="28" height="28"><div class="ai__b">${fmt(m.content)}</div></li>`;
+    function draw() {
+      $("#log").innerHTML = hist.map(bubble).join("");
+      $("#starter").hidden = hist.length > 0; $("#newChat").hidden = !hist.length;
+    }
+    $("#starter").innerHTML = `<p class="ai__hint">이런 걸 물어볼 수 있어요</p>` + STARTERS.map((s) => `<button type="button" class="ai__chip">${TT.esc(s)}</button>`).join("");
+    $("#starter").addEventListener("click", (e) => { const b = e.target.closest(".ai__chip"); if (b) ask(b.textContent); });
+    $("#newChat").addEventListener("click", () => { if (busy) return; hist = []; save(); draw(); $("#err").textContent = ""; $("#q").focus(); });
+
+    const ta = $("#q"), send = $("#send");
+    const sync = () => { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 132) + "px"; ta.style.overflowY = ta.scrollHeight > 132 ? "auto" : "hidden"; send.disabled = busy || !ta.value.trim(); };
+    ta.addEventListener("input", sync);
+    const desktop = matchMedia("(hover: hover) and (pointer: fine)");
+    ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing && (e.ctrlKey || e.metaKey || (desktop.matches && !e.shiftKey))) { e.preventDefault(); $("#form").requestSubmit(); } });
+    $("#form").addEventListener("submit", (e) => { e.preventDefault(); const t = ta.value.trim(); if (t && !busy) ask(t); });
+
+    async function ask(text) {
+      if (busy) return; busy = true; $("#err").textContent = "";
+      hist.push({ role: "user", content: text }); save(); ta.value = ""; sync(); draw();
+      const log = $("#log");
+      log.insertAdjacentHTML("beforeend", `<li class="ai__m ai__m--ai" id="pend"><img class="ai__av" src="${ICON}" alt="" width="28" height="28"><div class="ai__b ai__b--wait"><span class="ai__dots" aria-hidden="true"><i></i><i></i><i></i></span><span id="pst">생각하는 중</span></div></li>`);
+      $("#pend").scrollIntoView({ block: "end", behavior: "smooth" });
+      let answer = "", left = null, err = "";
+      try {
+        const r = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ messages: hist.slice(-14) }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || "AI가 잠시 응답하지 못했어요."); }
+        const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+        for (;;) {
+          const { done, value } = await rd.read(); if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let i; while ((i = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (!line) continue;
+            let o; try { o = JSON.parse(line); } catch { continue; }
+            if (o.s) { const el = document.getElementById("pst"); if (el) el.textContent = o.s; }
+            else if (o.a) { answer = o.a; left = o.left; }
+            else if (o.e) err = o.e;
+          }
+        }
+        if (!answer && !err) err = "답변이 중간에 끊겼어요. 다시 한번 물어봐 주세요.";
+      } catch (e) { err = e.message || "AI가 잠시 응답하지 못했어요."; }
+      document.getElementById("pend")?.remove();
+      if (answer) { hist.push({ role: "assistant", content: answer }); save(); draw(); const last = log.lastElementChild; if (last) { last.style.scrollMarginTop = "calc(var(--top-h) + 12px)"; last.scrollIntoView({ block: "start", behavior: "smooth" }); } if (left !== null && left <= 5) $("#err").textContent = `오늘 남은 질문은 ${left}번이에요.`; }
+      else { hist.pop(); save(); draw(); $("#err").textContent = err; ta.value = text; }
+      busy = false; sync();
+    }
+    draw(); sync();
+  });
+</script>
+</body>
+</html>

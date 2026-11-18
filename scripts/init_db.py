@@ -118,6 +118,13 @@ CREATE = [
       note   VARCHAR(300) NOT NULL DEFAULT '',
       KEY ix_cron_ran (ran_at)
     ) CHARACTER SET utf8mb4""",
+    # AI 도우미(/ai) 사용 기록: 하루 질문 수 제한용(30일이 지나면 자동 정리)
+    """CREATE TABLE IF NOT EXISTS ai_usage (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id    BIGINT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY ix_ai_usage (user_id, created_at)
+    ) CHARACTER SET utf8mb4""",
     # 좋아요: 누가 언제 눌렀는지 남긴다(트래킹). target_type 'p' = 글, 'c' = 댓글
     """CREATE TABLE IF NOT EXISTS likes (
       target_type CHAR(1) NOT NULL,

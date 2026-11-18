@@ -18,6 +18,20 @@ async function ask({ system, user, max = 2000, timeout = 50000 }) {
   } finally { clearTimeout(t); }
 }
 
+// 대화·도구 호출용: 응답 전체({content:[…블록], stop_reason})를 돌려준다. api/ask.js(AI 도우미)가 쓴다.
+async function chat({ system, messages, tools, toolChoice, max = 3000, timeout = 50000 }) {
+  if (!enabled()) throw new Error("ANTHROPIC_API_KEY 가 없어요.");
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const body = { model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5", max_tokens: max, system, messages };
+    if (tools) { body.tools = tools; if (toolChoice) body.tool_choice = toolChoice; }
+    const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(`Claude 응답 오류 ${r.status}: ${(j.error && j.error.message) || ""}`.trim());
+    return j;
+  } finally { clearTimeout(t); }
+}
+
 // 답변에서 JSON 한 덩어리를 꺼낸다(앞뒤에 설명이 붙어도 견딘다)
 function json(text) {
   const a = text.indexOf("{"), b = text.lastIndexOf("}");
@@ -25,4 +39,4 @@ function json(text) {
   return JSON.parse(text.slice(a, b + 1));
 }
 
-module.exports = { enabled, ask, json };
+module.exports = { enabled, ask, chat, json };

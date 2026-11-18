@@ -2,6 +2,22 @@
 // 인터넷이 끊겼을 때 페이지 이동만 안내 문구로 받아 준다.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+// 폰 푸시: 서버(api/_push.js)가 {title, body, url, tag} 를 보내면 알림을 띄우고, 누르면 그 글로 간다.
+self.addEventListener("push", (e) => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch {}
+  e.waitUntil(self.registration.showNotification(d.title || "HR T | 니핑", {
+    body: d.body || "", tag: d.tag, data: { url: d.url || "/" },
+    icon: "/assets/icons/icon-v2-192.png",
+  }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "/", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    const w = list.find((c) => c.url.startsWith(self.location.origin));
+    return w ? w.focus().then(() => w.navigate(url)) : self.clients.openWindow(url);
+  }));
+});
 self.addEventListener("fetch", (e) => {
   if (e.request.mode !== "navigate") return;
   e.respondWith(fetch(e.request).catch(() => new Response(

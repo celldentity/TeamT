@@ -60,6 +60,18 @@ CREATE = [
       KEY ix_comments_post (post_id),
       KEY ix_comments_parent (parent_id)
     ) CHARACTER SET utf8mb4""",
+    # 폰 푸시 알림 구독(브라우저·기기마다 하나). endpoint 는 길어서 해시로 중복을 막는다.
+    """CREATE TABLE IF NOT EXISTS push_subs (
+      id            BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id       BIGINT NOT NULL,
+      endpoint      VARCHAR(1000) NOT NULL,
+      endpoint_hash CHAR(64) NOT NULL,
+      p256dh        VARCHAR(200) NOT NULL,
+      auth          VARCHAR(100) NOT NULL,
+      created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_push_endpoint (endpoint_hash),
+      KEY ix_push_user (user_id)
+    ) CHARACTER SET utf8mb4""",
     # 좋아요: 누가 언제 눌렀는지 남긴다(트래킹). target_type 'p' = 글, 'c' = 댓글
     """CREATE TABLE IF NOT EXISTS likes (
       target_type CHAR(1) NOT NULL,

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아티클 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="아티클 읽기와 댓글.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="post-title">
+    <div class="wrap">
+      <a class="back" href="/articles">← 아티클 목록</a>
+      <article id="post"></article>
+      <div class="empty" id="gone" hidden></div>
+      <section id="cmSec" aria-labelledby="cm-title" hidden>
+        <h2 class="sec__h3" id="cm-title">댓글 <span id="cmN" style="color:var(--ink-soft);font-weight:500"></span></h2>
+        <form class="cmt-form" id="cmForm">
+          <textarea class="ta" name="body" rows="3" maxlength="1000" placeholder="댓글을 남겨 보세요 (1000자까지)" aria-label="댓글 쓰기"></textarea>
+          <p class="msg msg--err" id="cmErr" role="alert"></p>
+          <button class="btn btn--sm" type="submit">댓글 등록</button>
+        </form>
+        <ul class="cmt-list" id="cmts"></ul>
+      </section>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (me) => {
+    if (!me) return;
+    const $ = (s) => document.querySelector(s), id = Number(new URLSearchParams(location.search).get("id")) || 0;
+    let data = null, replying = 0, editing = 0;
+    const fail = (m) => { $("#post").innerHTML = ""; $("#cmSec").hidden = true; $("#gone").hidden = false; $("#gone").textContent = m; };
+
+    async function load() {
+      try { data = await TT.call("/api/posts?id=" + id); } catch (x) { fail(x.message); return; }
+      drawPost(); drawComments();
+    }
+    const likeBtn = (cls, kind, tid, liked, n) => `<button class="${cls}" type="button" data-act="like" data-kind="${kind}" data-id="${tid}" aria-pressed="${liked}">${TT.heart}<span>${n}</span></button>`;
+
+    function drawPost() {
+      const p = data.post, a = TT.who(p.author);
+      document.title = p.title + " — HR T | 니핑 프로젝트";
+      $("#post").innerHTML = `
+        <div class="art__meta" style="margin-top:4px"><span class="chip">${TT.esc(p.category)}</span>${p.ai ? `<span class="chip chip--ai">${p.author ? "AI와 함께" : "AI 작성"}</span>` : ""}</div>
+        <h1 class="post__title" id="post-title">${TT.esc(p.title)}</h1>
+        <div class="by"><span class="by__av">${TT.avatar(a)}</span><div><p class="by__name">${TT.esc(a.nickname)}</p><p class="by__time">${TT.ago(p.createdAt)}${p.updatedAt ? " · 수정됨" : ""}</p></div></div>
+        <div class="post__body">${TT.esc(p.body)}</div>
+        <div class="post__bar">${likeBtn("like", "p", p.id, p.liked, p.likes)}<span class="bar__sp"></span>
+          ${p.mine ? `<a class="btn btn--ghost btn--sm" href="/write?id=${p.id}">수정</a><button class="btn btn--ghost btn--sm" type="button" data-act="del-post">삭제</button>` : ""}</div>`;
+      $("#cmSec").hidden = false;
+    }
+
+    function cmt(c, reply) {
+      if (c.deleted) return `<div class="cmt"><span class="cmt__av cmt__av--gone"></span><div><p class="cmt__txt cmt__txt--gone">삭제된 댓글이에요.</p></div></div>`;
+      const a = TT.who(c.author), isEdit = editing === c.id;
+      return `<div class="cmt" data-cid="${c.id}"><span class="cmt__av">${TT.avatar(a)}</span><div>
+        <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span><span class="cmt__time">${TT.ago(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
+        ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><p class="msg msg--err" role="alert"></p>
+            <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
+          : `<p class="cmt__txt">${TT.esc(c.body)}</p>
+        <div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}${reply ? "" : `<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>`}
+          ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}
+        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><p class="msg msg--err" role="alert"></p>
+            <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">답글 등록</button></div></form>` : ""}
+      </div></div>`;
+    }
+    function drawComments() {
+      const all = data.comments, tops = all.filter((c) => !c.parentId);
+      $("#cmN").textContent = all.filter((c) => !c.deleted).length + "개";
+      $("#cmts").innerHTML = tops.length ? tops.map((c) => {
+        const kids = all.filter((k) => k.parentId === c.id);
+        return `<li class="cmt-item">${cmt(c, false)}${kids.length ? `<div class="cmt__replies">${kids.map((k) => cmt(k, true)).join("")}</div>` : ""}</li>`;
+      }).join("") : `<li class="empty" style="margin-top:12px">첫 댓글을 남겨 보세요.</li>`;
+    }
+
+    const send = (url, method, body) => TT.call(url, method, body);
+    const showErr = (form, m) => { const e = form.querySelector(".msg"); if (e) e.textContent = m; };
+    const textOf = (form) => form.querySelector("textarea").value;
+
+    // 댓글 쓰기
+    $("#cmForm").addEventListener("submit", async (e) => {
+      e.preventDefault(); const f = e.currentTarget; $("#cmErr").textContent = "";
+      if (!f.body.value.trim()) { $("#cmErr").textContent = "댓글 내용을 적어 주세요."; return; }
+      try { await send("/api/comments", "POST", { postId: id, body: f.body.value }); f.body.value = ""; await load(); } catch (x) { $("#cmErr").textContent = x.message; }
+    });
+
+    // 나머지 동작은 한곳에서 받는다(목록이 다시 그려져도 동작하도록)
+    document.addEventListener("click", async (e) => {
+      const b = e.target.closest("button[data-act]"); if (!b || !data) return;
+      const act = b.dataset.act, cid = Number(b.dataset.id);
+      try {
+        if (act === "like") {   // 하트는 화면 전체를 다시 그리지 않고 숫자만 바꾼다(쓰던 답글·수정 내용이 사라지지 않게)
+          const r = await send("/api/likes", "POST", { type: b.dataset.kind, id: cid });
+          b.setAttribute("aria-pressed", r.liked); b.querySelector("span").textContent = r.count;
+          (b.dataset.kind === "p" ? [data.post] : data.comments.filter((c) => c.id === cid)).forEach((x) => { x.liked = r.liked; x.likes = r.count; });
+        } else if (act === "reply") { replying = replying === cid ? 0 : cid; editing = 0; drawComments(); }
+        else if (act === "edit") { editing = cid; replying = 0; drawComments(); }
+        else if (act === "cancel") { replying = 0; editing = 0; drawComments(); }
+        else if (act === "del") { if (confirm("이 댓글을 지울까요? 되돌릴 수 없어요.")) { await send("/api/comments?id=" + cid, "DELETE", {}); await load(); } }
+        else if (act === "del-post") { if (confirm("이 글을 지울까요? 댓글과 좋아요도 함께 지워지고 되돌릴 수 없어요.")) { await send("/api/posts?id=" + id, "DELETE", {}); location.href = "/articles"; } }
+      } catch (x) { alert(x.message); }
+    });
+    document.addEventListener("submit", async (e) => {
+      const f = e.target.closest("form[data-act]"); if (!f) return; e.preventDefault();
+      const act = f.dataset.act, cid = Number(f.dataset.id); showErr(f, "");
+      if (!textOf(f).trim()) { showErr(f, "내용을 적어 주세요."); return; }
+      try {
+        if (act === "save-edit") await send("/api/comments?id=" + cid, "PATCH", { body: textOf(f) });
+        else await send("/api/comments", "POST", { postId: id, parentId: cid, body: textOf(f) });
+        replying = 0; editing = 0; await load();
+      } catch (x) { showErr(f, x.message); }
+    });
+
+    if (!id) return fail("글을 찾을 수 없어요.");
+    load();
+  });
+</script>
+</body>
+</html>

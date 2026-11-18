@@ -25,29 +25,27 @@
 <main id="main">
   <section class="sec" aria-labelledby="art-title">
     <div class="wrap">
-      <h1 class="sec__title" id="art-title">아티클</h1>
-      <p class="sec__lead">AI와 함께 쓰고 다듬은 HR 이야기를 모았습니다.</p>
-      <ul class="arts">
-        <li class="art">
-          <div class="art__meta"><span class="chip">채용</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">면접 질문, AI와 같이 다듬어 봤어요</h3>
-          <p class="art__text">막연한 질문을 구체적으로 바꾸는 세 가지 방법을 정리했습니다.</p>
-        </li>
-        <li class="art">
-          <div class="art__meta"><span class="chip">온보딩</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">신규 입사자 첫 일주일 체크리스트</h3>
-          <p class="art__text">계정, 장비, 인사까지. 놓치기 쉬운 순서를 한 장으로 모았습니다.</p>
-        </li>
-        <li class="art">
-          <div class="art__meta"><span class="chip">조직문화</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">회고 회의가 길어지지 않는 법</h3>
-          <p class="art__text">말할 차례와 시간을 정해 두면 회고가 10분 안에 끝납니다.</p>
-        </li>
-      </ul>
-      <p class="note">※ 지금 보이는 글은 화면 구성을 확인하기 위한 샘플입니다. 글 등록 기능은 다음 단계에서 이 페이지에 연결됩니다.</p>
+      <div class="sec__head">
+        <h1 class="sec__title" id="art-title">아티클</h1>
+        <a class="btn btn--sm" href="/write">글쓰기</a>
+      </div>
+      <p class="sec__lead">AI와 함께 쓰고 다듬은 HR 이야기를 모았어요. 팀원 누구나 글을 쓰고 댓글로 이야기할 수 있어요.</p>
+      <ul class="arts" id="arts"></ul>
+      <div class="empty" id="empty" hidden>아직 글이 없어요. 첫 글을 써 보세요.</div>
+      <p class="msg msg--err" id="err" role="alert"></p>
     </div>
   </section>
 </main>
 </div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    try {
+      const { posts } = await TT.call("/api/posts");
+      document.getElementById("arts").innerHTML = posts.map(TT.postCard).join("");
+      document.getElementById("empty").hidden = posts.length > 0;
+    } catch (e) { document.getElementById("err").textContent = e.message; }
+  });
+</script>
 </body>
 </html>

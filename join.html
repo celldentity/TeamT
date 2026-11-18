@@ -37,6 +37,8 @@
       </svg>
     </section>
 
+    <a class="btn btn--block" id="back" href="/join" style="margin-top:16px" hidden>로그인 화면으로 돌아가기</a>
+
     <form class="form" id="form" novalidate>
       <label class="field" id="nickRow" hidden>닉네임
         <input name="nickname" type="text" placeholder="2~20자, 나중에 바꿀 수 있어요" autocomplete="nickname" maxlength="20">
@@ -119,14 +121,20 @@
 
     // 초대 링크(/join?code=…)로 들어왔으면 코드를 확인하고, 유효하면 바로 가입 화면으로 연다
     const fromLink = norm(new URLSearchParams(location.search).get("code") || "");
+    if (fromLink.length === 12) form.hidden = true;   // 코드를 확인하는 동안 폼을 가려 로그인 화면이 깜박이지 않게 한다
     (async () => {
       if (fromLink.length === 12) {
         try {
           const r = await TT.call("/api/invites?check=" + fromLink);
           if (r.valid) invite = { code: fromLink, inviter: r.inviter || "" };
-          else { setMode("login"); $("#gate-title").innerHTML = "이 초대장은<br>쓸 수 없어요"; $("#gate-sub").textContent = "이미 쓰였거나 기한이 지났을 수 있어요. 팀원에게 새 초대장을 받아 주세요. 이미 가입했다면 아래에서 로그인해요."; return; }
+          else {   // 쓸 수 없는 초대장: 폼 대신 안내와 «로그인 화면으로 돌아가기» 버튼만 보여 준다
+            $("#gate-title").innerHTML = "사용할 수 없는<br>초대장이에요";
+            $("#gate-sub").textContent = "이미 쓰였거나 기한이 지난 초대장이에요. 새 초대장은 팀원에게 요청해 주세요.";
+            $("#back").hidden = false;
+            return;
+          }
         } catch { invite = { code: fromLink, inviter: "" }; }   // 확인 실패 — 제출할 때 서버가 다시 검사한다
-        setMode("invite"); form.nickname.focus();
+        form.hidden = false; setMode("invite"); form.nickname.focus();
       } else if (fromLink) { form.code.value = fromLink; setMode("manual"); check(); }
       else setMode("login");
     })();

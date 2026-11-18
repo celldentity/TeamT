@@ -20,7 +20,8 @@
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a></div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
-  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === path ? ' aria-current="page"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
+  const tabPath = /^\/(article|write)$/.test(path) ? "/articles" : path; // 글 보기·글쓰기도 «아티클» 메뉴로 친다
+  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
   s.insertAdjacentHTML("afterend", GATE
     ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
     : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
@@ -50,7 +51,22 @@
   const initial = (u) => [...u.nickname][0] || "T";
   const avatar = (u) => (u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : esc(initial(u)));
 
-  const TT = (window.TT = { call, esc, initial, avatar, user: null });
+  // 글쓴이(author 가 null 이면 T조 AI), 몇 분 전/며칠 전, 하트 아이콘
+  const who = (a) => a || { nickname: "T조 AI", photoUrl: null };
+  const ago = (d) => {
+    const s = (Date.now() - new Date(d)) / 1000;
+    if (s < 60) return "방금"; if (s < 3600) return `${Math.floor(s / 60)}분 전`; if (s < 86400) return `${Math.floor(s / 3600)}시간 전`; if (s < 7 * 86400) return `${Math.floor(s / 86400)}일 전`;
+    const t = new Date(d); return `${t.getMonth() + 1}월 ${t.getDate()}일`;
+  };
+  const heart = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 20.5C5.5 15.8 3 12.6 3 9.4 3 7 4.8 5.2 7.1 5.2c1.9 0 3.7 1 4.9 2.8 1.2-1.8 3-2.8 4.9-2.8C19.2 5.2 21 7 21 9.4c0 3.2-2.5 6.4-9 11.1Z"/></svg>';
+  const bubble = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5Z"/></svg>';
+  // 아티클 카드(목록·홈 공용)
+  const postCard = (p) => `<li><a class="art" href="/article?id=${p.id}">
+    <div class="art__meta"><span class="chip">${esc(p.category)}</span>${p.ai ? `<span class="chip chip--ai">${p.author ? "AI와 함께" : "AI 작성"}</span>` : ""}</div>
+    <h3 class="art__title">${esc(p.title)}</h3>
+    <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>
+    <div class="art__foot"><span>${esc(who(p.author).nickname)}</span><span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
+  const TT = (window.TT = { call, esc, initial, avatar, who, ago, heart, bubble, postCard, user: null });
   // 홈 화면에 추가(PWA): 서비스워커 등록 + 안드로이드 설치 창 이벤트 붙잡아 두기(마이페이지의 버튼이 쓴다)
   if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); TT.installEv = e; document.dispatchEvent(new Event("tt-install")); });

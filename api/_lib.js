@@ -59,6 +59,7 @@ const len = (s) => [...String(s)].length; // 이모지도 1글자로 센다
 // 초대장 정책 — 숫자 하나로 조정한다
 const INVITE_DAYS = 7;       // 만들고 나서 이 기간 안에 써야 한다
 const INVITE_MAX_ACTIVE = 3; // 한 사람이 동시에 가질 수 있는 쓰지 않은 초대장 수
+const CATS = ["채용", "온보딩", "조직문화", "평가·보상", "교육", "자유"]; // 아티클 분류
 const normCode = (c) => String(c || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
 
-module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser, photoUrl, len, INVITE_DAYS, INVITE_MAX_ACTIVE, normCode };
+module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser, photoUrl, len, CATS, INVITE_DAYS, INVITE_MAX_ACTIVE, normCode };

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>글쓰기 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="아티클 쓰기와 수정.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="w-title">
+    <div class="wrap">
+      <a class="back" href="/articles" id="backLink">← 아티클</a>
+      <h1 class="sec__title" id="w-title">글쓰기</h1>
+      <form class="form" id="form" novalidate>
+        <label class="field">분류
+          <select name="category" id="cat" required></select>
+        </label>
+        <label class="field">제목
+          <input name="title" type="text" maxlength="80" placeholder="2~80자" autocomplete="off" required>
+        </label>
+        <label class="field">내용
+          <textarea class="ta" name="body" rows="12" maxlength="5000" placeholder="10~5000자. 줄바꿈은 그대로 보여요." required></textarea>
+        </label>
+        <label class="check"><input type="checkbox" name="ai"> AI의 도움을 받아 썼어요</label>
+        <div class="actions">
+          <p class="msg msg--err" id="err" role="alert"></p>
+          <button class="btn btn--block" type="submit" id="btn">올리기</button>
+        </div>
+      </form>
+      <div class="empty" id="gone" hidden></div>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s), form = $("#form"), id = Number(new URLSearchParams(location.search).get("id")) || 0;
+    const len = (s) => [...s.trim()].length;
+    let post = null;
+    try {
+      const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts?limit=1");
+      $("#cat").innerHTML = r.categories.map((c) => `<option>${TT.esc(c)}</option>`).join("");
+      post = r.post || null;
+    } catch (x) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = x.message; return; }
+    if (id) {
+      if (!post.mine) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = "내가 쓴 글만 고칠 수 있어요."; return; }
+      $("#w-title").textContent = "글 수정"; $("#btn").textContent = "저장";
+      $("#backLink").href = "/article?id=" + id; $("#backLink").textContent = "← 글로 돌아가기";
+      form.category.value = post.category; form.title.value = post.title; form.body.value = post.body; form.ai.checked = post.ai;
+    }
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const err = $("#err"), btn = $("#btn"), label = btn.textContent; err.textContent = "";
+      const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked };
+      if (len(d.title) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
+      if (len(d.body) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
+      btn.disabled = true; btn.textContent = "잠시만요…";
+      try {
+        const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts", id ? "PATCH" : "POST", d);
+        location.href = "/article?id=" + r.id;
+      } catch (x) { err.textContent = x.message; btn.disabled = false; btn.textContent = label; }
+    });
+  });
+</script>
+</body>
+</html>

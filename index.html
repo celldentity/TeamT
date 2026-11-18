@@ -53,24 +53,18 @@
   <section class="sec" aria-labelledby="new-title">
     <div class="wrap">
       <h2 class="sec__title" id="new-title">새로 올라온 글</h2>
-      <ul class="arts">
-        <li class="art">
-          <div class="art__meta"><span class="chip">채용</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">면접 질문, AI와 같이 다듬어 봤어요</h3>
-          <p class="art__text">막연한 질문을 구체적으로 바꾸는 세 가지 방법을 정리했습니다.</p>
-        </li>
-        <li class="art">
-          <div class="art__meta"><span class="chip">온보딩</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">신규 입사자 첫 일주일 체크리스트</h3>
-          <p class="art__text">계정, 장비, 인사까지. 놓치기 쉬운 순서를 한 장으로 모았습니다.</p>
-        </li>
-      </ul>
-      <p class="note">※ 지금 보이는 글은 화면 구성을 확인하기 위한 샘플입니다.</p>
+      <ul class="arts" id="newArts"></ul>
       <p class="note"><a href="/articles"><b>아티클 전체 보기</b></a></p>
       <p class="note" style="margin-top:32px">HR T | 니핑 프로젝트(B급 부제: HR 떡밥 리텐션 프로젝트)는 가칭이며 이름이 바뀔 수 있습니다.<br>© 2026 Midfielder 8th · Team T</p>
     </div>
   </section>
 </main>
 </div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = posts.map(TT.postCard).join(""); } catch {}
+  });
+</script>
 </body>
 </html>

@@ -12,10 +12,13 @@ module.exports = async (req, res) => {
     const ok = sec ? req.headers.authorization === `Bearer ${sec}` : (!process.env.VERCEL || /vercel-cron/i.test(req.headers["user-agent"] || ""));
     if (!ok) return L.json(res, 401, { error: "허용되지 않은 요청이에요." });
     const job = req.query.job, db = L.db();
+    // 부를 때마다 한 줄 남긴다(Vercel 이 정말 부르는지 확인용). 요약만, 2주가 지난 기록은 지운다.
+    const log = async (out) => { try { await db.query("INSERT INTO cron_runs (job, note) VALUES (?, ?)", [String(job).slice(0, 10), JSON.stringify(out, (k, v) => (k === "push" ? undefined : v)).slice(0, 290)]); await db.query("DELETE FROM cron_runs WHERE ran_at < DATE_SUB(NOW(), INTERVAL 14 DAY)"); } catch (e) { console.error("cron log", e.message); } };
     if (job === "daily") {
       const k = R.kstNow(), out = {};
       if (k.getUTCDay() === 1) out.weekly = await R.makeWeekly(db);
       out.daily = await R.makeDaily(db);
+      await log(out);
       return L.json(res, 200, out);
     }
     if (job === "wrap") {
@@ -23,6 +26,7 @@ module.exports = async (req, res) => {
       const k = R.kstNow(), out = {};
       if (k.getUTCHours() >= 9) { if (k.getUTCDay() === 1) out.weekly = await R.makeWeekly(db); out.daily = await R.makeDaily(db); }
       out.wrap = await R.wrap(db);
+      await log(out);
       return L.json(res, 200, out);
     }
     return L.json(res, 400, { error: "job 은 daily 또는 wrap 이에요." });

@@ -53,9 +53,11 @@ async function makeDaily(db, now = new Date()) {
   if (dow === 0 || dow === 6) return { skipped: "주말" };
   const [ex] = await db.query("SELECT id FROM posts WHERE kind = 'daily' AND qdate = ?", [date]);
   if (ex[0]) return { skipped: "이미 있음", id: ex[0].id };
-  const who = await pickMember(db, date);
+  // 미리 예약된 질문(daily_plan)이 있으면 그 사람·그 질문으로, 없으면 자동으로 뽑는다
+  const [[plan]] = await db.query("SELECT p.target_id, p.category, p.title, p.body, u.nickname FROM daily_plan p JOIN users u ON u.id = p.target_id WHERE p.qdate = ?", [date]);
+  const who = plan ? { id: plan.target_id, nickname: plan.nickname } : await pickMember(db, date);
   if (!who) return { skipped: "가입자 없음" };
-  const q = await newQuestion(db, "daily");
+  const q = plan ? { category: plan.category, title: plan.title, body: plan.body, from: "plan" } : await newQuestion(db, "daily");
   let id;
   try {
     const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, target_id, qdate) VALUES (NULL, 1, ?, ?, ?, 'daily', ?, ?)", [q.category, q.title, q.body, who.id, date]);

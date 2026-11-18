@@ -101,6 +101,23 @@ CREATE = [
       KEY ix_media_post (post_id, pos),
       KEY ix_media_owner (owner_id, status, created_at)
     ) CHARACTER SET utf8mb4""",
+    # 예약 질문: 어느 날 누구에게 어떤 질문을 올릴지 미리 정해 둔다(있으면 아침 크론이 이것을 쓰고, 없으면 자동으로 뽑는다)
+    """CREATE TABLE IF NOT EXISTS daily_plan (
+      qdate      DATE NOT NULL PRIMARY KEY,
+      target_id  BIGINT NOT NULL,
+      category   VARCHAR(20)  NOT NULL,
+      title      VARCHAR(120) NOT NULL,
+      body       TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) CHARACTER SET utf8mb4""",
+    # 크론 실행 기록: Vercel 이 정말 부르고 있는지 확인용(2주 뒤 자동 정리)
+    """CREATE TABLE IF NOT EXISTS cron_runs (
+      id     BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      job    VARCHAR(10) NOT NULL,
+      ran_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      note   VARCHAR(300) NOT NULL DEFAULT '',
+      KEY ix_cron_ran (ran_at)
+    ) CHARACTER SET utf8mb4""",
     # 좋아요: 누가 언제 눌렀는지 남긴다(트래킹). target_type 'p' = 글, 'c' = 댓글
     """CREATE TABLE IF NOT EXISTS likes (
       target_type CHAR(1) NOT NULL,

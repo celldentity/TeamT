@@ -430,12 +430,15 @@ a.art { text-decoration: none; color: inherit; }
 .gl__img { width: 96px; height: 96px; margin-top: 16px; border-radius: 24%; box-shadow: 0 6px 18px rgb(231 127 176 / .35); transform-origin: 50% 100%; animation: gl-hop .9s ease-in-out infinite; }
 .gl__sh { position: absolute; bottom: 2px; width: 70px; height: 10px; border-radius: 50%; background: rgb(87 74 140 / .2); animation: gl-sh .9s ease-in-out infinite; }
 .gl__t { margin: 0; font-size: .9375rem; font-weight: 800; color: var(--ink); }
+.gl__q { min-height: 3.1em; max-width: 300px; margin: 0; padding: 0 16px; text-align: center; font-size: .8125rem; line-height: 1.55; color: var(--ink-soft); word-break: keep-all; text-wrap: balance; opacity: 0; transform: translateY(4px); transition: opacity .35s ease .12s, transform .35s ease .12s; }
+.gl__q.is-in { opacity: 1; transform: none; }
+.gl__q b { font-weight: 800; color: var(--pink-ink); }
 .gl__d b { font-weight: 800; color: var(--pink-deep); animation: gl-dot 1.2s infinite; }
 .gl__d b:nth-child(2) { animation-delay: .2s; } .gl__d b:nth-child(3) { animation-delay: .4s; }
 @keyframes gl-hop { 0%, 100% { transform: translateY(0) scale(1.1, .88); } 15%, 85% { transform: translateY(-6px) scale(.96, 1.05); } 50% { transform: translateY(-26px) scale(1, 1); } }
 @keyframes gl-sh { 0%, 100% { transform: scale(1.1); opacity: 1; } 50% { transform: scale(.55); opacity: .45; } }
 @keyframes gl-dot { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .gl__img, .gl__sh, .gl__d b { animation: none; } .gl { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gl__img, .gl__sh, .gl__d b { animation: none; } .gl, .gl__q { transition: none; } }
 
 /* 회의록(/minutes, 발표자 5명만) */
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

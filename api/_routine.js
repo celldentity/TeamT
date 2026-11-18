@@ -4,10 +4,13 @@ const L = require("./_lib");
 const AI = require("./_ai");
 const Q = require("./_qbank");
 const Push = require("./_push");
+const H = require("./_holidays");
 
 const GOAL = 10;                 // 주간 토론: 사람이 단 댓글이 이만큼 모이면 진척도 100%
 const MORE_COMMENTS = 3;         // AI 가 반문한 뒤 이만큼 댓글이 더 달리면 다음 단계로
 const MAX_ROUNDS = 3;            // AI 가 반문하는 최대 차례(마지막 차례에는 어떻게든 글로 정리한다)
+// 요일마다 질문 종류가 돌아간다(공휴일로 그날이 쉬면 그 종류는 그냥 건너뛴다): 월 커리어 · 화 HR · 수 상식 · 목 HR · 금 일상(가벼운 질문)
+const TYPE_BY_DOW = { 1: "커리어", 2: "HR", 3: "상식", 4: "HR", 5: "일상" };
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 // 한국 시각 기준 날짜(YYYY-MM-DD)와 그 주 월요일, 요일(0=일)
@@ -29,49 +32,57 @@ async function pickMember(db, date) {
   return pick(pool.filter((u) => lastOf(u) === oldest));               // 가장 오래 안 걸린 사람들 중 무작위
 }
 
-async function newQuestion(db, kind) {
-  const [recent] = await db.query("SELECT title FROM posts WHERE kind = ? ORDER BY id DESC LIMIT 30", [kind]);
-  const used = new Set(recent.map((r) => r.title));
+async function newQuestion(db, kind, date) {
+  // 예전에 올라간 모든 제목(마지막으로 쓴 글 번호와 함께) — 은행이 바닥나기 전에는 한 번 쓴 질문을 다시 쓰지 않는다
+  const [past] = await db.query("SELECT title, MAX(id) AS last FROM posts WHERE kind = ? GROUP BY title", [kind]);
+  const lastOf = new Map(past.map((r) => [r.title, Number(r.last)]));
+  const type = kind === "daily" ? TYPE_BY_DOW[H.dow(date)] || pick(["HR", "커리어", "상식", "일상"]) : "토론";
   if (AI.enabled()) {
     try {
-      const type = kind === "daily" ? pick(["HR", "HR", "커리어", "상식"]) : "HR";
+      const recent = [...lastOf].sort((x, y) => y[1] - x[1]).slice(0, 40).map((x) => x[0]);
+      const cats = L.CATS.join("|");
       const sys = kind === "daily"
-        ? "당신은 HR 스터디 모임 «T조»의 질문 큐레이터입니다. 모임 구성원이 하루에 한 명씩 가볍게 답해 볼 질문을 한국어로 하나 만드세요. 종류는 상식, HR, 커리어 중 하나입니다. 질문은 한 문장(80자 이내)이고, 3~5문장으로 답할 수 있어야 하며, 정답이 하나로 정해진 퀴즈보다 경험과 생각을 묻는 편이 좋습니다. 최근에 쓴 질문과 겹치면 안 됩니다. 마크다운 기호를 쓰지 말고, JSON 한 개만 출력하세요: {\"category\":\"" + L.CATS.join("|") + " 중 하나\",\"title\":\"질문\",\"body\":\"질문의 배경이나 답하는 힌트 1~2문장\"}"
-        : "당신은 HR 스터디 모임 «T조»의 토론 진행자입니다. 팀원 전체가 일주일 동안 댓글로 의논할 HR 토론 주제를 한국어로 하나 만드세요. 정답이 없고 서로 의견이 갈릴 만한 주제여야 하며, 제목은 80자 이내의 질문 한 문장, 본문은 배경과 생각해 볼 점을 3~5문장으로 씁니다. 최근 주제와 겹치면 안 됩니다. 마크다운 기호를 쓰지 말고, JSON 한 개만 출력하세요: {\"category\":\"" + L.CATS.join("|") + " 중 하나\",\"title\":\"주제\",\"body\":\"배경 설명\"}";
-      const out = AI.json(await AI.ask({ system: sys, user: `종류: ${type}\n최근 ${kind === "daily" ? "질문" : "주제"}:\n${[...used].slice(0, 20).map((t) => "- " + t).join("\n") || "(없음)"}`, max: 600 }));
+        ? "당신은 HR 스터디 모임 «T조»의 질문 큐레이터입니다. 모임 구성원 한 명을 지목해 아침에 가볍게 건넬 질문을 한국어로 하나 만드세요. 종류는 지시된 것을 따릅니다(HR: 채용·온보딩·조직문화·평가·교육 경험, 커리어: 일하는 방식·성장·선택, 상식: 근로·인사·직장 생활에서 알아두면 좋은 사실이나 시사, 일상: 출근길·점심·취미 같은 편한 잡담). 질문은 한 문장(80자 이내)이고 3~5문장 안에 답할 수 있어야 하며, 정답을 맞히는 퀴즈보다 경험과 생각을 묻는 편이 좋습니다. 급여 액수, 나이, 결혼·가족, 종교, 정치, 건강처럼 답하기 불편한 소재는 쓰지 않습니다. 최근 질문과 겹치면 안 됩니다. 마크다운 기호를 쓰지 말고 JSON 한 개만 출력하세요: {\"category\":\"" + cats + " 중 하나\",\"title\":\"질문\",\"body\":\"질문의 배경이나 답하는 힌트 1~2문장\"}"
+        : "당신은 HR 스터디 모임 «T조»의 토론 진행자입니다. 팀원 5명이 일주일 동안 댓글로 의논할 «구체적인 상황» 하나를 한국어로 만드세요. 추상적인 주제(예: AI 시대의 HR)가 아니라, 가상의 회사·팀에서 벌어진 장면을 인원수·기한·이해관계 같은 숫자와 제약을 넣어 3~5문장으로 묘사하고, 사회생활·사무직·HR 현장에서 정말 겪는 딜레마(공정성과 성과, 규정과 사람, 상사와 나의 입장, 거절과 관계 등)가 걸려 있어야 합니다. 제목은 80자 이내의 질문 한 문장(예: «~라면 어떻게 하시겠어요?»), 본문 끝에 «이렇게 이야기해 보면 좋아요: 1) 내가 담당자라면 어떤 순서로 풀어 갈지 2) 비슷한 상황을 겪었거나 지켜봤다면 어떻게 지나왔는지 3) 이때 절대 하지 말아야 할 한 가지» 를 넣으세요. 실제 사람·회사 이름, 개인정보는 쓰지 않습니다. 최근 주제와 겹치면 안 됩니다. 마크다운 기호를 쓰지 말고 JSON 한 개만 출력하세요: {\"category\":\"" + cats + " 중 하나\",\"title\":\"주제\",\"body\":\"상황 묘사와 이야기 방법\"}";
+      const out = AI.json(await AI.ask({ system: sys, user: `종류: ${type}\n최근 ${kind === "daily" ? "질문" : "주제"}:\n${recent.slice(0, 25).map((t) => "- " + t).join("\n") || "(없음)"}`, max: 900 }));
       const title = String(out.title || "").trim(), body = String(out.body || "").trim();
-      if (L.len(title) >= 2 && L.len(title) <= 80 && L.CATS.includes(out.category) && !used.has(title)) return { category: out.category, title, body: kind === "daily" ? body + "\n\n편하게 3~5문장으로 답해 주세요. 정답은 없어요." : body, from: "claude" };
+      if (L.len(title) >= 2 && L.len(title) <= 80 && L.CATS.includes(out.category) && !lastOf.has(title) && (kind === "daily" || L.len(body) >= 80)) return { category: out.category, title, body: kind === "daily" ? body + "\n\n편하게 3~5문장으로 답해 주세요. 정답은 없어요." : body, type, from: "claude" };
     } catch (e) { console.error("question ai", e.message); }
   }
-  const bank = (kind === "daily" ? Q.DAILY : Q.WEEKLY).filter((q) => !used.has(q.title));
-  const q = pick(bank.length ? bank : (kind === "daily" ? Q.DAILY : Q.WEEKLY));
-  return { category: q.category, title: q.title, body: q.body, from: "bank" };
+  const all = kind === "daily" ? Q.DAILY : Q.WEEKLY;
+  let pool = kind === "daily" ? all.filter((q) => q.type === type) : all;
+  if (!pool.length) pool = all;
+  const fresh = pool.filter((q) => !lastOf.has(q.title));
+  // 안 쓴 게 남아 있으면 그중 무작위, 바닥났으면 가장 오래전에 쓴 것부터 다시
+  const q = fresh.length ? pick(fresh) : pool.reduce((m, x) => (lastOf.get(x.title) < lastOf.get(m.title) ? x : m));
+  return { category: q.category, title: q.title, body: q.body, type, from: "bank" };
 }
 
 async function makeDaily(db, now = new Date()) {
   const k = kstNow(now), date = ymd(k), dow = k.getUTCDay();
-  if (dow === 0 || dow === 6) return { skipped: "주말" };
+  if (!H.isBusinessDay(date)) return { skipped: dow === 0 || dow === 6 ? "주말" : "공휴일" };
   const [ex] = await db.query("SELECT id FROM posts WHERE kind = 'daily' AND qdate = ?", [date]);
   if (ex[0]) return { skipped: "이미 있음", id: ex[0].id };
   // 미리 예약된 질문(daily_plan)이 있으면 그 사람·그 질문으로, 없으면 자동으로 뽑는다
   const [[plan]] = await db.query("SELECT p.target_id, p.category, p.title, p.body, u.nickname FROM daily_plan p JOIN users u ON u.id = p.target_id WHERE p.qdate = ?", [date]);
   const who = plan ? { id: plan.target_id, nickname: plan.nickname } : await pickMember(db, date);
   if (!who) return { skipped: "가입자 없음" };
-  const q = plan ? { category: plan.category, title: plan.title, body: plan.body, from: "plan" } : await newQuestion(db, "daily");
+  const q = plan ? { category: plan.category, title: plan.title, body: plan.body, from: "plan" } : await newQuestion(db, "daily", date);
   let id;
   try {
     const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, target_id, qdate) VALUES (NULL, 1, ?, ?, ?, 'daily', ?, ?)", [q.category, q.title, q.body, who.id, date]);
     id = r.insertId;
   } catch (e) { if (e.code === "ER_DUP_ENTRY") return { skipped: "이미 있음" }; throw e; }   // 동시에 두 번 불려도 한 번만
   const push = await Push.notify([who.id], () => ({ title: "오늘의 질문이 도착했어요", body: q.title, url: `/article?id=${id}`, tag: `daily-${date}`, badge: "auto" })).catch((e) => ({ error: e.message }));
-  return { id, date, target: who.nickname, from: q.from, title: q.title, push };
+  return { id, date, target: who.nickname, from: q.from, type: q.type, title: q.title, push, ...(H.covered(date) ? {} : { note: "공휴일 정보 없음(주말만 쉼)" }) };
 }
 
 async function makeWeekly(db, now = new Date()) {
   const k = kstNow(now), mon = mondayOf(k);
+  if (!H.isFirstBusinessDay(ymd(k))) return { skipped: "그 주의 첫 영업일이 아님" };   // 월요일이 공휴일이면 화요일에
   const [ex] = await db.query("SELECT id FROM posts WHERE kind = 'weekly' AND qdate = ?", [mon]);
   if (ex[0]) return { skipped: "이미 있음", id: ex[0].id };
-  const q = await newQuestion(db, "weekly");
+  const q = await newQuestion(db, "weekly", ymd(k));
   let id;
   try {
     const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, qdate, goal, stage) VALUES (NULL, 1, ?, ?, ?, 'weekly', ?, ?, 'open')", [q.category, q.title, q.body, mon, GOAL]);
@@ -149,4 +160,4 @@ async function wrap(db) {
   return { results: out };
 }
 
-module.exports = { GOAL, kstNow, ymd, mondayOf, pickMember, makeDaily, makeWeekly, wrap };
+module.exports = { GOAL, TYPE_BY_DOW, newQuestion, kstNow, ymd, mondayOf, pickMember, makeDaily, makeWeekly, wrap };

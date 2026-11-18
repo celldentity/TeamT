@@ -12,12 +12,35 @@
   let busy = 0, shownAt = Date.now(), offT = 0, failT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
   document.body.insertAdjacentHTML("afterbegin",
     `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><img class="gl__img" src="/assets/icons/icon-v3-192.png" alt="" width="96" height="96" decoding="async"><i class="gl__sh"></i></div>` +
-    `<p class="gl__t">불러오는 중<span class="gl__d" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></p></div>`);
-  const glEl = document.getElementById("gl");
-  const gl = {
-    show() { clearTimeout(offT); clearTimeout(failT); shownAt = Date.now(); glEl.classList.remove("is-off"); },
-    hide() { clearTimeout(offT); offT = setTimeout(() => glEl.classList.add("is-off"), Math.max(0, MIN - (Date.now() - shownAt))); },
+    `<p class="gl__t">불러오는 중<span class="gl__d" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></p><p class="gl__q" id="glq" aria-hidden="true"></p></div>`);
+  const glEl = document.getElementById("gl"), glq = document.getElementById("glq");
+  // 로딩 문구(2026-11-19 요청): 직장인에게 힘이 되는 한마디, 또는 요즘 10~20대 말(밈)을 위트 있게 풀어 주는 한 줄. «용어|뜻» 이면 용어를 굵게 보인다.
+  // 뜻은 널리 쓰이는 것만 골랐다. 바꾸거나 더할 땐 뜻을 확인하고, 한 줄에 40자를 넘기지 말 것.
+  const PHRASES = [
+    "오늘도 출근한 당신, 이미 반은 해냈어요.", "잘하고 있어요. 진짜로요.", "어제의 실수는 오늘의 노하우가 됩니다.", "하나만 끝내도 오늘은 성공이에요.",
+    "답장이 늦어도 괜찮아요. 사람이 하는 일이니까요.", "일을 못하는 게 아니라 일이 많은 거예요.", "물 한 잔 마시고 어깨 한 번 펴 볼까요?", "퇴근 시간은 반드시 옵니다.",
+    "작은 진전도 진전이에요.", "쉬는 것도 일의 일부예요.", "오늘 못 한 일은 내일의 내가 합니다. 더 똑똑한 내가요.", "회의도 끝나고, 월요일도 끝나요.",
+    "중꺾그마|중요한 건 꺾이지 않는 마음. 월요일의 필수 스킬", "점메추|점심 메뉴 추천. 인류 최대의 난제", "얼죽아|얼어 죽어도 아이스 아메리카노",
+    "갓생|하루를 알차게 사는 삶. 이불 밖은 어렵지만 해냅니다", "내또출|내일 또 출근. 퇴근하자마자 떠오르는 말", "오히려 좋아|망한 일도 긍정으로 바꾸는 주문",
+    "스불재|스스로 불러온 재앙. 어제 마감을 미룬 나에게", "억텐|억지로 올린 텐션. 월요일 오전의 인사말", "낄끼빠빠|낄 때 끼고 빠질 때 빠지기. 회식의 정석",
+    "사바사|사람 by 사람. 거의 모든 질문의 정답", "현타|현실 자각 타임. 퇴근 직전에 자주 옵니다", "만반잘부|만나서 반가워, 잘 부탁해. 새 팀원의 첫인사",
+    "별다줄|별걸 다 줄인다. 이 문구도 곧 줄어들지 몰라요", "킹받네|열받는데 어딘가 웃길 때 쓰는 말", "원영적 사고|안 좋은 일도 «완전 럭키비키잖아!»로 바꿔 생각하기",
+    "딸깍|클릭 한 번에 뚝딱 끝나는 것. AI 시대의 소원", "난리자베스|«난리 났다»에 엘리자베스를 붙인 말장난", "파라소셜|나만 일방적으로 친해진 기분. 좋아하는 유튜버처럼",
+    "TMI|Too Much Information. 회의에서 가장 자주 나옵니다", "어쩔티비|«어쩌라고»를 돌려 말하는 유행어",
+  ];
+  let lastQ = -1, qT = 0;
+  const showQ = () => {
+    let i; do { i = Math.floor(Math.random() * PHRASES.length); } while (i === lastQ && PHRASES.length > 1);
+    lastQ = i; const [a, b] = PHRASES[i].split("|");
+    glq.classList.remove("is-in"); glq.textContent = "";
+    if (b) { const t = document.createElement("b"); t.textContent = a; glq.append(t, " · " + b); } else glq.textContent = a;
+    requestAnimationFrame(() => requestAnimationFrame(() => glq.classList.add("is-in")));
   };
+  const gl = {
+    show() { clearTimeout(offT); clearTimeout(failT); shownAt = Date.now(); glEl.classList.remove("is-off"); showQ(); clearInterval(qT); qT = setInterval(showQ, 2600); },
+    hide() { clearTimeout(offT); offT = setTimeout(() => { glEl.classList.add("is-off"); clearInterval(qT); }, Math.max(0, MIN - (Date.now() - shownAt))); },
+  };
+  showQ(); qT = setInterval(showQ, 2600);
   // 안쪽 페이지로 가는 링크를 누르면(새 탭·다운로드·API 주소·같은 주소 제외) 다음 화면이 뜰 때까지 로더로 덮는다. 뒤로 가기로 되돌아오면(bfcache) 내린다.
   document.addEventListener("click", (e) => {
     const a = e.target.closest && e.target.closest("a[href]");

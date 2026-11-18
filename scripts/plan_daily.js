@@ -9,6 +9,8 @@ const L = require("../api/_lib"), R = require("../api/_routine");
 const a = process.argv.slice(2), date = a.shift(), flag = (n) => { const i = a.indexOf("--" + n); return i >= 0 ? a[i + 1] : undefined; };
 (async () => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) throw new Error("날짜를 YYYY-MM-DD 로 적어 주세요.");
+  const H = require("../api/_holidays");
+  if (!H.isBusinessDay(date) && !a.includes("--clear")) throw new Error(`${date} 은(는) 주말이거나 공휴일이라 질문이 올라가지 않아요.`);
   const db = L.db(), [ex] = await db.query("SELECT id FROM posts WHERE kind = 'daily' AND qdate = ?", [date]);
   if (ex[0]) throw new Error(`그날 질문이 이미 올라가 있어요(글 #${ex[0].id}).`);
   if (a.includes("--clear")) { await db.query("DELETE FROM daily_plan WHERE qdate = ?", [date]); console.log("예약을 지웠어요."); return; }

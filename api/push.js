@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
     }
 
     const s = b.subscription || {}, ep = String(s.endpoint || ""), k = s.keys || {};
-    if (!/^https:\/\//.test(ep) || ep.length > 1000 || !k.p256dh || !k.auth || String(k.p256dh).length > 200 || String(k.auth).length > 100) return L.json(res, 400, { error: "알림 정보가 올바르지 않아요." });
+    if (!P.okEndpoint(ep) || ep.length > 1000 || !k.p256dh || !k.auth || String(k.p256dh).length > 200 || String(k.auth).length > 100) return L.json(res, 400, { error: "알림 정보가 올바르지 않아요." });
     const [cnt] = await db.query("SELECT COUNT(*) AS n FROM push_subs WHERE user_id = ?", [me.id]);
     if (Number(cnt[0].n) >= 10) return L.json(res, 400, { error: "알림을 켠 기기가 너무 많아요. 안 쓰는 기기에서 끄고 다시 시도해 주세요." });
     // 같은 기기가 다른 사람 계정으로 다시 켜질 수 있으므로 주인을 덮어쓴다

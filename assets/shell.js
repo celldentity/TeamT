@@ -224,12 +224,13 @@
     el.innerHTML = kind === "ask"
       ? `<div class="nudge__t"><b>폰 알림 켜기</b><span>새 글·내 글의 댓글과 좋아요를 앱을 열지 않아도 바로 알려드려요.</span></div><div class="nudge__b"><button class="btn btn--sm" type="button" data-n="on">알림 켜기</button><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div><p class="msg msg--err" role="alert"></p>`
       : `<div class="nudge__t"><b>폰 알림 받으려면</b><span>아이폰은 이 사이트를 <b>홈 화면에 추가</b>한 앱에서만 알림이 와요.</span></div><div class="nudge__b"><a class="btn btn--sm" href="/me#install">방법 보기</a><button class="btn btn--ghost btn--sm" type="button" data-n="no">나중에</button></div>`;
-    (document.querySelector("main .wrap") || document.querySelector("main")).prepend(el);
+    // 페이지 맨 위(본문 폭에 맞춘 틀 안)에 끼운다. 홈에서는 첫 .wrap 이 히어로 칸 안이라 거기 넣으면 레이아웃이 깨진다.
+    const holder = document.createElement("div"); holder.className = "wrap"; holder.append(el); document.querySelector("main").prepend(holder);
     el.addEventListener("click", async (e) => {
       const act = e.target.closest("[data-n]")?.dataset.n; if (!act) return;
-      if (act === "no") { try { localStorage.setItem("tt_nudge", String(Date.now())); } catch {} el.remove(); return; }
+      if (act === "no") { try { localStorage.setItem("tt_nudge", String(Date.now())); } catch {} holder.remove(); return; }
       const btn = e.target.closest("button"), err = el.querySelector(".msg"); btn.disabled = true; err.textContent = "";
-      try { await TT.push.enable(); el.innerHTML = '<div class="nudge__t"><b>알림이 켜졌어요 🔔</b><span>방금 이 폰으로 확인 알림을 보냈어요.</span></div>'; setTimeout(() => el.remove(), 4000); }
+      try { await TT.push.enable(); el.innerHTML = '<div class="nudge__t"><b>알림이 켜졌어요 🔔</b><span>방금 이 폰으로 확인 알림을 보냈어요.</span></div>'; setTimeout(() => holder.remove(), 4000); }
       catch (x) { err.textContent = x.message || "알림을 켜지 못했어요. 잠시 뒤 다시 시도해 주세요."; btn.disabled = false; }
     });
   }

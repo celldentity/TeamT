@@ -420,3 +420,20 @@ a.art { text-decoration: none; color: inherit; }
 .nudge__b { display: flex; gap: 8px; }
 .nudge__b .btn { flex: 1; text-decoration: none; }
 .nudge .msg { margin: 0; }
+
+/* 마이페이지 설정 카드(폰 알림) + 켜고 끄는 스위치 */
+.set { margin-top: 24px; padding: 16px; background: var(--lavender-tint); border-radius: 20px; }
+.set__row { display: flex; align-items: center; gap: 12px; }
+.set__ic { display: grid; place-items: center; flex: none; width: 42px; height: 42px; background: var(--pink); border-radius: 14px; }
+.set__ic svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.set__t { flex: 1; min-width: 0; }
+.set__t h2 { font-weight: 800; font-size: 1.0625rem; line-height: 1.35; letter-spacing: -.02em; }
+.set__t p { font-size: .8125rem; line-height: 1.5; color: var(--ink-soft); }
+.set__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.set__chips li { padding: 3px 10px; font-size: .75rem; font-weight: 700; line-height: 1.6; background: #fff; border: 1px solid var(--lavender); border-radius: 99px; }
+.set__note { margin-top: 10px; font-size: .8125rem; line-height: 1.6; color: var(--ink-soft); }
+.sw { position: relative; flex: none; width: 52px; height: 32px; padding: 0; background: var(--field); border: 0; border-radius: 99px; cursor: pointer; transition: background-color .18s; -webkit-tap-highlight-color: transparent; }
+.sw__k { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgb(0 0 0 / .28); transition: transform .18s; }
+.sw[aria-checked="true"] { background: var(--pink-ink); }
+.sw[aria-checked="true"] .sw__k { transform: translateX(20px); }
+.sw[disabled] { opacity: .55; cursor: progress; }

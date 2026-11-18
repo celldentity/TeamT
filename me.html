@@ -55,18 +55,23 @@
         <button class="btn btn--block" type="submit" id="profBtn">저장</button>
       </form>
 
+      <section class="set" id="pushBox" aria-labelledby="push-title" hidden>
+        <div class="set__row">
+          <span class="set__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></span>
+          <div class="set__t"><h2 id="push-title">폰 알림</h2><p id="pushState">알림을 준비하고 있어요…</p></div>
+          <button class="sw" type="button" id="pushSw" role="switch" aria-checked="false" aria-labelledby="push-title" hidden><span class="sw__k"></span></button>
+        </div>
+        <ul class="set__chips" aria-label="알려 주는 것"><li>새 글</li><li>내 글의 댓글</li><li>내 댓글의 답글</li><li>좋아요</li></ul>
+        <p class="set__note" id="pushLead"></p>
+        <p class="msg msg--err" id="pushMsg" role="alert"></p>
+      </section>
+
       <h2 class="sec__h3">초대장</h2>
       <p class="sec__lead" id="inv-lead" style="margin-top:6px">초대장으로만 새 팀원이 들어올 수 있어요.</p>
       <button class="btn btn--block" type="button" id="invNew" style="margin-top:14px">초대장 만들기</button>
       <p class="msg" id="invMsg" role="status" style="margin-top:8px"></p>
       <ul class="invs" id="invs"></ul>
 
-      <section class="install" id="pushBox" aria-labelledby="push-title" hidden>
-        <h2 id="push-title">폰 알림</h2>
-        <p id="pushLead"></p>
-        <button class="btn btn--block" type="button" id="pushBtn" hidden></button>
-        <p class="msg msg--err" id="pushMsg" role="alert"></p>
-      </section>
 
       <section class="install" id="install" aria-labelledby="inst-title" hidden>
         <h2 id="inst-title">홈 화면에 추가</h2>
@@ -175,33 +180,34 @@
     picker($("#photo"), "#photoMsg", "/api/photo", 256, 256, true);
     picker($("#coverFile"), "#coverMsg", "/api/photo?k=cover", 960, 320, false);
 
-    // ── 폰 알림(웹 푸시) — 이 기기에서 켜고 끈다. 로직은 shell.js 의 TT.push ──
+    // ── 폰 알림(웹 푸시) — 이 기기에서 스위치로 켜고 끈다. 로직은 shell.js 의 TT.push ──
     (async () => {
-      const box = $("#pushBox"), lead = $("#pushLead"), btn = $("#pushBtn"), msg = $("#pushMsg");
+      const box = $("#pushBox"), state = $("#pushState"), lead = $("#pushLead"), sw = $("#pushSw"), msg = $("#pushMsg");
       const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
       box.hidden = false;
       if (!TT.push.supported()) {
+        state.textContent = "이 기기에서는 켤 수 없어요";
         lead.textContent = ios && !standalone ? "아이폰은 Safari에서 이 사이트를 홈 화면에 추가한 뒤, 추가된 앱을 열어서 켤 수 있어요. 아래 «홈 화면에 추가» 안내를 먼저 따라 해 주세요."
           : /KAKAOTALK/i.test(ua) ? "카카오톡 안 브라우저에서는 켤 수 없어요. 안드로이드는 Chrome, 아이폰은 Safari로 열어 홈 화면에 추가한 뒤 켜 주세요."
           : "이 브라우저는 폰 알림을 지원하지 않아요. 안드로이드는 Chrome, 아이폰은 홈 화면에 추가한 앱에서 켜 주세요.";
         return;
       }
-      lead.textContent = "알림을 준비하고 있어요…";
       async function draw() {
         const st = await TT.push.state();
-        if (st === "unsupported") { lead.textContent = "알림을 준비하지 못했어요. 페이지를 새로고침하거나 잠시 뒤 다시 열어 주세요."; return; }
+        if (st === "unsupported") { state.textContent = "준비하지 못했어요"; lead.textContent = "페이지를 새로고침하거나 잠시 뒤 다시 열어 주세요."; return; }
         const on = st === "on";
+        state.textContent = st === "denied" ? "차단됨" : on ? "켜짐 — 이 기기로 알림이 와요" : "꺼짐";
         lead.textContent = st === "denied" ? "알림이 차단돼 있어요. 폰(또는 브라우저) 설정에서 이 사이트의 알림을 허용한 뒤 다시 열어 주세요."
-          : on ? "새 글, 내 글에 달린 댓글·좋아요, 내 댓글의 답글이 생기면 이 기기로 알림이 와요. 앱을 열어 두지 않아도 받고, 홈 화면 아이콘 위에 안 읽은 알림 수가 떠요."
-          : "새 글, 내 글에 달린 댓글·좋아요, 내 댓글의 답글을 앱을 열지 않아도 이 폰으로 알림받아요.";
-        btn.textContent = on ? "알림 끄기" : "알림 켜기"; btn.classList.toggle("btn--ghost", on); btn.dataset.on = on; btn.hidden = st === "denied";
+          : on ? "앱을 열어 두지 않아도 받고, 홈 화면 아이콘 위에 안 읽은 알림 수가 떠요."
+          : "스위치를 켜면 위 소식을 앱을 열지 않아도 이 폰으로 받아요.";
+        sw.setAttribute("aria-checked", String(on)); sw.hidden = st === "denied";
       }
-      btn.addEventListener("click", async () => {
-        msg.textContent = ""; btn.disabled = true;
-        try { if (btn.dataset.on === "true") await TT.push.disable(); else await TT.push.enable(); }
+      sw.addEventListener("click", async () => {
+        msg.textContent = ""; sw.disabled = true;
+        try { if (sw.getAttribute("aria-checked") === "true") await TT.push.disable(); else await TT.push.enable(); }
         catch (x) { msg.textContent = x.message || "알림을 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요."; }
-        finally { btn.disabled = false; await draw(); }
+        finally { sw.disabled = false; await draw(); }
       });
       draw();
     })();

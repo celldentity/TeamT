@@ -20,8 +20,15 @@ function vapid() {
 
 const hashOf = (endpoint) => crypto.createHash("sha256").update(endpoint).digest("hex");
 
+// 서버가 알림을 보내러 가는 주소는 브라우저 제조사의 푸시 서비스뿐이어야 한다. 구독 주소를 사용자가 마음대로 적을 수 있으면
+// 서버가 임의의 주소로 요청을 보내게 되므로(SSRF) 알려진 푸시 서비스 도메인만 받는다.
+const PUSH_HOST = /(^|\.)(fcm\.googleapis\.com|android\.googleapis\.com|push\.services\.mozilla\.com|push\.apple\.com|notify\.windows\.com)$/;
+function okEndpoint(ep) {
+  try { const u = new URL(ep); return u.protocol === "https:" && !u.username && !u.password && (u.port === "" || u.port === "443") && PUSH_HOST.test(u.hostname); } catch { return false; }
+}
+
 // 한 기기로 보낸다. 만료된 구독(404/410)은 지운다.
-const deliver = (s, body) => webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 86400, timeout: 8000 })
+const deliver = (s, body) => !okEndpoint(s.endpoint) ? Promise.reject(Object.assign(new Error("허용되지 않은 푸시 주소"), { statusCode: 400 })) : webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 86400, timeout: 8000 })
   .catch(async (e) => { if (e.statusCode === 404 || e.statusCode === 410) await L.db().query("DELETE FROM push_subs WHERE id = ?", [s.id]); throw e; });
 
 // 받을 사람에게 한 명씩 개인 알림을 보낸다. userIds 가 null 이면 구독한 모든 팀원, exceptIds 는 뺀다(보통 행동한 본인).
@@ -47,6 +54,6 @@ async function notify(userIds, make, exceptIds = []) {
   return { users: by.size, sent, failed };
 }
 // 알림을 켠 직후 «켜졌어요» 확인용으로 그 기기 하나에만 보낸다(DB 에 저장하기 전의 구독 정보 그대로)
-const sendRaw = (sub, payload) => { vapid(); return webpush.sendNotification(sub, JSON.stringify(payload), { TTL: 600, timeout: 8000 }); };
+const sendRaw = (sub, payload) => { if (!okEndpoint(sub.endpoint)) return Promise.reject(new Error("허용되지 않은 푸시 주소")); vapid(); return webpush.sendNotification(sub, JSON.stringify(payload), { TTL: 600, timeout: 8000 }); };
 
-module.exports = { vapid, hashOf, notify, sendRaw };
+module.exports = { vapid, hashOf, okEndpoint, notify, sendRaw };

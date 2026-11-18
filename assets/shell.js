@@ -9,14 +9,14 @@
   // ── 전역 로더: 페이지가 열리는 동안(로그인 확인·첫 데이터 불러오기까지)과 안쪽 링크로 옮겨 가는 동안 «공 두 개» 가 돈다.
   // 최소 MIN ms 는 떠 있다가 내려간다(너무 번쩍 사라지면 오히려 깜박여 보인다). TT.loader.show()/hide() 로 페이지가 직접 켜고 끌 수도 있다.
   const MIN = 600;
-  let busy = 0, shownAt = Date.now(), offT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
+  let busy = 0, shownAt = Date.now(), offT = 0, failT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
   document.body.insertAdjacentHTML("afterbegin",
     `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="gl-goo"><feGaussianBlur in="SourceGraphic" stdDeviation="1" result="y"/><feColorMatrix in="y" mode="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -7" result="z"/><feBlend in="SourceGraphic" in2="z"/></filter></defs></svg>` +
     `<svg class="gl__svg" viewBox="0 0 24 24" aria-hidden="true"><g class="gl__spin" filter="url(#gl-goo)"><circle class="gl__b gl__a" cx="5" cy="12" r="4"/><circle class="gl__b gl__c" cx="19" cy="12" r="4"/></g></svg>` +
     `<p class="gl__t">HR T<i>|</i>니핑</p></div>`);
   const glEl = document.getElementById("gl");
   const gl = {
-    show() { clearTimeout(offT); shownAt = Date.now(); glEl.classList.remove("is-off"); },
+    show() { clearTimeout(offT); clearTimeout(failT); shownAt = Date.now(); glEl.classList.remove("is-off"); },
     hide() { clearTimeout(offT); offT = setTimeout(() => glEl.classList.add("is-off"), Math.max(0, MIN - (Date.now() - shownAt))); },
   };
   // 안쪽 페이지로 가는 링크를 누르면(새 탭·다운로드·API 주소·같은 주소 제외) 다음 화면이 뜰 때까지 로더로 덮는다. 뒤로 가기로 되돌아오면(bfcache) 내린다.
@@ -28,7 +28,7 @@
     gl.show();
   });
   addEventListener("pageshow", (e) => { if (e.persisted) gl.hide(); });
-  setTimeout(() => gl.hide(), 10000);   // 무슨 일이 있어도 10초 뒤에는 화면을 돌려준다
+  failT = setTimeout(() => gl.hide(), 10000);   // 무슨 일이 있어도 10초 뒤에는 화면을 돌려준다
 
   const IC = {
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',

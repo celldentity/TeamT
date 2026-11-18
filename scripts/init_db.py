@@ -106,6 +106,7 @@ ALTER = [
     "ALTER TABLE users ADD COLUMN invited_by BIGINT NULL AFTER photo_v",
     "ALTER TABLE users ADD COLUMN cover_v INT NOT NULL DEFAULT 0 AFTER photo_v",   # 커버 사진(0 = 없음, 올릴 때마다 +1)
     "ALTER TABLE users ADD COLUMN notif_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",   # 알림을 마지막으로 확인한 시각(이후 생긴 것이 «새 알림»)
+    "ALTER TABLE users ADD COLUMN presenter TINYINT NOT NULL DEFAULT 0",   # 1 = 발표 버튼이 보이는 사람. 칸을 처음 만들 때 «그때 가입해 있던 사람 전원» 만 1 로 하고(아래), 이후 가입자는 0
 ]
 
 db = pymysql.connect(host=os.environ["TIDB_HOST"], port=int(os.environ["TIDB_PORT"]), user=os.environ["TIDB_USER"],
@@ -117,6 +118,9 @@ with db.cursor() as cur:
     for s in ALTER:
         try:
             cur.execute(s)
+            if "presenter" in s:   # 칸이 방금 처음 만들어졌을 때만 — 지금 가입한 사람 전원이 발표자
+                cur.execute("UPDATE users SET presenter = 1")
+                db.commit()
         except pymysql.err.OperationalError as e:
             if e.args[0] != 1060:
                 raise

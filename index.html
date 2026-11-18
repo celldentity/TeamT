@@ -3,19 +3,276 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TeamT</title>
+<title>TeamT — 팀의 한 주를 한 장에</title>
+<meta name="description" content="월요일에 목표를 정하고 금요일에 함께 돌아보는, 소규모 팀을 위한 주간 보드. 파일럿 참여 팀을 모집합니다.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23D4F65A'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23231A52'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
-  :root { color-scheme: light dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.6 system-ui, sans-serif; }
-  main { padding: 0 16px; text-align: center; }
-  h1 { font-size: clamp(2.5rem, 10vw, 5rem); margin: 0 0 .25em; letter-spacing: -.03em; }
-  p { margin: 0; opacity: .65; }
+  /* TeamT — 흰 종이 위의 형광펜. 연두·보라는 AIBUNKER/HSMnT 가 거의 쓰지 않은 색조다. */
+  :root {
+    color-scheme: light;
+    --paper: #ffffff;
+    --grid: #e9e7f5;
+    --surface: #f1eeff;
+    --surface-deep: #d9d2ff;
+    --ink: #231a52;
+    --ink-soft: #5a5384;
+    --lime: #d4f65a;
+    --focus: #5b3fe0;
+    --display: "Black Han Sans", "IBM Plex Sans KR", system-ui, sans-serif;
+    --body: "IBM Plex Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --gutter: clamp(16px, 4vw, 40px);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.7 var(--body); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, p, ul, ol { margin: 0; }
+  ul, ol { padding: 0; list-style: none; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 4px; }
+
+  .wrap { width: min(1160px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+  .skip { position: absolute; left: 16px; top: -64px; background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 10; }
+  .skip:focus { top: 12px; }
+
+  /* 헤더 */
+  .bar { position: sticky; top: 0; z-index: 5; background: rgb(255 255 255 / .92); backdrop-filter: blur(8px); border-bottom: 2px solid var(--ink); }
+  .bar__in { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+  .logo { font: 400 1.75rem/1 var(--display); text-decoration: none; letter-spacing: -.01em; margin-right: auto; }
+  .nav { display: flex; gap: 28px; font-weight: 500; }
+  .nav a { text-decoration: none; padding: 6px 0; background: linear-gradient(var(--lime), var(--lime)) 0 100% / 0 .5em no-repeat; transition: background-size .18s ease-out; }
+  .nav a:hover { background-size: 100% .5em; }
+
+  /* 버튼 */
+  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 22px; font: 600 1rem/1 var(--body); text-decoration: none; color: var(--ink); background: var(--lime); border: 2px solid var(--ink); border-radius: 10px; box-shadow: 4px 4px 0 var(--ink); transition: transform .12s, box-shadow .12s; cursor: pointer; }
+  .btn:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+  .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+  .btn--sm { min-height: 40px; padding: 0 16px; font-size: .9375rem; box-shadow: 3px 3px 0 var(--ink); }
+  .link { font-weight: 600; text-decoration: none; background: linear-gradient(var(--lime), var(--lime)) 0 100% / 100% .45em no-repeat; padding-bottom: 2px; }
+  .link:hover { background-size: 100% 100%; }
+
+  /* 히어로 */
+  .hero { position: relative; padding: clamp(40px, 7vw, 88px) 0 clamp(56px, 8vw, 104px); background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 32px 32px; background-position: -1px -1px; }
+  .hero__in { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+  .hero__title { font: 400 clamp(2.75rem, 5.2vw + 1rem, 5.25rem)/1.1 var(--display); letter-spacing: -.015em; }
+  .hero__lead { margin-top: 24px; max-width: 30em; font-size: 1.125rem; color: var(--ink-soft); }
+  .hero__act { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: 36px; }
+
+  /* 주간 보드 — 이 페이지에서 기억에 남을 단 하나 */
+  .board { background: var(--paper); border: 2px solid var(--ink); border-radius: 16px; box-shadow: 10px 10px 0 var(--surface-deep); overflow: hidden; }
+  .board__head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 18px; border-bottom: 2px solid var(--ink); background: var(--surface); }
+  .board__name { font: 400 1.125rem/1.3 var(--display); }
+  .board__hint { font-size: .875rem; color: var(--ink-soft); }
+  .days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .day { padding: 14px 12px 18px; border-right: 1px solid var(--grid); }
+  .day:last-child { border-right: 0; }
+  .day__name { font: 400 1.0625rem/1 var(--display); margin-bottom: 12px; }
+  .tasks { display: grid; gap: 8px; }
+  .task { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 9px 10px; text-align: left; font: 500 .875rem/1.4 var(--body); color: var(--ink); background: var(--paper); border: 2px solid var(--ink); border-radius: 10px; cursor: pointer; transition: background-color .15s, transform .15s; }
+  .task::before { content: ""; flex: none; width: 16px; height: 16px; margin-top: 1px; border: 2px solid var(--ink); border-radius: 5px; background: var(--paper) center / 12px no-repeat; }
+  .task[aria-pressed="true"] { background: var(--lime); }
+  .task[aria-pressed="true"]::before { background-color: var(--ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.4l2.6 2.6L10 3.4' fill='none' stroke='%23d4f65a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .task:active { transform: scale(.96); }
+  .board__foot { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-top: 2px solid var(--ink); }
+  .board__count { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .meter { flex: 1; height: 14px; background: var(--surface); border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; }
+  .meter__fill { height: 100%; width: 0; background: var(--lime); border-right: 2px solid var(--ink); transition: width .3s ease-out; }
+
+  /* 공통 섹션 */
+  .sec { padding: clamp(56px, 8vw, 104px) 0; }
+  .sec--tint { background: var(--surface); border-block: 2px solid var(--ink); }
+  .sec__title { font: 400 clamp(1.875rem, 3.2vw + .75rem, 3rem)/1.2 var(--display); letter-spacing: -.01em; }
+  .sec__lead { margin-top: 16px; max-width: 34em; color: var(--ink-soft); font-size: 1.0625rem; }
+
+  /* 진행 방식 — 실제로 순서가 있는 내용이라 요일로 표시 */
+  .flow { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; margin-top: 56px; }
+  .step { position: relative; }
+  .step:not(:last-child)::after { content: ""; position: absolute; top: 27px; left: 68px; right: -24px; border-top: 2px dashed var(--ink); }
+  .step__day { position: relative; display: grid; place-items: center; width: 56px; height: 56px; font: 400 1.375rem/1 var(--display); background: var(--lime); border: 2px solid var(--ink); border-radius: 50%; }
+  .step__title { margin-top: 20px; font-weight: 600; font-size: 1.1875rem; line-height: 1.4; }
+  .step__text { margin-top: 8px; max-width: 24em; color: var(--ink-soft); }
+
+  /* 기능 */
+  .feat { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 96px); align-items: start; }
+  .feat__head { position: sticky; top: 100px; }
+  .feat__list { border-top: 2px solid var(--ink); }
+  .feat__item { padding: 28px 0; border-bottom: 1px solid var(--grid); }
+  .feat__item:last-child { border-bottom: 2px solid var(--ink); }
+  .feat__name { font-weight: 600; font-size: 1.25rem; line-height: 1.4; }
+  .feat__text { margin-top: 8px; max-width: 32em; color: var(--ink-soft); }
+
+  /* 신청 안내 */
+  .apply { background: var(--lime); border-block: 2px solid var(--ink); }
+  .apply__in { display: grid; gap: 14px; max-width: 40em; }
+
+  .foot { padding: 28px 0 40px; font-size: .875rem; color: var(--ink-soft); }
+  .foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+
+  /* 반응형 */
+  @media (max-width: 960px) {
+    .hero__in, .feat { grid-template-columns: minmax(0, 1fr); }
+    .feat__head { position: static; }
+  }
+  @media (max-width: 720px) {
+    .nav { display: none; }
+    /* 좁은 화면에서는 5열 대신 요일을 한 줄씩 쌓는다 */
+    .days { grid-template-columns: minmax(0, 1fr); }
+    .day { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: 4px 10px; padding: 14px 16px; border-right: 0; border-bottom: 1px solid var(--grid); }
+    .day:last-child { border-bottom: 0; }
+    .day__name { margin: 8px 0 0; }
+    .board { box-shadow: 6px 6px 0 var(--surface-deep); }
+    .flow { grid-template-columns: minmax(0, 1fr); gap: 36px; margin-top: 40px; }
+    .step:not(:last-child)::after { left: 27px; right: auto; top: 64px; bottom: -28px; border-top: 0; border-left: 2px dashed var(--ink); }
+    .step { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 18px; }
+    .step__day { grid-row: span 2; }
+    .step__title { margin-top: 2px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>TeamT</h1>
-  <p>팀 프로젝트 파일럿 — 준비 중입니다.</p>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<header class="bar">
+  <div class="wrap bar__in">
+    <a class="logo" href="#top" aria-label="TeamT 처음으로">TeamT</a>
+    <nav class="nav" aria-label="주요 메뉴">
+      <a href="#flow">진행 방식</a>
+      <a href="#features">기능</a>
+    </nav>
+    <a class="btn btn--sm" href="#apply">신청 안내</a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" id="top">
+    <div class="wrap hero__in">
+      <div>
+        <h1 class="hero__title">팀의 한 주를<br>한 장에.</h1>
+        <p class="hero__lead">월요일에 이번 주 목표를 정하고, 금요일에 함께 돌아봅니다. 흩어진 할 일을 한 화면에 모아 두는 5~10명 팀용 주간 보드입니다.</p>
+        <div class="hero__act">
+          <a class="btn" href="#board">보드 눌러 보기</a>
+          <a class="link" href="#flow">진행 방식 보기</a>
+        </div>
+      </div>
+
+      <section class="board" id="board" aria-labelledby="board-name">
+        <div class="board__head">
+          <h2 class="board__name" id="board-name">이번 주 보드</h2>
+          <p class="board__hint">끝낸 일을 눌러 보세요</p>
+        </div>
+        <ol class="days">
+          <li class="day"><h3 class="day__name">월</h3><ul class="tasks">
+            <li><button class="task" type="button" aria-pressed="true">목표 3개 정하기</button></li>
+            <li><button class="task" type="button" aria-pressed="true">역할 나누기</button></li>
+          </ul></li>
+          <li class="day"><h3 class="day__name">화</h3><ul class="tasks">
+            <li><button class="task" type="button" aria-pressed="true">시안 공유</button></li>
+          </ul></li>
+          <li class="day"><h3 class="day__name">수</h3><ul class="tasks">
+            <li><button class="task" type="button" aria-pressed="false">중간 점검 10분</button></li>
+            <li><button class="task" type="button" aria-pressed="false">막힌 일 꺼내기</button></li>
+          </ul></li>
+          <li class="day"><h3 class="day__name">목</h3><ul class="tasks">
+            <li><button class="task" type="button" aria-pressed="false">고객 의견 정리</button></li>
+          </ul></li>
+          <li class="day"><h3 class="day__name">금</h3><ul class="tasks">
+            <li><button class="task" type="button" aria-pressed="false">한 주 돌아보기</button></li>
+            <li><button class="task" type="button" aria-pressed="false">다음 주 후보 적기</button></li>
+          </ul></li>
+        </ol>
+        <div class="board__foot">
+          <p class="board__count" id="count" role="status" aria-live="polite">0/0 완료</p>
+          <div class="meter" aria-hidden="true"><div class="meter__fill" id="fill"></div></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="sec" id="flow" aria-labelledby="flow-title">
+    <div class="wrap">
+      <h2 class="sec__title" id="flow-title">모임은 일주일에 세 번, 10분씩</h2>
+      <p class="sec__lead">길게 앉아 있을 필요가 없습니다. 월·수·금에 보드를 함께 보며 필요한 말만 합니다.</p>
+      <ol class="flow">
+        <li class="step">
+          <span class="step__day" aria-hidden="true">월</span>
+          <h3 class="step__title">목표를 정합니다</h3>
+          <p class="step__text">이번 주에 끝낼 일을 팀이 함께 3개 안으로 고르고, 맡을 사람을 정합니다.</p>
+        </li>
+        <li class="step">
+          <span class="step__day" aria-hidden="true">수</span>
+          <h3 class="step__title">막힌 곳을 꺼냅니다</h3>
+          <p class="step__text">진행 중인 일을 훑어보고, 도움이 필요한 사람이 먼저 말할 자리를 줍니다.</p>
+        </li>
+        <li class="step">
+          <span class="step__day" aria-hidden="true">금</span>
+          <h3 class="step__title">한 주를 돌아봅니다</h3>
+          <p class="step__text">끝낸 일과 못 끝낸 이유를 적고, 다음 주 후보를 남기고 마칩니다.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec sec--tint" id="features" aria-labelledby="feat-title">
+    <div class="wrap feat">
+      <div class="feat__head">
+        <h2 class="sec__title" id="feat-title">정리는 보드가 합니다</h2>
+        <p class="sec__lead">쓰는 사람은 일하고 체크만 하면 됩니다.</p>
+      </div>
+      <ul class="feat__list">
+        <li class="feat__item">
+          <h3 class="feat__name">목표와 할 일, 담당자가 한 화면에</h3>
+          <p class="feat__text">메신저와 문서를 오가며 찾지 않아도 누가 무엇을 맡았는지 바로 보입니다.</p>
+        </li>
+        <li class="feat__item">
+          <h3 class="feat__name">누르면 팀 진행률이 바로 바뀝니다</h3>
+          <p class="feat__text">끝낸 일을 체크하면 이번 주 완료 수가 곧장 갱신됩니다. 보고용 정리가 따로 필요 없습니다.</p>
+        </li>
+        <li class="feat__item">
+          <h3 class="feat__name">지난 주가 기록으로 남습니다</h3>
+          <p class="feat__text">금요일 회고가 쌓여서 다음 주 계획을 세울 때 근거가 됩니다.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sec apply" id="apply" aria-labelledby="apply-title">
+    <div class="wrap apply__in">
+      <h2 class="sec__title" id="apply-title">파일럿 신청은 곧 열립니다</h2>
+      <p class="sec__lead" style="color: var(--ink)">참여할 팀을 모으는 접수 창구를 준비하고 있습니다. 열리면 이 자리에서 바로 신청할 수 있습니다.</p>
+    </div>
+  </section>
 </main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p>TeamT는 가칭이며 이름이 바뀔 수 있습니다.</p>
+    <p>© 2026 TeamT</p>
+  </div>
+</footer>
+
+<script>
+  // 보드: 끝낸 일을 누르면 완료 수와 막대가 바로 바뀐다.
+  const tasks = document.querySelectorAll(".task");
+  const count = document.getElementById("count");
+  const fill = document.getElementById("fill");
+  function update() {
+    const done = [...tasks].filter(t => t.getAttribute("aria-pressed") === "true").length;
+    count.textContent = `이번 주 ${done}/${tasks.length} 완료`;
+    fill.style.width = `${(done / tasks.length) * 100}%`;
+  }
+  tasks.forEach(t => t.addEventListener("click", () => {
+    t.setAttribute("aria-pressed", t.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    update();
+  }));
+  update();
+</script>
 </body>
 </html>

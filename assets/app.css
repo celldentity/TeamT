@@ -506,3 +506,10 @@ a.art { text-decoration: none; color: inherit; }
 .mt-r--x p { color: var(--ink-soft); font-style: italic; }
 .mt-r--hit { animation: hit 2.4s ease-out; }
 .mt-r mark { background: var(--pink); color: var(--ink); border-radius: 4px; }
+
+/* 맨 위로 가기 플로팅 버튼 — 둘레 링이 읽은 위치(--pct) */
+.fab-top { position: fixed; z-index: 14; right: max(16px, calc((100vw - var(--app-w)) / 2 + 16px)); bottom: calc(var(--tabbar-h) + 16px); display: grid; place-items: center; width: 52px; height: 52px; padding: 0; color: var(--ink); background: conic-gradient(var(--pink-deep) var(--pct, 0%), var(--lavender) 0); border: 0; border-radius: 50%; box-shadow: 0 6px 16px rgb(87 74 140 / .28); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
+.fab-top::before { content: ""; position: absolute; inset: 4px; background: #fff; border-radius: 50%; }
+.fab-top svg { position: relative; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.fab-top:active { transform: scale(.94); }
+.mt-av--U { color: var(--ink-soft); background: #e4def3; }

@@ -90,7 +90,7 @@
     if (!me) return;
     if (!me.presenter) { location.replace("/"); return; }
     const $ = (s) => document.querySelector(s), esc = TT.esc;
-    const ini = (p) => (p.named ? [...p.name][0] : [...p.name].at(-1));
+    const ini = (p) => (p.key === "U" ? "?" : [...p.name][0]);
     const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
     const KST = { timeZone: "Asia/Seoul" };
     let m;
@@ -142,7 +142,7 @@
       $("#tr").innerHTML = rows.map((b) => {
         const txt = esc(b.t), hit = re ? txt.replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), (x) => `<mark>${x}</mark>`) : txt;
         return b.x ? `<li class="mt-r mt-r--x" id="tr-${b.s}"><time>${mmss(b.s)}</time><p>${hit}</p></li>`
-          : `<li class="mt-r" id="tr-${b.s}"><time>${mmss(b.s)}</time><div><span class="mt-av mt-av--${b.sp}">${esc(ini(spk[b.sp] || { name: "?", named: true }))}</span><b>${esc((spk[b.sp] || { name: "?" }).name)}</b><p>${hit}</p></div></li>`;
+          : `<li class="mt-r" id="tr-${b.s}"><time>${mmss(b.s)}</time><div><span class="mt-av mt-av--${b.sp}">${esc(ini(spk[b.sp] || { name: "?", key: "U" }))}</span><b>${esc((spk[b.sp] || { name: "?" }).name)}</b><p>${hit}</p></div></li>`;
       }).join("");
       drawn = true;
     };
@@ -156,6 +156,7 @@
       if (el) { el.scrollIntoView({ block: "center" }); el.classList.add("mt-r--hit"); setTimeout(() => el.classList.remove("mt-r--hit"), 2400); }
     });
     $("#doc").hidden = false;
+    TT.topBtn();   // 맨 위로 가기 버튼(읽은 위치 링)
   });
 </script>
 </body>

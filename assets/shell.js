@@ -207,6 +207,18 @@
     if (user && !GATE) call("/api/notifications?count=1").then((r) => TT.setBell(r.unread)).catch(() => {});
     return user;
   }).catch((e) => { html.classList.remove("pending"); console.error(e); return null; });
+  // 맨 위로 가기 플로팅 버튼(긴 페이지용, 쓰는 쪽이 TT.topBtn() 을 부른다): 조금 내려가면 나타나고, 둘레 링이 «어디까지 읽었는지(%)»를 보여 준다. 누르면 부드럽게 맨 위로.
+  TT.topBtn = () => {
+    if (document.querySelector(".fab-top")) return;
+    const b = document.createElement("button"); b.type = "button"; b.className = "fab-top"; b.hidden = true; b.setAttribute("aria-label", "맨 위로 가기");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11.5l6-6 6 6"/></svg>';
+    document.body.append(b);
+    let tick = false;
+    const upd = () => { tick = false; const max = html.scrollHeight - innerHeight, pct = max > 0 ? Math.round(Math.min(1, scrollY / max) * 100) : 0; b.hidden = scrollY < 400; b.style.setProperty("--pct", pct + "%"); b.title = `맨 위로 (지금 ${pct}%)`; };
+    addEventListener("scroll", () => { if (!tick) { tick = true; requestAnimationFrame(upd); } }, { passive: true });
+    b.addEventListener("click", () => scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }));
+    upd();
+  };
   // 상단 알림 숫자(0 이면 숨김), 로그아웃
   // 앱 아이콘 위 숫자(배지) — 홈 화면에 추가한 앱에서 보인다. 상단 종 숫자(안 읽은 알림 수)와 같은 값.
   const appBadge = (n) => { try { const r = n > 0 ? navigator.setAppBadge?.(n) : navigator.clearAppBadge?.(); r?.catch?.(() => {}); } catch {} };

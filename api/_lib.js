@@ -48,9 +48,16 @@ const clearSession = (req, res) => res.setHeader("Set-Cookie", `tt_s=; HttpOnly;
 
 async function currentUser(req) {
   const s = readSession(req); if (!s) return null;
-  const [rows] = await db().query("SELECT id, email, nickname, photo_v FROM users WHERE id = ?", [s.uid]);
+  const [rows] = await db().query("SELECT id, email, nickname, bio, photo_v FROM users WHERE id = ?", [s.uid]);
   return rows[0] || null;
 }
-const publicUser = (u) => ({ id: u.id, email: u.email, nickname: u.nickname, photoUrl: u.photo_v > 0 ? `/api/photo?u=${u.id}&v=${u.photo_v}` : null });
+const photoUrl = (u) => (u.photo_v > 0 ? `/api/photo?u=${u.id}&v=${u.photo_v}` : null);
+const publicUser = (u) => ({ id: u.id, email: u.email, nickname: u.nickname, bio: u.bio || "", photoUrl: photoUrl(u) });
+const len = (s) => [...String(s)].length; // 이모지도 1글자로 센다
 
-module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser };
+// 초대장 정책 — 숫자 하나로 조정한다
+const INVITE_DAYS = 7;       // 만들고 나서 이 기간 안에 써야 한다
+const INVITE_MAX_ACTIVE = 3; // 한 사람이 동시에 가질 수 있는 쓰지 않은 초대장 수
+const normCode = (c) => String(c || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+module.exports = { env, db, r2, json, isJson, readBody, same, hashPw, checkPw, setSession, clearSession, currentUser, publicUser, photoUrl, len, INVITE_DAYS, INVITE_MAX_ACTIVE, normCode };

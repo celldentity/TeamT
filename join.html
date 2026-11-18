@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>초대장으로 가입 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="초대장이 있는 팀원만 가입할 수 있어요.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <div class="wrap">
+    <section class="gate" aria-labelledby="gate-title">
+      <div>
+        <h1 id="gate-title">초대받은 분만<br>들어올 수 있어요</h1>
+        <p>팀원에게 받은 초대장으로 가입하거나, 이미 회원이면 로그인해 주세요.</p>
+      </div>
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M100 178C40 132 14 99 14 69 14 45 32 29 54 29c19 0 36 10 46 28 10-18 27-28 46-28 22 0 40 16 40 40 0 30-26 63-86 109Z" fill="#f9a8cd"/>
+        <rect x="63" y="60" width="80" height="90" rx="13" fill="#fff" stroke="#f9a8cd" stroke-width="3" transform="rotate(-3 103 105)"/>
+        <g transform="rotate(-3 103 105)"><circle cx="88" cy="88" r="3.4" fill="#2b2540"/><circle cx="118" cy="88" r="3.4" fill="#2b2540"/><path d="M94 97q9 9 18 0" fill="none" stroke="#2b2540" stroke-width="2.6" stroke-linecap="round"/><rect x="79" y="114" width="48" height="6" rx="3" fill="#b9a6f0"/></g>
+        <path d="M172 6q2 16 18 18-16 2-18 18-2-16-18-18 16-2 18-18Z" fill="#b9a6f0"/>
+      </svg>
+    </section>
+
+    <div class="seg" role="group" aria-label="가입 또는 로그인">
+      <button type="button" data-mode="signup" aria-pressed="true">초대장으로 가입</button>
+      <button type="button" data-mode="login" aria-pressed="false">로그인</button>
+    </div>
+    <form class="form" id="form" novalidate>
+      <label class="field" data-only="signup">초대장 코드 <small>초대 링크로 들어오면 자동으로 채워져요</small>
+        <input name="code" type="text" autocomplete="off" autocapitalize="characters" maxlength="20" spellcheck="false">
+      </label>
+      <p class="msg" id="codeMsg" data-only="signup" role="status" style="margin-top:-8px"></p>
+      <label class="field">이메일
+        <input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" required>
+      </label>
+      <label class="field">비밀번호 <small data-only="signup">8자 이상</small>
+        <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+      </label>
+      <label class="field" data-only="signup">닉네임 <small>2~20자, 나중에 바꿀 수 있어요</small>
+        <input name="nickname" type="text" autocomplete="nickname" maxlength="20">
+      </label>
+      <p class="msg msg--err" id="err" role="alert"></p>
+      <button class="btn btn--block" type="submit" id="btn">가입하기</button>
+    </form>
+    <p class="note" style="margin:24px 0 40px">초대장은 이미 가입한 팀원이 마이페이지에서 만들어 줘요.</p>
+  </div>
+</main>
+</div>
+<script>
+  TT.ready.then(() => {
+    const $ = (s) => document.querySelector(s), form = $("#form");
+    let mode = "signup";
+    const norm = (v) => v.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+    function setMode(m) {
+      mode = m;
+      document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
+      document.querySelectorAll("[data-only=signup]").forEach((el) => (el.hidden = m !== "signup"));
+      form.password.autocomplete = m === "signup" ? "new-password" : "current-password";
+      $("#btn").textContent = m === "signup" ? "가입하기" : "로그인";
+      $("#err").textContent = "";
+    }
+    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+    // 초대장 코드를 입력하면 바로 확인해서 누가 보낸 초대장인지 보여 준다
+    let last = "";
+    async function check() {
+      const c = norm(form.code.value), msg = $("#codeMsg");
+      if (c === last) return; last = c;
+      msg.className = "msg"; msg.textContent = "";
+      if (c.length !== 12) return;
+      try {
+        const r = await TT.call("/api/invites?check=" + c);
+        msg.className = r.valid ? "msg msg--ok" : "msg msg--err";
+        msg.textContent = r.valid ? (r.inviter ? r.inviter + "님이 초대했어요." : "T조 운영자가 보낸 초대장이에요.") : "사용할 수 없는 초대장이에요. 이미 쓰였거나 기한이 지났을 수 있어요.";
+      } catch (x) { msg.className = "msg msg--err"; msg.textContent = x.message; }
+    }
+    form.code.addEventListener("input", check);
+
+    const fromLink = new URLSearchParams(location.search).get("code");
+    if (fromLink) { form.code.value = norm(fromLink); check(); }
+    setMode("signup");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = $("#btn"), label = btn.textContent, err = $("#err"); err.textContent = "";
+      const d = Object.fromEntries(new FormData(form));
+      if (!d.email || !d.password) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
+      btn.disabled = true; btn.textContent = "잠시만요…";
+      try {
+        await TT.call("/api/auth?a=" + mode, "POST", mode === "signup" ? { ...d, code: norm(d.code || "") } : { email: d.email, password: d.password });
+        location.href = "/";
+      } catch (x) { err.textContent = x.message; btn.disabled = false; btn.textContent = label; }
+    });
+  });
+</script>
+</body>
+</html>

@@ -11,168 +11,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
-<style>
-  /* HR T | 니핑 — 팀 합의: 원티드 톤(흰 바탕+검정) 위에 티니핑 핑크·라벤더 포인트, 맑은고딕 계열, 상단 메뉴, 모바일 우선 */
-  :root {
-    color-scheme: light;
-    --brand: #171719;         /* 원티드 사이트 톤 = 흰 바탕 + 검정 (예진님 보충 2026-11-18) */
-    --brand-strong: #3a3a42;
-    --pink: #f9a8cd;
-    --pink-deep: #e77fb0;
-    --pink-ink: #b23a72;      /* 연핑크 위 글자용 (명암비 5:1) */
-    --lavender: #dcd2fa;
-    --lavender-deep: #b9a6f0;
-    --lavender-tint: #eee9fc;
-    --blush: #fff1f6;
-    --ink: #171719;
-    --ink-soft: #5a5c63;
-    --line: #ececf0;
-    --paper: #ffffff;
-    --font: "Malgun Gothic", "맑은 고딕", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
-    --gutter: clamp(16px, 5vw, 21.5px);
-    --app-w: 430px;           /* HSMnT 사원포털과 같은 430px 모바일 틀. 이 폭에서 멈춘다(글자·여백도 430px 값이 상한) */
-  }
-  *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 64px; -webkit-text-size-adjust: 100%; }
-  html { background: #e6e6ea; }
-  body { margin: 0; background: #e6e6ea; color: var(--ink); font: 400 1rem/1.7 "Noto Sans KR", var(--font); word-break: keep-all; -webkit-font-smoothing: antialiased; }
-  h1, h2, h3, p, ul { margin: 0; }
-  ul { padding: 0; list-style: none; }
-  a { color: inherit; }
-  :focus-visible { outline: 3px solid var(--brand); outline-offset: 3px; border-radius: 6px; }
-
-  .app { width: min(100%, var(--app-w)); min-height: 100vh; min-height: 100dvh; margin-inline: auto; background: var(--paper); overflow-x: clip; }
-  @media (min-width: 431px) { .app { box-shadow: 0 20px 25px -5px rgb(23 23 25 / .12), 0 8px 10px -6px rgb(23 23 25 / .12); } }
-  .wrap { width: calc(100% - 2 * var(--gutter)); margin-inline: auto; }
-  .skip { position: absolute; left: 16px; top: -64px; background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 8px; z-index: 20; }
-  .skip:focus { top: 12px; }
-
-  /* 상단 메뉴 */
-  .top { position: sticky; top: 0; z-index: 10; width: 100%; background: rgb(255 255 255 / .94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
-  .top__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
-  .logo { text-decoration: none; font-weight: 800; font-size: 1.1875rem; letter-spacing: -.03em; color: var(--brand); white-space: nowrap; }
-  .nav { display: flex; gap: 2px; }
-  .nav a { padding: 10px 10px; text-decoration: none; font-weight: 500; font-size: .9375rem; color: var(--ink-soft); border-radius: 8px; white-space: nowrap; }
-  .nav a:hover { color: var(--ink); background: #f5f5f7; }
-  .logo i { font-style: normal; margin: 0 .12em; color: var(--pink-deep); }
-
-  /* 히어로 — 흰 페이지 위에 연핑크 카드 (시안 그대로) */
-  .hero { padding: 16px 0 0; }
-  .hero__in { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 8px; align-items: center; background: var(--blush); border-radius: 28px; padding: 24px 20px; }
-  .eyebrow { font-weight: 700; font-size: .75rem; line-height: 1.4; letter-spacing: .02em; color: var(--pink-ink); }
-  .hero__title { margin-top: 14px; font-weight: 800; font-size: clamp(1.75rem, 8.2vw, 2.2rem); line-height: 1.22; letter-spacing: -.04em; }
-  .hero__lead { margin-top: 16px; font-size: clamp(.9375rem, 3.6vw, .96875rem); color: var(--ink-soft); }
-  .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 0 24px; margin-top: 28px; font: 700 1rem/1 "Noto Sans KR", var(--font); text-decoration: none; color: #fff; background: var(--brand); border-radius: 12px; transition: background-color .15s, transform .1s; }
-  .btn:hover { background: var(--brand-strong); }
-  .btn:active { transform: scale(.98); }
-  .hero__art { align-self: end; justify-self: end; width: 100%; }
-  .hero__art svg { display: block; width: 100%; height: auto; animation: bob 4.5s ease-in-out infinite; }
-  @keyframes bob { 50% { transform: translateY(-7px); } }
-  .hero__act { grid-column: 1 / -1; }
-
-  /* 공통 섹션 */
-  .sec { padding: 44px 0 48px; }
-  .sec__title { font-weight: 800; font-size: clamp(1.5rem, 6vw, 1.6rem); line-height: 1.3; letter-spacing: -.04em; }
-  .sec__lead { margin-top: 10px; color: var(--ink-soft); max-width: 32em; }
-
-  /* 아티클 */
-  .arts { display: grid; gap: 14px; margin-top: 24px; }
-  .art { display: flex; flex-direction: column; gap: 10px; padding: 22px 20px; border-radius: 20px; }
-  .art:nth-child(1) { background: var(--blush); }
-  .art:nth-child(2) { background: var(--lavender-tint); }
-  .art:nth-child(3) { background: #fff; box-shadow: inset 0 0 0 1.5px var(--lavender); }
-  .art__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: .8125rem; color: var(--ink-soft); }
-  .chip { padding: 2px 10px; font-weight: 700; font-size: .75rem; line-height: 1.6; color: var(--ink); background: #fff; border: 1px solid var(--line); border-radius: 99px; }
-  .chip--sample { color: var(--ink-soft); background: transparent; border: 1px dashed var(--ink-soft); }
-  .art__title { font-weight: 700; font-size: 1.1875rem; line-height: 1.45; letter-spacing: -.02em; }
-  .art__text { color: var(--ink-soft); font-size: .9375rem; }
-  .note { margin-top: 16px; font-size: .875rem; color: var(--ink-soft); }
-
-  /* T조 소개 */
-  .team { background: var(--lavender); }
-  .team__in { display: grid; gap: 12px; max-width: 36em; }
-  .team .sec__lead { color: var(--ink); }
-
-  .foot { padding: 24px 0 calc(32px + env(safe-area-inset-bottom)); font-size: .875rem; color: var(--ink-soft); }
-  .foot__in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px; }
-
-  /* 하단 고정 메뉴 — HSMnT 사원포털처럼 430px 틀 안에서 화면 아래에 붙어 스크롤해도 변하지 않는다 */
-  .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
-  /* 높이 52px 로 슬림하게. 선택 표시 = 위쪽 표시선 + 아이콘이 분홍으로 채워짐(알약 배경 없음) */
-  .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 5px 2px 4px; text-decoration: none; font-size: .6875rem; font-weight: 500; line-height: 1.2; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
-  .tab svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
-  .tab__ic { display: grid; place-items: center; height: 24px; }
-  .tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
-  .tab[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 50%; width: 26px; height: 3px; margin-left: -13px; background: var(--ink); border-radius: 0 0 3px 3px; }
-  .tab[aria-current="page"] .f { fill: var(--pink); }
-  .tab:active svg { transform: scale(.88); }
-  .app { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
-  .tab__av { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--pink); color: var(--ink); font-size: .75rem; font-weight: 800; }
-  .tab[aria-current="page"] .tab__av { box-shadow: 0 0 0 2px var(--ink); }
-  .tab__av img { width: 100%; height: 100%; object-fit: cover; }
-
-  /* 내 정보 — 로그인·가입, 닉네임, 프로필 사진 */
-  [hidden] { display: none !important; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-top: 20px; background: #f1f1f4; border-radius: 14px; }
-  .seg button { min-height: 44px; border: 0; border-radius: 10px; font: 700 .9375rem/1 "Noto Sans KR", var(--font); color: var(--ink-soft); background: transparent; cursor: pointer; }
-  .seg button[aria-pressed="true"] { color: var(--ink); background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .14); }
-  .form { display: grid; gap: 14px; margin-top: 18px; }
-  .field { display: grid; gap: 6px; font-weight: 700; font-size: .875rem; }
-  .field small { font-weight: 400; color: var(--ink-soft); }
-  .field input { width: 100%; min-height: 52px; padding: 0 14px; font: 400 1rem/1.4 "Noto Sans KR", var(--font); color: var(--ink); background: #fff; border: 1.5px solid #d6d6dc; border-radius: 12px; }
-  .field input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--lavender); }
-  .msg { min-height: 1.4em; font-size: .875rem; color: var(--ink-soft); }
-  .msg--err { color: #c0262d; }
-  .me .btn { width: 100%; margin-top: 0; }
-  .btn--ghost { color: var(--ink); background: #fff; border: 1.5px solid #d6d6dc; }
-  .btn--ghost:hover { background: #f5f5f7; }
-  .btn[disabled] { opacity: .55; pointer-events: none; }
-  .me-card { display: grid; justify-items: center; gap: 4px; margin-top: 20px; padding: 28px 16px 20px; background: var(--blush); border-radius: 24px; text-align: center; }
-  .avatar { display: grid; place-items: center; width: 112px; height: 112px; margin-bottom: 8px; overflow: hidden; border: 4px solid #fff; border-radius: 50%; background: var(--pink); font-weight: 800; font-size: 2.5rem; box-shadow: 0 2px 12px rgb(231 127 176 / .4); }
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .me-name { font-weight: 800; font-size: 1.25rem; line-height: 1.4; word-break: break-all; }
-  .me-mail { font-size: .875rem; color: var(--ink-soft); word-break: break-all; }
-  .photo-btn { position: relative; margin-top: 14px; }
-  .photo-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 0; }
-  .photo-btn:focus-within { outline: 3px solid var(--ink); outline-offset: 3px; }
-  .me-sec { margin-top: 20px; }
-
-  /* 반응형 */
-  @media (max-width: 400px) {
-    .logo { font-size: 1.0625rem; }
-    .nav a { padding: 10px 7px; font-size: .875rem; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after { transition: none !important; animation: none !important; }
-  }
-</style>
+<link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
 <div class="app">
-<a class="skip" href="#main">본문으로 건너뛰기</a>
-
-<header class="top">
-  <div class="wrap top__in">
-    <a class="logo" href="#home" aria-label="HR T | 니핑 프로젝트 홈">HR T<i>|</i>니핑</a>
-    <nav class="nav" aria-label="주요 메뉴">
-      <a href="#home">홈</a>
-      <a href="#articles">아티클</a>
-      <a href="#team">T조 소개</a>
-    </nav>
-  </div>
-</header>
-
+<script src="/assets/shell.js"></script>
 <main id="main">
-  <section class="hero" id="home">
+  <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero__in">
       <div>
         <p class="eyebrow">MIDFIELDER 8TH · TEAM T</p>
-        <h1 class="hero__title">오늘도 HR에<br>인사이트<br>한 스푼!</h1>
+        <h1 class="hero__title" id="hero-title">오늘도 HR에<br>인사이트<br>한 스푼!</h1>
         <p class="hero__lead">AI가 만들어가는 우리의<br>HR 이야기</p>
       </div>
-      <div class="hero__art" aria-hidden="true">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <div class="hero__art">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <ellipse cx="100" cy="188" rx="54" ry="7" fill="#f3cfe0" opacity=".8"/>
           <path d="M100 178C40 132 14 99 14 69 14 45 32 29 54 29c19 0 36 10 46 28 10-18 27-28 46-28 22 0 40 16 40 40 0 30-26 63-86 109Z" fill="#f9a8cd"/>
           <rect x="60" y="66" width="80" height="90" rx="13" fill="#e77fb0" transform="rotate(-7 100 111)"/>
@@ -187,14 +40,13 @@
           <path d="M172 6q2 16 18 18-16 2-18 18-2-16-18-18 16-2 18-18Z" fill="#b9a6f0"/>
         </svg>
       </div>
-      <div class="hero__act"><a class="btn" href="#articles">아티클 만나보기</a></div>
+      <div class="hero__act"><a class="btn" href="/articles">아티클 만나보기</a></div>
     </div>
   </section>
 
-  <section class="sec" id="articles" aria-labelledby="art-title">
+  <section class="sec" aria-labelledby="new-title">
     <div class="wrap">
-      <h2 class="sec__title" id="art-title">최근 아티클</h2>
-      <p class="sec__lead">AI와 함께 쓰고 다듬은 HR 이야기를 모았습니다.</p>
+      <h2 class="sec__title" id="new-title">새로 올라온 글</h2>
       <ul class="arts">
         <li class="art">
           <div class="art__meta"><span class="chip">채용</span><span class="chip chip--sample">샘플</span></div>
@@ -206,195 +58,13 @@
           <h3 class="art__title">신규 입사자 첫 일주일 체크리스트</h3>
           <p class="art__text">계정, 장비, 인사까지. 놓치기 쉬운 순서를 한 장으로 모았습니다.</p>
         </li>
-        <li class="art">
-          <div class="art__meta"><span class="chip">조직문화</span><span class="chip chip--sample">샘플</span></div>
-          <h3 class="art__title">회고 회의가 길어지지 않는 법</h3>
-          <p class="art__text">말할 차례와 시간을 정해 두면 회고가 10분 안에 끝납니다.</p>
-        </li>
       </ul>
       <p class="note">※ 지금 보이는 글은 화면 구성을 확인하기 위한 샘플입니다.</p>
-    </div>
-  </section>
-
-  <section class="sec team" id="team" aria-labelledby="team-title">
-    <div class="wrap team__in">
-      <h2 class="sec__title" id="team-title">T조 소개</h2>
-      <p class="sec__lead">HR 이야기가 끊임없이 이어지길 바라는 마음으로, Midfielder 8기 T조가 AI와 함께 아티클을 만듭니다. 팀원 소개는 준비 중입니다.</p>
-    </div>
-  </section>
-  <section class="sec me" id="me" aria-labelledby="me-title">
-    <div class="wrap">
-      <h2 class="sec__title" id="me-title">마이페이지</h2>
-      <p class="sec__lead" id="me-lead">로그인하면 닉네임과 프로필 사진을 정할 수 있어요.</p>
-
-      <div id="auth">
-        <div class="seg" role="group" aria-label="로그인 또는 가입">
-          <button type="button" data-mode="login" aria-pressed="true">로그인</button>
-          <button type="button" data-mode="signup" aria-pressed="false">가입</button>
-        </div>
-        <form class="form" id="authForm" novalidate>
-          <label class="field">이메일
-            <input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" required>
-          </label>
-          <label class="field">비밀번호
-            <input name="password" type="password" autocomplete="current-password" minlength="8" required>
-          </label>
-          <label class="field" data-only="signup" hidden>닉네임 <small>2~20자, 나중에 바꿀 수 있어요</small>
-            <input name="nickname" type="text" autocomplete="nickname" maxlength="20">
-          </label>
-          <label class="field" data-only="signup" hidden>가입 코드 <small>T조 단톡방에서 안내한 코드</small>
-            <input name="code" type="text" autocomplete="off" autocapitalize="none">
-          </label>
-          <p class="msg msg--err" id="authErr" role="alert"></p>
-          <button class="btn" type="submit" id="authBtn">로그인</button>
-        </form>
-      </div>
-
-      <div id="profile" hidden>
-        <div class="me-card">
-          <div class="avatar" id="avatar" aria-hidden="true"></div>
-          <p class="me-name" id="meName"></p>
-          <p class="me-mail" id="meMail"></p>
-          <label class="btn btn--ghost photo-btn">사진 바꾸기
-            <input id="photo" type="file" accept="image/*" aria-label="프로필 사진 고르기">
-          </label>
-          <p class="msg msg--err" id="photoMsg" role="alert"></p>
-        </div>
-        <form class="form me-sec" id="nickForm" novalidate>
-          <label class="field">닉네임
-            <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
-          </label>
-          <p class="msg" id="nickMsg" role="status"></p>
-          <button class="btn" type="submit" id="nickBtn">닉네임 저장</button>
-        </form>
-        <button class="btn btn--ghost me-sec" type="button" id="logoutBtn">로그아웃</button>
-      </div>
+      <p class="note"><a href="/articles"><b>아티클 전체 보기</b></a></p>
+      <p class="note" style="margin-top:32px">HR T | 니핑 프로젝트(B급 부제: HR 떡밥 리텐션 프로젝트)는 가칭이며 이름이 바뀔 수 있습니다.<br>© 2026 Midfielder 8th · Team T</p>
     </div>
   </section>
 </main>
-
-<footer class="foot">
-  <div class="wrap foot__in">
-    <p>HR T | 니핑 프로젝트(B급 부제: HR 떡밥 리텐션 프로젝트)는 가칭이며 이름이 바뀔 수 있습니다.</p>
-    <p>© 2026 Midfielder 8th · Team T</p>
-  </div>
-</footer>
-
-<nav class="tabbar" aria-label="하단 메뉴">
-  <a class="tab" href="#home" aria-current="page">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>홈
-  </a>
-  <a class="tab" href="#articles">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg></span>아티클
-  </a>
-  <a class="tab" href="#team">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle class="f" cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg></span>T조 소개
-  </a>
-  <a class="tab" href="#me">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></span>마이페이지
-  </a>
-</nav>
 </div>
-<script>
-  // 하단 메뉴: 지금 보고 있는 구간을 표시한다(스크롤 위치 기준, 맨 아래면 마지막 구간).
-  const tabs = [...document.querySelectorAll(".tab")];
-  const secs = tabs.map(t => document.querySelector(t.getAttribute("href")));
-  let tick = false;
-  function mark() {
-    tick = false;
-    const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
-    let on = 0;
-    secs.forEach((s, i) => { if (s.getBoundingClientRect().top <= innerHeight * 0.4) on = i; });
-    if (atEnd) on = secs.length - 1;
-    tabs.forEach((t, i) => i === on ? t.setAttribute("aria-current", "page") : t.removeAttribute("aria-current"));
-  }
-  addEventListener("scroll", () => { if (!tick) { tick = true; requestAnimationFrame(mark); } }, { passive: true });
-  addEventListener("resize", mark);
-  mark();
-</script>
-<script>
-  // 로그인·가입·닉네임·프로필 사진. 서버는 /api/*(Vercel 함수), 세션은 HttpOnly 쿠키.
-  (() => {
-    const $ = (s) => document.querySelector(s);
-    const authBox = $("#auth"), prof = $("#profile"), lead = $("#me-lead"), form = $("#authForm");
-    const tabIc = $('.tab[href="#me"] .tab__ic'), tabIcDefault = tabIc.innerHTML;
-    let mode = "login";
-
-    async function call(path, method = "GET", body) {
-      const r = await fetch(path, { method, credentials: "same-origin", headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || "요청에 실패했습니다. 잠시 뒤 다시 시도해 주세요.");
-      return j;
-    }
-    const initial = (u) => [...u.nickname][0] || "T";
-    function setMode(m) {
-      mode = m;
-      document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === m)));
-      form.querySelectorAll("[data-only=signup]").forEach((el) => (el.hidden = m !== "signup"));
-      form.password.autocomplete = m === "signup" ? "new-password" : "current-password";
-      $("#authBtn").textContent = m === "signup" ? "가입하기" : "로그인";
-      $("#authErr").textContent = "";
-    }
-    function render(u) {
-      authBox.hidden = !!u; prof.hidden = !u;
-      lead.textContent = u ? `${u.nickname}님, 반가워요.` : "로그인하면 닉네임과 프로필 사진을 정할 수 있어요.";
-      if (!u) { tabIc.innerHTML = tabIcDefault; return; }
-      const av = $("#avatar");
-      av.innerHTML = u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : "";
-      if (!u.photoUrl) av.textContent = initial(u);
-      $("#meName").textContent = u.nickname; $("#meMail").textContent = u.email;
-      $("#nickInput").value = u.nickname;
-      tabIc.innerHTML = `<span class="tab__av">${u.photoUrl ? `<img src="${u.photoUrl}" alt="">` : ""}</span>`;
-      if (!u.photoUrl) tabIc.firstChild.textContent = initial(u);
-    }
-    const busy = (btn, on, label) => { btn.disabled = on; if (label) btn.textContent = on ? "잠시만요…" : label; };
-
-    document.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = $("#authBtn"), label = btn.textContent, err = $("#authErr");
-      err.textContent = "";
-      const d = Object.fromEntries(new FormData(form));
-      if (!d.email || !d.password) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
-      busy(btn, true, label);
-      try {
-        const { user } = await call(`/api/auth?a=${mode}`, "POST", mode === "signup" ? d : { email: d.email, password: d.password });
-        form.reset(); render(user);
-      } catch (x) { err.textContent = x.message; }
-      busy(btn, false, label);
-    });
-
-    $("#nickForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = $("#nickBtn"), msg = $("#nickMsg"); msg.className = "msg"; msg.textContent = "";
-      busy(btn, true, "닉네임 저장");
-      try { const { user } = await call("/api/me", "PATCH", { nickname: $("#nickInput").value }); render(user); msg.textContent = "저장했어요."; }
-      catch (x) { msg.className = "msg msg--err"; msg.textContent = x.message; }
-      busy(btn, false, "닉네임 저장");
-    });
-
-    // 사진은 브라우저에서 가운데를 정사각형으로 잘라 256px JPEG 로 줄여 올린다(서버·R2 용량 절약).
-    async function toJpeg(file) {
-      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
-      const s = Math.min(bmp.width, bmp.height), c = document.createElement("canvas");
-      c.width = c.height = 256;
-      c.getContext("2d").drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, 256, 256);
-      return c.toDataURL("image/jpeg", 0.85);
-    }
-    $("#photo").addEventListener("change", async (e) => {
-      const f = e.target.files[0], msg = $("#photoMsg"); msg.textContent = "";
-      if (!f) return;
-      try { const { user } = await call("/api/photo", "POST", { image: await toJpeg(f) }); render(user); }
-      catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
-      e.target.value = "";
-    });
-
-    $("#logoutBtn").addEventListener("click", async () => { try { await call("/api/auth?a=logout", "POST", {}); } catch {} render(null); setMode("login"); });
-
-    setMode("login");
-    call("/api/me").then(({ user }) => render(user)).catch(() => render(null));
-  })();
-</script>
 </body>
 </html>

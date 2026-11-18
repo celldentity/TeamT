@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>T조 소개 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="HR 미드필더 8기 T조 팀원 소개.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="team-title">
+    <div class="wrap">
+      <h1 class="sec__title" id="team-title">T조 소개</h1>
+      <div class="team-card">
+        <h3>HR 미드필더 8기 T조</h3>
+        <p>AI와 함께 HR 이야기를 만들고 나누는 스터디 팀이에요.</p>
+        <ul>
+          <li>AI로 HR 인사이트 아티클을 만들어요</li>
+          <li>배운 것을 서로 나누고 함께 정리해요</li>
+          <li>HR 이야기가 끊임없이 이어지게 해요</li>
+        </ul>
+      </div>
+      <h2 class="sec__h3" id="mem-title">팀원 <span id="mem-count" style="color:var(--ink-soft);font-weight:500"></span></h2>
+      <p class="sec__lead" style="margin-top:6px">가입한 팀원이 자동으로 모여요. 사진과 한 줄 소개는 마이페이지에서 바꿀 수 있어요.</p>
+      <ul class="members" id="members" aria-labelledby="mem-title"></ul>
+      <div class="empty" id="mem-empty" hidden>아직 팀원이 없어요.</div>
+      <p class="msg msg--err" id="mem-err" role="alert"></p>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    try {
+      const { members } = await TT.call("/api/members");
+      document.getElementById("mem-count").textContent = members.length + "명";
+      document.getElementById("mem-empty").hidden = members.length > 0;
+      document.getElementById("members").innerHTML = members.map((m) => `
+        <li class="member${m.me ? " member--me" : ""}">
+          <div class="member__av">${TT.avatar(m)}</div>
+          <p class="member__name">${TT.esc(m.nickname)}${m.me ? '<span class="badge">나</span>' : ""}</p>
+          <p class="member__bio">${m.bio ? TT.esc(m.bio) : (m.me ? "마이페이지에서 한 줄 소개를 적어 보세요." : "&nbsp;")}</p>
+        </li>`).join("");
+    } catch (e) { document.getElementById("mem-err").textContent = e.message; }
+  });
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@ export PATH="/d/Coding/.tools/node:/d/Coding/.tools/npm-global:$PATH"
 cd "$(dirname "$0")/.."
 D=/d/Coding/.cache/temp/teamt-deploy
 rm -rf "$D"; mkdir -p "$D/.vercel"
-cp -r index.html api package.json package-lock.json "$D/"; cp .vercel/project.json "$D/.vercel/"
+cp -r *.html api assets vercel.json package.json package-lock.json "$D/"; cp .vercel/project.json "$D/.vercel/"
 cd "$D"
 URL=$(timeout 240 vercel deploy --prod --yes --scope mn-t 2>&1 | grep -o 'https://teamt-[a-z0-9]*-mn-t.vercel.app' | head -1)
 [ -n "$URL" ] || { echo "배포 실패"; exit 1; }

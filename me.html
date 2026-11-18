@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>마이페이지 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="내 프로필과 초대장.">
+<meta name="theme-color" content="#ffffff">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="me-title">
+    <div class="wrap">
+      <h1 class="sec__title" id="me-title">마이페이지</h1>
+      <p class="sec__lead" id="me-lead"></p>
+
+      <div class="me-card">
+        <div class="avatar" id="avatar" aria-hidden="true"></div>
+        <p class="me-name" id="meName"></p>
+        <p class="me-mail" id="meMail"></p>
+        <label class="btn btn--ghost photo-btn">사진 바꾸기
+          <input id="photo" type="file" accept="image/*" aria-label="프로필 사진 고르기">
+        </label>
+        <p class="msg msg--err" id="photoMsg" role="alert"></p>
+      </div>
+
+      <form class="form me-sec" id="profForm" novalidate>
+        <label class="field">닉네임
+          <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
+        </label>
+        <label class="field">한 줄 소개 <small>T조 소개 페이지에 보여요 (60자까지)</small>
+          <input name="bio" id="bioInput" type="text" maxlength="60" autocomplete="off">
+        </label>
+        <p class="msg" id="profMsg" role="status"></p>
+        <button class="btn btn--block" type="submit" id="profBtn">저장</button>
+      </form>
+
+      <h2 class="sec__h3">초대장</h2>
+      <p class="sec__lead" id="inv-lead" style="margin-top:6px">초대장으로만 새 팀원이 들어올 수 있어요.</p>
+      <button class="btn btn--block" type="button" id="invNew" style="margin-top:14px">초대장 만들기</button>
+      <p class="msg" id="invMsg" role="status" style="margin-top:8px"></p>
+      <ul class="invs" id="invs"></ul>
+
+      <button class="btn btn--ghost btn--block" type="button" id="logoutBtn" style="margin-top:32px">로그아웃</button>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then((user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s);
+    const busy = (b, on, label) => { b.disabled = on; if (label) b.textContent = on ? "잠시만요…" : label; };
+
+    function render(u) {
+      TT.user = u; TT.setTabUser(u);
+      $("#avatar").innerHTML = TT.avatar(u);
+      $("#meName").textContent = u.nickname; $("#meMail").textContent = u.email;
+      $("#nickInput").value = u.nickname; $("#bioInput").value = u.bio || "";
+      $("#me-lead").textContent = u.nickname + "님, 반가워요.";
+    }
+    render(user);
+
+    $("#profForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const msg = $("#profMsg"), btn = $("#profBtn"); msg.className = "msg"; msg.textContent = "";
+      busy(btn, true, "저장");
+      try { const { user: u } = await TT.call("/api/me", "PATCH", { nickname: $("#nickInput").value, bio: $("#bioInput").value }); render(u); msg.className = "msg msg--ok"; msg.textContent = "저장했어요."; }
+      catch (x) { msg.className = "msg msg--err"; msg.textContent = x.message; }
+      busy(btn, false, "저장");
+    });
+
+    // 사진은 브라우저에서 가운데를 정사각형으로 잘라 256px JPEG 로 줄여 올린다(서버·R2 용량 절약).
+    async function toJpeg(file) {
+      const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const s = Math.min(bmp.width, bmp.height), c = document.createElement("canvas");
+      c.width = c.height = 256;
+      c.getContext("2d").drawImage(bmp, (bmp.width - s) / 2, (bmp.height - s) / 2, s, s, 0, 0, 256, 256);
+      return c.toDataURL("image/jpeg", 0.85);
+    }
+    $("#photo").addEventListener("change", async (e) => {
+      const f = e.target.files[0], msg = $("#photoMsg"); msg.textContent = "";
+      if (!f) return;
+      try { const { user: u } = await TT.call("/api/photo", "POST", { image: await toJpeg(f) }); render(u); }
+      catch (x) { msg.textContent = x.message || "사진을 올리지 못했어요. 다른 사진으로 해 보세요."; }
+      e.target.value = "";
+    });
+
+    $("#logoutBtn").addEventListener("click", async () => { try { await TT.call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
+
+    // ── 초대장 ──
+    const fmt = (c) => c.match(/.{1,4}/g).join("-");
+    const link = (c) => location.origin + "/join?code=" + c;
+    const left = (d) => Math.max(0, Math.ceil((new Date(d) - Date.now()) / 864e5));
+    async function loadInv() {
+      try {
+        const r = await TT.call("/api/invites");
+        $("#inv-lead").textContent = `초대장으로만 새 팀원이 들어올 수 있어요. 한 번 쓰면 사라지고 ${r.days}일 안에 써야 해요. 쓰지 않은 초대장은 ${r.max}장까지 가질 수 있어요.`;
+        $("#invs").innerHTML = r.invites.map((i) => {
+          if (i.status === "active") return `<li class="inv inv--active" data-id="${i.id}" data-code="${TT.esc(i.code)}">
+            <div class="inv__top"><span class="inv__code">${TT.esc(fmt(i.code))}</span><span class="inv__state">${left(i.expiresAt)}일 남음</span></div>
+            <div class="inv__act"><button class="btn btn--sm" data-act="copy" type="button">링크 복사</button>${navigator.share ? '<button class="btn btn--ghost btn--sm" data-act="share" type="button">공유</button>' : ""}<button class="btn btn--ghost btn--sm" data-act="revoke" type="button">취소</button></div></li>`;
+          const t = i.status === "used" ? `${TT.esc(i.usedBy || "팀원")}님이 가입했어요` : i.status === "revoked" ? "취소한 초대장" : "기한이 지난 초대장";
+          return `<li class="inv inv--done"><div class="inv__top"><span class="inv__state">${t}</span></div></li>`;
+        }).join("");
+      } catch (x) { $("#invMsg").className = "msg msg--err"; $("#invMsg").textContent = x.message; }
+    }
+    loadInv();
+
+    $("#invNew").addEventListener("click", async (e) => {
+      const btn = e.currentTarget, msg = $("#invMsg"); msg.className = "msg"; msg.textContent = "";
+      busy(btn, true, "초대장 만들기");
+      try { await TT.call("/api/invites", "POST", {}); await loadInv(); msg.className = "msg msg--ok"; msg.textContent = "초대장을 만들었어요. 링크를 복사해서 보내 주세요."; }
+      catch (x) { msg.className = "msg msg--err"; msg.textContent = x.message; }
+      busy(btn, false, "초대장 만들기");
+    });
+
+    $("#invs").addEventListener("click", async (e) => {
+      const b = e.target.closest("button[data-act]"); if (!b) return;
+      const li = b.closest("li"), msg = $("#invMsg"); msg.className = "msg"; msg.textContent = "";
+      const url = link(li.dataset.code);
+      try {
+        if (b.dataset.act === "copy") {
+          try { await navigator.clipboard.writeText(url); msg.className = "msg msg--ok"; msg.textContent = "링크를 복사했어요."; }
+          catch { prompt("아래 링크를 복사해 주세요", url); }
+        } else if (b.dataset.act === "share") {
+          await navigator.share({ title: "HR T | 니핑 초대장", text: "HR T | 니핑 프로젝트에 초대합니다.", url });
+        } else if (b.dataset.act === "revoke") {
+          if (!confirm("이 초대장을 취소할까요? 링크는 더 이상 쓸 수 없어요.")) return;
+          await TT.call("/api/invites?id=" + li.dataset.id, "DELETE", {}); await loadInv();
+        }
+      } catch (x) { if (x.name !== "AbortError") { msg.className = "msg msg--err"; msg.textContent = x.message; } }
+    });
+  });
+</script>
+</body>
+</html>

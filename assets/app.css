@@ -532,3 +532,7 @@ a.art { text-decoration: none; color: inherit; }
 .sp-card__row { display: flex; justify-content: space-between; width: 100%; }
 .sp-card--weekly { display: block; }
 .sp-card--weekly .btn { margin-top: 10px; }
+
+/* 아티클 분류 드롭다운 */
+.artfilter { margin: 14px 0 6px; }
+.artfilter .sel__btn { min-height: 46px; font-weight: 700; }

@@ -165,8 +165,12 @@
       if (isOpen() || !items().length) return;
       wrap.classList.remove("sel--up");
       const r = btn.getBoundingClientRect(), bar = document.querySelector(".tabbar")?.offsetHeight || 0;
-      const below = innerHeight - r.bottom - bar - 8;
-      if (below < list.offsetHeight + 8 && r.top - 8 > below) wrap.classList.add("sel--up");
+      const topH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--top-h")) || 56;
+      const below = innerHeight - r.bottom - bar - 12, above = r.top - topH - 12;
+      list.style.maxHeight = "";
+      const up = below < list.offsetHeight + 8 && above > below;
+      if (up) wrap.classList.add("sel--up");
+      list.style.maxHeight = Math.max(150, Math.min(340, up ? above : below)) + "px";   // 화면이 낮아도 목록이 상단바·하단바 밑으로 잘리지 않게
       wrap.classList.add("is-open"); btn.setAttribute("aria-expanded", "true");
       setActive(native.selectedIndex < 0 ? 0 : native.selectedIndex);
       document.addEventListener("pointerdown", away, true);

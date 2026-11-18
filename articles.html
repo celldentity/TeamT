@@ -29,7 +29,7 @@
         <h1 class="sec__title" id="art-title">아티클 <small id="count"></small></h1>
       </div>
       <p class="sec__lead">팀원과 T조 AI가 함께 쓰는 HR 이야기예요.</p>
-      <div class="bar" id="bar" role="toolbar" aria-label="분류로 거르기"></div>
+      <div class="artfilter"><select id="pick" aria-label="분류로 거르기" hidden></select></div>
       <ul class="arts" id="arts"></ul>
       <div class="empty" id="empty" hidden></div>
       <p class="msg msg--err" id="err" role="alert"></p>
@@ -42,20 +42,25 @@
     if (!user) return;
     const $ = (id) => document.getElementById(id);
     let posts = [], cats = [], cur = "전체";
-    // 분류 칩으로 거르기 — 글이 많아져도 원하는 분류만 골라 볼 수 있다. 칩마다 글 수를 함께 보여 준다.
+    // 분류 드롭다운으로 거르기(회의록의 «보기» 와 같은 TT.select) — 분류마다 글 수를 함께 보여 준다.
+    const pick = $("pick");
     function draw() {
       const list = cur === "전체" ? posts : posts.filter((p) => p.category === cur);
-      $("bar").innerHTML = ["전체", ...cats].map((c) => {
-        const n = c === "전체" ? posts.length : posts.filter((p) => p.category === c).length;
-        return `<button type="button" data-c="${TT.esc(c)}" aria-pressed="${c === cur}">${TT.esc(c)} ${n}</button>`;
-      }).join("");
       $("arts").innerHTML = list.map(TT.postCard).join("");
       $("count").textContent = list.length;
       $("empty").hidden = list.length > 0;
       $("empty").textContent = posts.length ? "이 분류에는 아직 글이 없어요." : "아직 글이 없어요. 첫 글을 써 보세요.";
     }
-    $("bar").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) { cur = b.dataset.c; draw(); window.scrollTo({ top: 0 }); } });
-    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; draw(); }
+    function fill() {
+      pick.innerHTML = ["전체", ...cats].map((c) => {
+        const n = c === "전체" ? posts.length : posts.filter((p) => p.category === c).length;
+        return `<option value="${TT.esc(c)}">${TT.esc(c)} · ${n}</option>`;
+      }).join("");
+      pick.value = cur; pick.hidden = false;
+      TT.select(pick); pick._sel.build();
+    }
+    pick.addEventListener("change", () => { cur = pick.value; draw(); window.scrollTo({ top: 0 }); });
+    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; fill(); draw(); }
     catch (e) { $("err").textContent = e.message; }
   });
 </script>

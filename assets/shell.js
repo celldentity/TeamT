@@ -241,12 +241,14 @@
   // 로더 내리기: 로그인 확인 + 페이지 로드가 끝나고, 페이지가 시작한 서버 호출까지 모두 끝나면(첫 틱 뒤에 확인해야 페이지 스크립트가 호출을 시작한 뒤가 된다)
   const settle = () => (busy ? setTimeout(settle, 60) : gl.hide());
   Promise.all([TT.ready, new Promise((r) => (document.readyState === "complete" ? r() : addEventListener("load", r, { once: true })))]).then(() => setTimeout(settle, 0));
-  // 발표 버튼: 현재 가입한 5명(users.presenter)에게만, 마우스를 쓰는 PC 에서만 보인다. 주소창 없는 전체화면 창으로 /present 를 연다.
+  // 발표 버튼: 현재 가입한 5명(users.presenter)에게만 보인다(기기 상관없이). 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
+  // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
   TT.ready.then((u) => {
     const b = document.getElementById("presentTop");
-    if (!b || !u || !u.presenter || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (!b || !u || !u.presenter) return;
     b.hidden = false;
     b.addEventListener("click", () => {
+      if (!matchMedia("(hover: hover) and (pointer: fine)").matches) { location.href = "/present"; return; }
       const w = screen.availWidth, h = screen.availHeight;
       const win = window.open("/present", "tt-present", `popup=yes,left=${screen.availLeft || 0},top=${screen.availTop || 0},width=${w},height=${h}`);
       if (win) win.focus(); else location.href = "/present";   // 팝업이 막혔으면 이 탭에서 연다

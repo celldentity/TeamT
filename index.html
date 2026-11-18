@@ -98,14 +98,17 @@
 
   /* 하단 고정 메뉴 — HSMnT 사원포털처럼 430px 틀 안에서 화면 아래에 붙어 스크롤해도 변하지 않는다 */
   .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
-  .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 60px; padding: 6px 4px; text-decoration: none; font-size: .75rem; font-weight: 500; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
-  .tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .tab__ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 99px; transition: background-color .15s; }
+  /* 높이 52px 로 슬림하게. 선택 표시 = 위쪽 표시선 + 아이콘이 분홍으로 채워짐(알약 배경 없음) */
+  .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 5px 2px 4px; text-decoration: none; font-size: .6875rem; font-weight: 500; line-height: 1.2; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
+  .tab svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+  .tab__ic { display: grid; place-items: center; height: 24px; }
   .tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
-  .tab[aria-current="page"] .tab__ic { background: var(--pink); }
-  .tab:active .tab__ic { background: var(--lavender); }
-  .app { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
-  .tab__av { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; overflow: hidden; background: var(--pink); color: var(--ink); font-size: .8125rem; font-weight: 800; }
+  .tab[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 50%; width: 26px; height: 3px; margin-left: -13px; background: var(--ink); border-radius: 0 0 3px 3px; }
+  .tab[aria-current="page"] .f { fill: var(--pink); }
+  .tab:active svg { transform: scale(.88); }
+  .app { padding-bottom: calc(52px + env(safe-area-inset-bottom)); }
+  .tab__av { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--pink); color: var(--ink); font-size: .75rem; font-weight: 800; }
+  .tab[aria-current="page"] .tab__av { box-shadow: 0 0 0 2px var(--ink); }
   .tab__av img { width: 100%; height: 100%; object-fit: cover; }
 
   /* 내 정보 — 로그인·가입, 닉네임, 프로필 사진 */
@@ -221,7 +224,7 @@
   </section>
   <section class="sec me" id="me" aria-labelledby="me-title">
     <div class="wrap">
-      <h2 class="sec__title" id="me-title">내 정보</h2>
+      <h2 class="sec__title" id="me-title">마이페이지</h2>
       <p class="sec__lead" id="me-lead">로그인하면 닉네임과 프로필 사진을 정할 수 있어요.</p>
 
       <div id="auth">
@@ -279,16 +282,16 @@
 
 <nav class="tabbar" aria-label="하단 메뉴">
   <a class="tab" href="#home" aria-current="page">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>홈
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg></span>홈
   </a>
   <a class="tab" href="#articles">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg></span>아티클
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M6 3h9l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8.5 12.5h7M8.5 16h5"/></svg></span>아티클
   </a>
   <a class="tab" href="#team">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg></span>T조 소개
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.4-3.2 2.6-5 5.5-5s5.1 1.8 5.5 5"/><circle class="f" cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.7c2.4.2 3.9 1.7 4.3 4.3"/></svg></span>T조 소개
   </a>
   <a class="tab" href="#me">
-    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></span>내 정보
+    <span class="tab__ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="f" cx="12" cy="8.5" r="3.6"/><path d="M4.5 20c.6-4 3.5-6.2 7.5-6.2s6.9 2.2 7.5 6.2"/></svg></span>마이페이지
   </a>
 </nav>
 </div>

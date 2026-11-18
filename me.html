@@ -7,6 +7,12 @@
 <meta name="description" content="내 프로필과 초대장.">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,6 +54,13 @@
       <button class="btn btn--block" type="button" id="invNew" style="margin-top:14px">초대장 만들기</button>
       <p class="msg" id="invMsg" role="status" style="margin-top:8px"></p>
       <ul class="invs" id="invs"></ul>
+
+      <section class="install" id="install" aria-labelledby="inst-title" hidden>
+        <h2 id="inst-title">홈 화면에 추가</h2>
+        <p id="instLead"></p>
+        <ol id="instSteps" hidden></ol>
+        <button class="btn btn--block" type="button" id="instBtn" hidden></button>
+      </section>
 
       <button class="btn btn--ghost btn--block" type="button" id="logoutBtn" style="margin-top:32px">로그아웃</button>
     </div>
@@ -95,6 +108,37 @@
     });
 
     $("#logoutBtn").addEventListener("click", async () => { try { await TT.call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
+
+    // ── 홈 화면에 추가(PWA) ──
+    (() => {
+      const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const android = /android/i.test(ua), kakao = /KAKAOTALK/i.test(ua);
+      if (matchMedia("(display-mode: standalone)").matches || navigator.standalone) return; // 이미 앱으로 열었으면 안내하지 않는다
+      const box = $("#install"), lead = $("#instLead"), steps = $("#instSteps"), btn = $("#instBtn");
+      const list = (a) => { steps.innerHTML = a.map((s) => `<li>${s}</li>`).join(""); steps.hidden = false; };
+      function show() {
+        btn.hidden = true; steps.hidden = true; btn.onclick = null;
+        if (kakao) {
+          lead.textContent = `카카오톡 안에서는 홈 화면에 추가할 수 없어요. ${ios ? "Safari" : "Chrome"}에서 열어 주세요. (이 브라우저와 로그인은 따로라, 다시 로그인해야 해요.)`;
+          btn.textContent = `${ios ? "Safari" : "Chrome"}로 열기`; btn.hidden = false;
+          btn.onclick = () => { location.href = "kakaotalk://web/openExternal?url=" + encodeURIComponent(location.origin + "/me"); };
+        } else if (TT.installEv) {
+          lead.textContent = "앱처럼 바탕화면에서 바로 열 수 있어요.";
+          btn.textContent = "홈 화면에 추가하기"; btn.hidden = false;
+          btn.onclick = async () => { const ev = TT.installEv; TT.installEv = null; ev.prompt(); await ev.userChoice.catch(() => {}); show(); };
+        } else if (ios) {
+          lead.textContent = "앱처럼 바탕화면에서 바로 열 수 있어요. Safari에서 아래 순서로 해 주세요.";
+          list(["화면 아래(또는 위) <b>공유</b> 버튼(네모에 위쪽 화살표)을 눌러요.", "<b>홈 화면에 추가</b>를 골라요.", "오른쪽 위 <b>추가</b>를 누르면 끝이에요."]);
+        } else if (android) {
+          lead.textContent = "앱처럼 바탕화면에서 바로 열 수 있어요. Chrome에서 아래 순서로 해 주세요.";
+          list(["오른쪽 위 <b>⋮</b> 메뉴를 눌러요.", "<b>홈 화면에 추가</b>(또는 <b>앱 설치</b>)를 골라요.", "<b>추가</b>(또는 <b>설치</b>)를 누르면 끝이에요."]);
+        } else return;
+        box.hidden = false;
+      }
+      show();
+      document.addEventListener("tt-install", show);
+      addEventListener("appinstalled", () => { box.hidden = true; });
+    })();
 
     // ── 초대장 ──
     const fmt = (c) => c.match(/.{1,4}/g).join("-");

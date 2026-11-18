@@ -7,6 +7,12 @@
 <meta name="description" content="이메일과 비밀번호로 들어오세요. 처음이라면 초대장이 필요해요.">
 <meta name="theme-color" content="#ffffff">
 <meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F9A8CD'/%3E%3Cpath d='M8 9h16v4h-6v10h-4V13H8z' fill='%23171719'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +27,7 @@
     <section class="gate" aria-labelledby="gate-title">
       <div>
         <h1 id="gate-title">초대받은 분만<br>들어올 수 있어요</h1>
-        <p>이메일과 비밀번호로 들어오세요. 처음이라면 초대장이 필요해요.</p>
+        <p id="gate-sub">이메일과 비밀번호로 들어오세요. 처음이라면 초대장이 필요해요.</p>
       </div>
       <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M100 178C40 132 14 99 14 69 14 45 32 29 54 29c19 0 36 10 46 28 10-18 27-28 46-28 22 0 40 16 40 40 0 30-26 63-86 109Z" fill="#f9a8cd"/>
@@ -32,6 +38,9 @@
     </section>
 
     <form class="form" id="form" novalidate>
+      <label class="field" id="nickRow" hidden>닉네임
+        <input name="nickname" type="text" placeholder="2~20자, 나중에 바꿀 수 있어요" autocomplete="nickname" maxlength="20">
+      </label>
       <label class="field">이메일
         <input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" required>
       </label>
@@ -48,15 +57,13 @@
           <input name="code" type="text" placeholder="링크로 들어오면 자동으로 채워져요" autocomplete="off" autocapitalize="characters" maxlength="20" spellcheck="false">
         </label>
         <p class="msg" id="codeMsg" role="status"></p>
-        <label class="field">닉네임
-          <input name="nickname" type="text" placeholder="2~20자, 나중에 바꿀 수 있어요" autocomplete="nickname" maxlength="20">
-        </label>
         <p class="note" style="margin:0">초대장은 이미 가입한 팀원이 마이페이지에서 만들어 줘요.</p>
       </div>
 
       <div class="actions">
         <p class="msg msg--err" id="err" role="alert"></p>
         <button class="btn btn--block" type="submit" id="btn">들어가기</button>
+        <button class="swap" type="button" id="swap" hidden></button>
       </div>
     </form>
   </div>
@@ -64,20 +71,37 @@
 </div>
 <script>
   TT.ready.then(() => {
-    const $ = (s) => document.querySelector(s), form = $("#form"), more = $("#more"), first = $("#first");
+    const $ = (s) => document.querySelector(s), form = $("#form");
     const norm = (v) => v.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     const len = (s) => [...s.trim()].length;
+    const TITLE = $("#gate-title").innerHTML, SUB = $("#gate-sub").textContent;
 
-    function setFirst(open) {
-      more.setAttribute("aria-expanded", String(open)); first.hidden = !open; more.classList.remove("attn");
-      form.password.autocomplete = open ? "new-password" : "current-password";
+    // 화면 상태 — login: 이메일·비밀번호만 / manual: '처음이에요'를 눌러 코드까지 적는 중 / invite: 초대 링크로 들어옴(닉네임·이메일·비밀번호만)
+    let mode = "login", invite = null;   // invite = {code, inviter} (링크의 초대장이 유효할 때)
+    function setMode(m) {
+      mode = m;
+      const join = m !== "login";
+      $("#nickRow").hidden = !join;
+      $("#more").hidden = m === "invite";
+      $("#more").setAttribute("aria-expanded", String(m === "manual"));
+      $("#first").hidden = m !== "manual";
+      $("#more").classList.remove("attn");
+      form.password.autocomplete = join ? "new-password" : "current-password";
+      $("#swap").hidden = !invite;
+      if (invite) { $("#swap").textContent = m === "invite" ? "이미 가입했어요 · 로그인" : "초대장으로 가입하기"; form.code.value = m === "invite" ? invite.code : ""; }
+      $("#err").textContent = "";
+      if (m === "invite") {
+        $("#gate-title").innerHTML = "T조에 초대받았어요";
+        $("#gate-sub").textContent = (invite.inviter ? invite.inviter + "님이 초대했어요. " : "") + "닉네임·이메일·비밀번호만 정하면 바로 시작해요.";
+      } else { $("#gate-title").innerHTML = TITLE; $("#gate-sub").textContent = SUB; }
       label();
     }
-    // 처음 오는 사람(초대장 코드를 적었을 때)만 버튼 글자가 "가입하고 들어가기"로 바뀐다
-    function label() { $("#btn").textContent = !first.hidden && norm(form.code.value).length === 12 ? "가입하고 들어가기" : "들어가기"; }
-    more.addEventListener("click", () => setFirst(first.hidden));
+    // 버튼 글자: 초대 링크 = 시작하기 / 코드를 다 적은 첫 가입 = 가입하고 들어가기 / 그 밖 = 들어가기
+    function label() { $("#btn").textContent = mode === "invite" ? "시작하기" : mode === "manual" && norm(form.code.value).length === 12 ? "가입하고 들어가기" : "들어가기"; }
+    $("#more").addEventListener("click", () => setMode(mode === "manual" ? "login" : "manual"));
+    $("#swap").addEventListener("click", () => setMode(mode === "invite" ? "login" : "invite"));
 
-    // 초대장 코드를 입력하면 바로 확인해서 누가 보낸 초대장인지 보여 준다
+    // 직접 입력한 초대장 코드는 바로 확인해서 누가 보낸 초대장인지 보여 준다
     let last = "";
     async function check() {
       const c = norm(form.code.value), msg = $("#codeMsg");
@@ -93,31 +117,42 @@
     }
     form.code.addEventListener("input", check);
 
-    const fromLink = new URLSearchParams(location.search).get("code");
-    if (fromLink) { form.code.value = norm(fromLink); setFirst(true); check(); form.email.focus(); }
+    // 초대 링크(/join?code=…)로 들어왔으면 코드를 확인하고, 유효하면 바로 가입 화면으로 연다
+    const fromLink = norm(new URLSearchParams(location.search).get("code") || "");
+    (async () => {
+      if (fromLink.length === 12) {
+        try {
+          const r = await TT.call("/api/invites?check=" + fromLink);
+          if (r.valid) invite = { code: fromLink, inviter: r.inviter || "" };
+          else { setMode("login"); $("#gate-title").innerHTML = "이 초대장은<br>쓸 수 없어요"; $("#gate-sub").textContent = "이미 쓰였거나 기한이 지났을 수 있어요. 팀원에게 새 초대장을 받아 주세요. 이미 가입했다면 아래에서 로그인해요."; return; }
+        } catch { invite = { code: fromLink, inviter: "" }; }   // 확인 실패 — 제출할 때 서버가 다시 검사한다
+        setMode("invite"); form.nickname.focus();
+      } else if (fromLink) { form.code.value = fromLink; setMode("manual"); check(); }
+      else setMode("login");
+    })();
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = $("#btn"), text = btn.textContent, err = $("#err"); err.textContent = "";
       const d = Object.fromEntries(new FormData(form)), email = d.email.trim(), code = norm(d.code || ""), nick = d.nickname || "";
-      if (!email || !d.password) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
-      // 처음 가입하려는 경우(코드나 닉네임을 적었을 때)는 서버로 보내기 전에 빠진 곳을 알려 준다
-      if (!first.hidden && (code || nick.trim())) {
-        if (code.length !== 12) { err.textContent = "초대장 코드 12자리를 입력해 주세요."; return; }
-        if (d.password.length < 8) { err.textContent = "비밀번호는 8자 이상으로 정해 주세요."; return; }
+      // 처음 가입하는 경우는 서버로 보내기 전에 빠진 곳을 알려 준다
+      if (mode !== "login") {
+        if (mode === "manual" && code.length !== 12) { err.textContent = "초대장 코드 12자리를 입력해 주세요."; return; }
         if (len(nick) < 2 || len(nick) > 20) { err.textContent = "닉네임은 2~20자로 정해 주세요."; return; }
-      }
+        if (!email) { err.textContent = "이메일을 입력해 주세요."; return; }
+        if (d.password.length < 8) { err.textContent = "비밀번호는 8자 이상으로 정해 주세요."; return; }
+      } else if (!email || !d.password) { err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
       btn.disabled = true; btn.textContent = "잠시만요…";
       try {
-        await TT.call("/api/auth?a=enter", "POST", { email, password: d.password, code, nickname: nick });
+        // 초대 링크로 온 사람은 가입만(이미 가입한 이메일이면 그렇다고 알려 준다), 나머지는 로그인·가입을 알아서 고르는 enter
+        await TT.call("/api/auth?a=" + (mode === "invite" ? "signup" : "enter"), "POST", { email, password: d.password, code, nickname: nick });
         location.href = "/";
       } catch (x) {
         err.textContent = x.message;
-        if (first.hidden) more.classList.add("attn");   // 처음이라면 여기를 누르라고 눈에 띄게
+        if (mode === "login") $("#more").classList.add("attn");   // 처음이라면 여기를 누르라고 눈에 띄게
         btn.disabled = false; btn.textContent = text;
       }
     });
-    label();
   });
 </script>
 </body>

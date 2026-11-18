@@ -52,14 +52,13 @@ a { color: inherit; }
 .nav a:hover { color: var(--ink); background: #f5f5f7; }
 .nav a[aria-current="page"] { color: var(--ink); font-weight: 700; }
 
-/* 하단 고정 메뉴(52px). 선택 표시 = 위쪽 표시선 + 분홍으로 채워지는 아이콘 */
+/* 하단 고정 메뉴(52px). 선택 표시 = 위쪽 검정 표시선 + 진한 글자(분홍 강조 없음) */
 .tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(255 255 255 / .95); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
 .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 5px 2px 4px; text-decoration: none; font-size: .6875rem; font-weight: 500; line-height: 1.2; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
 .tab svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .tab__ic { display: grid; place-items: center; height: 24px; }
 .tab[aria-current="page"] { color: var(--ink); font-weight: 700; }
 .tab[aria-current="page"]::before { content: ""; position: absolute; top: -1px; left: 50%; width: 26px; height: 3px; margin-left: -13px; background: var(--ink); border-radius: 0 0 3px 3px; }
-.tab[aria-current="page"] .f { fill: var(--pink); }
 .tab:active svg { transform: scale(.88); }
 .tab--locked { color: #a9abb2; }
 .toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 12px); z-index: 30; width: max-content; max-width: min(calc(var(--app-w) - 32px), calc(100vw - 32px)); margin: 0; padding: 10px 16px; transform: translateX(-50%); font-size: .875rem; line-height: 1.5; text-align: center; color: #fff; background: rgb(23 23 25 / .92); border-radius: 12px; }
@@ -151,6 +150,16 @@ a { color: inherit; }
 .more[aria-expanded="true"] svg { transform: rotate(180deg); }
 .more.attn { background: var(--blush); border-color: var(--pink-deep); }
 .first { display: grid; gap: 14px; padding: 14px; background: var(--lavender-tint); border-radius: 14px; }
+
+/* 초대 링크로 들어온 사람용 가입 화면 */
+.swap { justify-self: center; min-height: 44px; padding: 0 12px; font: 500 .9375rem/1 "Noto Sans KR", var(--font); color: var(--ink-soft); background: none; border: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* 홈 화면에 추가 */
+.install { margin-top: 24px; padding: 18px 16px; background: var(--lavender-tint); border-radius: 20px; }
+.install h2 { font-weight: 800; font-size: 1.0625rem; letter-spacing: -.02em; }
+.install p { margin-top: 6px; font-size: .875rem; line-height: 1.6; color: var(--ink-soft); }
+.install ol { display: grid; gap: 6px; margin-top: 10px; padding-left: 20px; list-style: decimal; font-size: .875rem; line-height: 1.6; }
+.install .btn { margin-top: 12px; }
 
 /* 마이페이지 */
 .me-card { display: grid; justify-items: center; gap: 4px; margin-top: 20px; padding: 28px 16px 20px; background: var(--blush); border-radius: 24px; text-align: center; }

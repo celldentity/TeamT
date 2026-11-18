@@ -33,6 +33,9 @@ async function setMedia(db, postId, ids) {
   if (gone.length) { await db.query("DELETE FROM post_media WHERE id IN (?)", [gone]); await M.removeFiles(gone); }
 }
 const SELECT = `SELECT p.id, p.author_id, p.ai, p.category, p.title, p.created_at, p.updated_at, u.nickname, u.photo_v,
+  p.kind, p.target_id, p.qdate, p.goal, p.stage, p.ref_post_id, t.nickname AS t_nick, t.photo_v AS t_pv,
+  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0 AND c.author_id IS NOT NULL) AS human_comments,
+  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0 AND p.target_id IS NOT NULL AND c.author_id = p.target_id) AS target_comments,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id) AS likes,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id AND l.user_id = ?) AS liked,
   (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0) AS comments,
@@ -44,6 +47,13 @@ const shape = (r, me) => ({
   id: r.id, category: r.category, title: r.title, ai: !!r.ai, author: who(r.author_id, r.nickname, r.photo_v),
   createdAt: r.created_at, updatedAt: r.updated_at, likes: Number(r.likes), liked: Number(r.liked) > 0, comments: Number(r.comments),
   mine: !!r.author_id && r.author_id === me.id,
+  special: r.kind && r.kind !== "post" ? r.kind : null,                                                           // daily | weekly | digest
+  target: r.target_id ? who(r.target_id, r.t_nick, r.t_pv) : null,                                                // 오늘 지목된 사람
+  answered: r.kind === "daily" ? Number(r.target_comments) > 0 : undefined,                                       // 지목된 사람이 답했는지
+  forMe: !!r.target_id && r.target_id === me.id,
+  qdate: r.qdate ? new Date(r.qdate).toISOString().slice(0, 10) : null,
+  progress: r.kind === "weekly" ? { done: Number(r.human_comments), goal: r.goal, pct: Math.min(100, Math.round((Number(r.human_comments) / Math.max(1, r.goal)) * 100)), stage: r.stage } : null,
+  ref: r.ref_post_id || null,                                                                                     // weekly ↔ digest
   cover: r.cover_id ? { id: r.cover_id, kind: r.cover_kind, thumb: !!r.cover_thumb, n: Number(r.media_n) } : null,   // 목록 카드의 썸네일
 });
 
@@ -56,23 +66,23 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       if (!req.query.id) {
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 100));
-        const [rows] = await db.query(`${SELECT}, LEFT(p.body, 160) AS excerpt FROM posts p LEFT JOIN users u ON u.id = p.author_id ORDER BY p.created_at DESC, p.id DESC LIMIT ?`, [me.id, limit]);
+        const [rows] = await db.query(`${SELECT}, LEFT(p.body, 160) AS excerpt FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id ORDER BY p.created_at DESC, p.id DESC LIMIT ?`, [me.id, limit]);
         return L.json(res, 200, { categories: L.CATS, posts: rows.map((r) => ({ ...shape(r, me), excerpt: r.excerpt })) });
       }
       if (!Number.isInteger(id) || id < 1) return L.json(res, 400, { error: "잘못된 요청입니다." });
-      const [rows] = await db.query(`${SELECT}, p.body FROM posts p LEFT JOIN users u ON u.id = p.author_id WHERE p.id = ?`, [me.id, id]);
+      const [rows] = await db.query(`${SELECT}, p.body FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id WHERE p.id = ?`, [me.id, id]);
       if (!rows[0]) return L.json(res, 404, { error: "글을 찾을 수 없어요. 지워졌을 수 있어요." });
       const [cs] = await db.query(`SELECT c.id, c.parent_id, c.author_id, c.body, c.deleted, c.created_at, c.updated_at, u.nickname, u.photo_v,
           (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'c' AND l.target_id = c.id) AS likes,
           (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'c' AND l.target_id = c.id AND l.user_id = ?) AS liked
-        FROM comments c JOIN users u ON u.id = c.author_id WHERE c.post_id = ? ORDER BY c.created_at, c.id`, [me.id, id]);
+        FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? ORDER BY c.created_at, c.id`, [me.id, id]);
       const [ms] = await db.query("SELECT id, kind, w, h, has_thumb FROM post_media WHERE post_id = ? AND status = 1 ORDER BY pos, id", [id]);
       return L.json(res, 200, {
         categories: L.CATS,
         post: { ...shape(rows[0], me), body: rows[0].body, media: ms.map(M.shape) },
         comments: cs.map((c) => c.deleted
           ? { id: c.id, parentId: c.parent_id, deleted: true, createdAt: c.created_at }
-          : { id: c.id, parentId: c.parent_id, deleted: false, author: who(c.author_id, c.nickname, c.photo_v), body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, likes: Number(c.likes), liked: Number(c.liked) > 0, mine: c.author_id === me.id }),
+          : { id: c.id, parentId: c.parent_id, deleted: false, author: who(c.author_id, c.nickname, c.photo_v), body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, likes: Number(c.likes), liked: Number(c.liked) > 0, mine: !!c.author_id && c.author_id === me.id, byTarget: !!c.author_id && c.author_id === rows[0].target_id }),
       });
     }
 

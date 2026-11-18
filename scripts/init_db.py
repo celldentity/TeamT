@@ -118,6 +118,18 @@ ALTER = [
     "ALTER TABLE users ADD COLUMN cover_v INT NOT NULL DEFAULT 0 AFTER photo_v",   # 커버 사진(0 = 없음, 올릴 때마다 +1)
     "ALTER TABLE users ADD COLUMN notif_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",   # 알림을 마지막으로 확인한 시각(이후 생긴 것이 «새 알림»)
     "ALTER TABLE users ADD COLUMN presenter TINYINT NOT NULL DEFAULT 0",   # 1 = 발표 버튼이 보이는 사람. 칸을 처음 만들 때 «그때 가입해 있던 사람 전원» 만 1 로 하고(아래), 이후 가입자는 0
+    # 오늘의 질문·주간 토론: posts.kind = post(일반)|daily(오늘의 질문)|weekly(이번 주 토론)|digest(AI가 정리한 아티클)
+    "ALTER TABLE posts ADD COLUMN kind VARCHAR(10) NOT NULL DEFAULT 'post'",
+    "ALTER TABLE posts ADD COLUMN target_id BIGINT NULL",              # daily: 오늘 지목된 사람
+    "ALTER TABLE posts ADD COLUMN qdate DATE NULL",                    # daily: 그날 / weekly: 그 주 월요일 (같은 날 두 번 만들지 않게 아래 유니크 키)
+    "ALTER TABLE posts ADD COLUMN goal INT NOT NULL DEFAULT 0",        # weekly: 진척도 100% 가 되는 댓글 수
+    "ALTER TABLE posts ADD COLUMN stage VARCHAR(10) NOT NULL DEFAULT ''",   # weekly: open → review(AI 가 요약·반문) → done
+    "ALTER TABLE posts ADD COLUMN ai_round TINYINT NOT NULL DEFAULT 0",     # weekly: AI 가 이미 던진 반문 차례 수
+    "ALTER TABLE posts ADD COLUMN ai_at TIMESTAMP NULL",               # weekly: AI 가 마지막으로 댓글 단 시각(이후 댓글 수를 센다)
+    "ALTER TABLE posts ADD COLUMN ai_try_at TIMESTAMP NULL",           # weekly: AI 호출을 마지막으로 시도한 시각(실패해도 30분은 다시 안 부른다)
+    "ALTER TABLE posts ADD COLUMN ref_post_id BIGINT NULL",            # weekly ↔ digest 서로 가리킴
+    "ALTER TABLE posts ADD UNIQUE KEY uq_posts_kind_date (kind, qdate)",
+    "ALTER TABLE comments MODIFY author_id BIGINT NULL",               # NULL = T조 AI 가 단 댓글
 ]
 
 db = pymysql.connect(host=os.environ["TIDB_HOST"], port=int(os.environ["TIDB_PORT"]), user=os.environ["TIDB_USER"],
@@ -133,7 +145,7 @@ with db.cursor() as cur:
                 cur.execute("UPDATE users SET presenter = 1")
                 db.commit()
         except pymysql.err.OperationalError as e:
-            if e.args[0] != 1060:
+            if e.args[0] not in (1060, 1061):
                 raise
     for t in ("users", "invites", "posts", "comments", "likes", "post_media", "meetings"):
         cur.execute(f"SHOW COLUMNS FROM {t}")

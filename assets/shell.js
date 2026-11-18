@@ -104,15 +104,23 @@
   const kind = (p) => (p.ai ? (p.author ? "assist" : "ai") : "human");
   const kindChipOf = (k) => `<span class="chip chip--${k}">${KINDS[k][1]}${KINDS[k][0]}</span>`;
   const kindChip = (p) => kindChipOf(kind(p));
+  // 오늘의 질문 · 이번 주 토론 · 토론을 정리한 아티클: 글 종류 칩 + 목록 카드 아래의 지목/진척도 줄
+  const SPECIAL = { daily: "오늘의 질문", weekly: "이번 주 토론", digest: "인살롱 후보" };
+  const specialChip = (p) => (p.special ? `<span class="chip chip--${p.special}">${SPECIAL[p.special]}</span>` : "");
+  const specialLine = (p) => p.special === "daily" && p.target
+      ? `<p class="sp sp--daily">지목 ${chip(p.target)} · ${p.answered ? "답변 완료" : p.forMe ? "나에게 온 질문 · 답변 기다리는 중" : "답변 기다리는 중"}</p>`
+    : p.special === "weekly" && p.progress
+      ? `<div class="sp sp--weekly"><span class="sp__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.progress.pct}"><i style="width:${p.progress.pct}%"></i></span><span class="sp__t">${p.progress.stage === "done" ? "정리 완료" : `의논 진행도 ${Math.min(p.progress.done, p.progress.goal)}/${p.progress.goal} · ${p.progress.pct}%`}</span></div>`
+    : "";
   // 아티클 카드(목록·홈 공용): 왼쪽에 분류·글 종류·제목·미리보기, 오른쪽에 대표 사진·동영상 썸네일(있을 때만), 아래 줄에 글쓴이·시각·좋아요·댓글
   const PLAY = '<span class="th__play"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></i></span>';
   const thumb = (c) => (!c ? "" : `<span class="th${c.thumb ? "" : " th--none"}">${c.thumb ? `<img src="/api/media?id=${c.id}&v=thumb" alt="" loading="lazy" decoding="async">` : ""}${c.kind === "video" ? PLAY : ""}${c.n > 1 ? `<span class="th__n" aria-label="파일 ${c.n}개">+${c.n - 1}</span>` : ""}</span>`);
   const postCard = (p) => `<li><a class="art art--${kind(p)}${p.cover ? " art--img" : ""}" href="/article?id=${p.id}">
-    <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${kindChip(p)}</div>
+    <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${specialChip(p)}${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
-    <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p></div>${thumb(p.cover)}
+    <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>${specialLine(p)}</div>${thumb(p.cover)}
     <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
-  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, user: null, loader: gl });
+  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, specialChip, SPECIAL, user: null, loader: gl });
 
   // 꾸민 드롭다운: <select> 를 숨겨 두고(값은 그대로 폼에 실린다) 그 자리에 버튼+목록을 그린다.
   // 키보드(↑↓ Enter Space Esc Home End)·스크린리더(listbox)를 지원하고, 아래 공간이 모자라면 위로 펼친다.

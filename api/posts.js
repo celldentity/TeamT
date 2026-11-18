@@ -1,10 +1,11 @@
 // 아티클(글) API — 로그인한 사람만.
 //   GET    /api/posts[?limit=N]  → 목록(최신순, 기본 100)
 //   GET    /api/posts?id=N       → 글 한 편 + 댓글 전체(답글은 parentId 로 이어짐)
-//   POST   /api/posts {category,title,body,ai?}      → 새 글
-//   PATCH  /api/posts?id=N {category,title,body,ai?} → 글 수정(쓴 사람만)
+//   POST   /api/posts {category,title,body,ai?,media?:[id…]}      → 새 글(사진·동영상은 /api/media 로 먼저 올린 id, 순서대로 붙고 첫째가 대표)
+//   PATCH  /api/posts?id=N {category,title,body,ai?,media?:[id…]} → 글 수정(쓴 사람만, media 를 주면 그 목록으로 바꾼다)
 //   DELETE /api/posts?id=N                           → 글 삭제(쓴 사람만, 댓글·좋아요도 함께)
 const L = require("./_lib");
+const M = require("./_media");
 
 const who = (id, nickname, photo_v) => (id ? { id, nickname, photoUrl: L.photoUrl({ id, photo_v }) } : null); // null = T조 AI
 const fields = (b) => {
@@ -12,16 +13,38 @@ const fields = (b) => {
   if (!L.CATS.includes(category)) return { error: "분류를 골라 주세요." };
   if (L.len(title) < 2 || L.len(title) > 80) return { error: "제목은 2~80자로 적어 주세요." };
   if (L.len(body) < 10 || L.len(body) > 5000) return { error: "내용은 10~5000자로 적어 주세요." };
-  return { category, title, body, ai: b.ai ? 1 : 0 };
+  const media = Array.isArray(b.media) ? b.media.map(Number) : null;   // null = 건드리지 않는다(PATCH)
+  if (media && (media.length > M.MAX_FILES || media.some((x) => !Number.isInteger(x) || x < 1) || new Set(media).size !== media.length)) return { error: `사진·동영상은 ${M.MAX_FILES}개까지 붙일 수 있어요.` };
+  return { category, title, body, ai: b.ai ? 1 : 0, media };
 };
+// 붙이려는 파일이 모두 내 것이고 다 올라왔는지(status 1), 아직 다른 글에 안 붙었는지 확인한다. 문제가 있으면 안내 문구를 돌려준다.
+async function checkMedia(db, ids, userId, postId) {
+  if (!ids.length) return null;
+  const [rows] = await db.query("SELECT id, kind, post_id, status FROM post_media WHERE id IN (?) AND owner_id = ?", [ids, userId]);
+  if (rows.length !== ids.length || rows.some((m) => m.status !== 1 || (m.post_id && m.post_id !== postId))) return "올리던 사진·동영상을 찾을 수 없어요. 다시 올려 주세요.";
+  if (rows.filter((m) => m.kind === "video").length > M.MAX_VIDEOS) return `동영상은 ${M.MAX_VIDEOS}개까지 붙일 수 있어요.`;
+  return null;
+}
+// 글의 파일 목록을 ids 로 맞춘다: 순서대로 붙이고, 빠진 것은 표와 R2 에서 지운다
+async function setMedia(db, postId, ids) {
+  const [old] = await db.query("SELECT id FROM post_media WHERE post_id = ?", [postId]);
+  const gone = old.map((m) => m.id).filter((x) => !ids.includes(x));
+  for (let i = 0; i < ids.length; i++) await db.query("UPDATE post_media SET post_id = ?, pos = ? WHERE id = ?", [postId, i, ids[i]]);
+  if (gone.length) { await db.query("DELETE FROM post_media WHERE id IN (?)", [gone]); await M.removeFiles(gone); }
+}
 const SELECT = `SELECT p.id, p.author_id, p.ai, p.category, p.title, p.created_at, p.updated_at, u.nickname, u.photo_v,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id) AS likes,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id AND l.user_id = ?) AS liked,
-  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0) AS comments`;
+  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0) AS comments,
+  (SELECT m.id FROM post_media m WHERE m.post_id = p.id AND m.status = 1 ORDER BY m.pos, m.id LIMIT 1) AS cover_id,
+  (SELECT m.kind FROM post_media m WHERE m.post_id = p.id AND m.status = 1 ORDER BY m.pos, m.id LIMIT 1) AS cover_kind,
+  (SELECT m.has_thumb FROM post_media m WHERE m.post_id = p.id AND m.status = 1 ORDER BY m.pos, m.id LIMIT 1) AS cover_thumb,
+  (SELECT COUNT(*) FROM post_media m WHERE m.post_id = p.id AND m.status = 1) AS media_n`;
 const shape = (r, me) => ({
   id: r.id, category: r.category, title: r.title, ai: !!r.ai, author: who(r.author_id, r.nickname, r.photo_v),
   createdAt: r.created_at, updatedAt: r.updated_at, likes: Number(r.likes), liked: Number(r.liked) > 0, comments: Number(r.comments),
   mine: !!r.author_id && r.author_id === me.id,
+  cover: r.cover_id ? { id: r.cover_id, kind: r.cover_kind, thumb: !!r.cover_thumb, n: Number(r.media_n) } : null,   // 목록 카드의 썸네일
 });
 
 module.exports = async (req, res) => {
@@ -43,9 +66,10 @@ module.exports = async (req, res) => {
           (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'c' AND l.target_id = c.id) AS likes,
           (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'c' AND l.target_id = c.id AND l.user_id = ?) AS liked
         FROM comments c JOIN users u ON u.id = c.author_id WHERE c.post_id = ? ORDER BY c.created_at, c.id`, [me.id, id]);
+      const [ms] = await db.query("SELECT id, kind, w, h, has_thumb FROM post_media WHERE post_id = ? AND status = 1 ORDER BY pos, id", [id]);
       return L.json(res, 200, {
         categories: L.CATS,
-        post: { ...shape(rows[0], me), body: rows[0].body },
+        post: { ...shape(rows[0], me), body: rows[0].body, media: ms.map(M.shape) },
         comments: cs.map((c) => c.deleted
           ? { id: c.id, parentId: c.parent_id, deleted: true, createdAt: c.created_at }
           : { id: c.id, parentId: c.parent_id, deleted: false, author: who(c.author_id, c.nickname, c.photo_v), body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, likes: Number(c.likes), liked: Number(c.liked) > 0, mine: c.author_id === me.id }),
@@ -57,7 +81,10 @@ module.exports = async (req, res) => {
     if (req.method === "POST") {
       const f = fields(L.readBody(req));
       if (f.error) return L.json(res, 400, { error: f.error });
+      const bad = await checkMedia(db, f.media || [], me.id, 0);
+      if (bad) return L.json(res, 400, { error: bad });
       const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body) VALUES (?, ?, ?, ?, ?)", [me.id, f.ai, f.category, f.title, f.body]);
+      if (f.media && f.media.length) await setMedia(db, r.insertId, f.media);
       // 새 글 폰 푸시: 알림을 켠 다른 팀원에게. 실패해도 글쓰기는 성공으로 돌려준다.
       try { await require("./_push").sendToAll({ title: "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}` }, me.id); }
       catch (e) { console.error("push fanout", e); }
@@ -73,19 +100,24 @@ module.exports = async (req, res) => {
       if (req.method === "PATCH") {
         const f = fields(L.readBody(req));
         if (f.error) return L.json(res, 400, { error: f.error });
+        if (f.media) { const bad = await checkMedia(db, f.media, me.id, id); if (bad) return L.json(res, 400, { error: bad }); }
         await db.query("UPDATE posts SET category = ?, title = ?, body = ?, ai = ?, updated_at = NOW() WHERE id = ?", [f.category, f.title, f.body, f.ai, id]);
+        if (f.media) await setMedia(db, id, f.media);
         return L.json(res, 200, { id });
       }
 
+      const [mine] = await db.query("SELECT id FROM post_media WHERE post_id = ?", [id]);
       const conn = await db.getConnection();
       try {
         await conn.beginTransaction();
         await conn.query("DELETE FROM likes WHERE target_type = 'c' AND target_id IN (SELECT id FROM comments WHERE post_id = ?)", [id]);
         await conn.query("DELETE FROM comments WHERE post_id = ?", [id]);
         await conn.query("DELETE FROM likes WHERE target_type = 'p' AND target_id = ?", [id]);
+        await conn.query("DELETE FROM post_media WHERE post_id = ?", [id]);
         await conn.query("DELETE FROM posts WHERE id = ?", [id]);
         await conn.commit();
       } catch (e) { await conn.rollback().catch(() => {}); throw e; } finally { conn.release(); }
+      await M.removeFiles(mine.map((m) => m.id));
       return L.json(res, 200, { ok: true });
     }
     return L.json(res, 405, { error: "허용되지 않는 요청입니다." });

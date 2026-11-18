@@ -72,6 +72,24 @@ CREATE = [
       UNIQUE KEY uq_push_endpoint (endpoint_hash),
       KEY ix_push_user (user_id)
     ) CHARACTER SET utf8mb4""",
+    # 글에 붙은 사진·동영상. 파일은 R2 media/<id>/full(원본 크기로 줄인 사진 또는 동영상)·media/<id>/thumb.jpg(목록 썸네일)에 있다.
+    # post_id NULL = 글쓰기 중 올려 둔 것(아직 글에 안 붙음, status 0 = 올리는 중). 하루가 지나도 안 붙으면 올린 사람이 다음에 올릴 때 지운다.
+    """CREATE TABLE IF NOT EXISTS post_media (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      post_id    BIGINT NULL,
+      owner_id   BIGINT NOT NULL,
+      kind       VARCHAR(5) NOT NULL,
+      mime       VARCHAR(40) NOT NULL,
+      size       BIGINT NOT NULL,
+      has_thumb  TINYINT NOT NULL DEFAULT 0,
+      w          INT NOT NULL DEFAULT 0,
+      h          INT NOT NULL DEFAULT 0,
+      pos        INT NOT NULL DEFAULT 0,
+      status     TINYINT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      KEY ix_media_post (post_id, pos),
+      KEY ix_media_owner (owner_id, status, created_at)
+    ) CHARACTER SET utf8mb4""",
     # 좋아요: 누가 언제 눌렀는지 남긴다(트래킹). target_type 'p' = 글, 'c' = 댓글
     """CREATE TABLE IF NOT EXISTS likes (
       target_type CHAR(1) NOT NULL,
@@ -102,6 +120,6 @@ with db.cursor() as cur:
         except pymysql.err.OperationalError as e:
             if e.args[0] != 1060:
                 raise
-    for t in ("users", "invites", "posts", "comments", "likes"):
+    for t in ("users", "invites", "posts", "comments", "likes", "post_media"):
         cur.execute(f"SHOW COLUMNS FROM {t}")
         print(t, [r[0] for r in cur.fetchall()])

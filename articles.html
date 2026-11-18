@@ -26,12 +26,12 @@
   <section class="sec" aria-labelledby="art-title">
     <div class="wrap">
       <div class="sec__head">
-        <h1 class="sec__title" id="art-title">아티클</h1>
+        <h1 class="sec__title" id="art-title">아티클 <small id="count"></small></h1>
       </div>
-      <p class="sec__lead">AI와 함께 쓰고 다듬은 HR 이야기를 모았어요. 팀원 누구나 글을 쓰고 댓글로 이야기할 수 있어요.</p>
-      <p class="legend" id="legend"></p>
+      <p class="sec__lead">팀원과 T조 AI가 함께 쓰는 HR 이야기예요.</p>
+      <div class="bar" id="bar" role="toolbar" aria-label="분류로 거르기"></div>
       <ul class="arts" id="arts"></ul>
-      <div class="empty" id="empty" hidden>아직 글이 없어요. 첫 글을 써 보세요.</div>
+      <div class="empty" id="empty" hidden></div>
       <p class="msg msg--err" id="err" role="alert"></p>
     </div>
   </section>
@@ -40,12 +40,23 @@
 <script>
   TT.ready.then(async (user) => {
     if (!user) return;
-    document.getElementById("legend").innerHTML = `<span class="legend__t">글 종류</span>${["human", "assist", "ai"].map(TT.kindChipOf).join("")}`;
-    try {
-      const { posts } = await TT.call("/api/posts");
-      document.getElementById("arts").innerHTML = posts.map(TT.postCard).join("");
-      document.getElementById("empty").hidden = posts.length > 0;
-    } catch (e) { document.getElementById("err").textContent = e.message; }
+    const $ = (id) => document.getElementById(id);
+    let posts = [], cats = [], cur = "전체";
+    // 분류 칩으로 거르기 — 글이 많아져도 원하는 분류만 골라 볼 수 있다. 칩마다 글 수를 함께 보여 준다.
+    function draw() {
+      const list = cur === "전체" ? posts : posts.filter((p) => p.category === cur);
+      $("bar").innerHTML = ["전체", ...cats].map((c) => {
+        const n = c === "전체" ? posts.length : posts.filter((p) => p.category === c).length;
+        return `<button type="button" data-c="${TT.esc(c)}" aria-pressed="${c === cur}">${TT.esc(c)} ${n}</button>`;
+      }).join("");
+      $("arts").innerHTML = list.map(TT.postCard).join("");
+      $("count").textContent = list.length;
+      $("empty").hidden = list.length > 0;
+      $("empty").textContent = posts.length ? "이 분류에는 아직 글이 없어요." : "아직 글이 없어요. 첫 글을 써 보세요.";
+    }
+    $("bar").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) { cur = b.dataset.c; draw(); window.scrollTo({ top: 0 }); } });
+    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; draw(); }
+    catch (e) { $("err").textContent = e.message; }
   });
 </script>
 </body>

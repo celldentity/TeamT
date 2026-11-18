@@ -22,6 +22,7 @@
 <body>
 <div class="app">
 <script src="/assets/shell.js"></script>
+<script src="/assets/media.js"></script>
 <main id="main">
   <section class="sec" aria-labelledby="w-title">
     <div class="wrap">
@@ -38,6 +39,11 @@
         <label class="field">내용
           <textarea class="ta" name="body" rows="12" maxlength="5000" placeholder="10~5000자. 줄바꿈은 그대로 보여요." required></textarea>
         </label>
+        <div class="field"><span id="mediaL">사진·동영상 <small>사진은 자동으로 줄여요 · 동영상은 300MB까지 · 최대 10개</small></span>
+          <div class="mg" id="mg" aria-labelledby="mediaL"></div>
+          <label class="mg__add" id="mgAdd"><input type="file" id="pick" accept="image/*,video/*" multiple> <span>＋ 사진·동영상 추가</span></label>
+          <p class="note mg__hint" id="mgHint" hidden>첫 번째 파일이 목록의 대표 썸네일이 돼요.</p>
+        </div>
         <label class="check"><input type="checkbox" name="ai"> AI의 도움을 받아 썼어요</label>
         <div class="actions">
           <p class="msg msg--err" id="err" role="alert"></p>
@@ -56,6 +62,56 @@
     const len = (s) => [...s.trim()].length;
     let post = null;
     $("#writer").innerHTML = "작성자 " + TT.chip(user);
+
+    // ── 사진·동영상 ── items: {key, kind, state: prep|up|ok|err, pct, id(서버 파일 번호), preview, msg, item}
+    const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
+    const items = []; let seq = 0;
+    const busy = () => items.some((m) => m.state === "prep" || m.state === "up");
+    function drawMedia() {
+      $("#mg").innerHTML = items.map((m, i) => `<div class="mg__it mg__it--${m.state}" data-k="${m.key}">
+        ${m.preview ? `<img src="${m.preview}" alt="">` : `<span class="mg__ph">${m.kind === "video" ? PLAY : ""}</span>`}
+        ${m.kind === "video" ? `<span class="mg__play">${PLAY}</span>` : ""}
+        ${i === 0 ? '<span class="mg__cover">대표</span>' : m.state === "ok" ? `<button class="mg__first" type="button" data-act="first" aria-label="대표로 지정">대표로</button>` : ""}
+        <button class="mg__x" type="button" data-act="del" aria-label="${m.state === "err" ? "지우기" : "빼기"}">×</button>
+        ${m.state === "prep" ? '<span class="mg__st">준비 중…</span>' : ""}
+        ${m.state === "up" ? `<span class="mg__st"><b>${Math.round(m.pct * 100)}%</b><i style="width:${Math.round(m.pct * 100)}%"></i></span>` : ""}
+        ${m.state === "err" ? `<span class="mg__st mg__st--err">${TT.esc(m.msg || "올리지 못했어요")}</span>` : ""}</div>`).join("");
+      $("#mgHint").hidden = items.length < 2;
+      $("#mgAdd").hidden = items.length >= TT.media.MAX_FILES;
+    }
+    async function addFiles(files) {
+      const err = $("#err"); err.textContent = "";
+      for (const f of files) {
+        if (items.length >= TT.media.MAX_FILES) { err.textContent = `사진·동영상은 ${TT.media.MAX_FILES}개까지 붙일 수 있어요.`; break; }
+        const c = TT.media.classify(f);
+        if (c && c.kind === "video" && items.filter((m) => m.kind === "video").length >= TT.media.MAX_VIDEOS) { err.textContent = `동영상은 ${TT.media.MAX_VIDEOS}개까지 붙일 수 있어요.`; continue; }
+        const m = { key: ++seq, kind: c ? c.kind : "image", state: "prep", pct: 0, id: 0, preview: "", msg: "", item: null };
+        items.push(m); drawMedia();
+        try {
+          m.item = await TT.media.prepare(f); m.kind = m.item.kind; m.preview = m.item.preview; m.state = "up"; drawMedia();
+          const r = await TT.media.upload(m.item, (x) => { m.pct = x; if (!m.t || Date.now() - m.t > 120) { m.t = Date.now(); drawMedia(); } });
+          m.id = r.id; m.state = "ok"; m.pct = 1;
+          if (!items.includes(m)) TT.media.discard(m.id);          // 올리는 도중에 뺀 파일
+        } catch (x) {
+          if (x.aborted) continue;
+          m.state = "err"; m.msg = x.friendly ? x.message : "올리지 못했어요. 다시 시도해 주세요."; if (m.item && m.item.id) TT.media.discard(m.item.id);
+        }
+        drawMedia();
+      }
+    }
+    $("#pick").addEventListener("change", (e) => { const fs = [...e.target.files]; e.target.value = ""; if (fs.length) addFiles(fs); });
+    $("#mg").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      const key = Number(b.closest(".mg__it").dataset.k), i = items.findIndex((m) => m.key === key), m = items[i];
+      if (b.dataset.act === "first") { items.splice(i, 1); items.unshift(m); }
+      else {
+        items.splice(i, 1);
+        if (m.item && m.item.xhr && m.state === "up") m.item.xhr.abort();
+        if (m.state === "ok" && !m.existing) TT.media.discard(m.id);   // 이미 글에 붙은 파일은 저장할 때 서버가 뺀다
+      }
+      drawMedia();
+    });
+    addEventListener("beforeunload", (e) => { if (busy()) { e.preventDefault(); e.returnValue = ""; } });
     try {
       const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts?limit=1");
       $("#cat").innerHTML = r.categories.map((c) => `<option>${TT.esc(c)}</option>`).join("");
@@ -67,11 +123,15 @@
       $("#w-title").textContent = "글 수정"; $("#btn").textContent = "저장";
       $("#backLink").href = "/article?id=" + id; $("#backLink").textContent = "← 글로 돌아가기";
       form.category.value = post.category; $("#cat")._sel.sync(); form.title.value = post.title; form.body.value = post.body; form.ai.checked = post.ai;
+      for (const x of post.media || []) items.push({ key: ++seq, kind: x.kind, state: "ok", pct: 1, id: x.id, existing: true, preview: x.thumb ? `/api/media?id=${x.id}&v=thumb` : (x.kind === "image" ? `/api/media?id=${x.id}&v=full` : ""), msg: "", item: null });
+      drawMedia();
     }
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const err = $("#err"), btn = $("#btn"), label = btn.textContent; err.textContent = "";
-      const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked };
+      const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: items.filter((m) => m.state === "ok").map((m) => m.id) };
+      if (busy()) { err.textContent = "사진·동영상을 올리는 중이에요. 끝나면 올려 주세요."; return; }
+      if (items.some((m) => m.state === "err")) { err.textContent = "올리지 못한 파일이 있어요. × 로 지우고 다시 올려 주세요."; return; }
       if (len(d.title) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
       if (len(d.body) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
       btn.disabled = true; btn.textContent = "잠시만요…";

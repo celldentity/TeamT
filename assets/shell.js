@@ -76,11 +76,13 @@
   const kind = (p) => (p.ai ? (p.author ? "assist" : "ai") : "human");
   const kindChipOf = (k) => `<span class="chip chip--${k}">${KINDS[k][1]}${KINDS[k][0]}</span>`;
   const kindChip = (p) => kindChipOf(kind(p));
-  // 아티클 카드(목록·홈 공용)
-  const postCard = (p) => `<li><a class="art art--${kind(p)}" href="/article?id=${p.id}">
-    <div class="art__meta"><span class="chip">${esc(p.category)}</span>${kindChip(p)}</div>
+  // 아티클 카드(목록·홈 공용): 왼쪽에 분류·글 종류·제목·미리보기, 오른쪽에 대표 사진·동영상 썸네일(있을 때만), 아래 줄에 글쓴이·시각·좋아요·댓글
+  const PLAY = '<span class="th__play"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></i></span>';
+  const thumb = (c) => (!c ? "" : `<span class="th${c.thumb ? "" : " th--none"}">${c.thumb ? `<img src="/api/media?id=${c.id}&v=thumb" alt="" loading="lazy" decoding="async">` : ""}${c.kind === "video" ? PLAY : ""}${c.n > 1 ? `<span class="th__n" aria-label="파일 ${c.n}개">+${c.n - 1}</span>` : ""}</span>`);
+  const postCard = (p) => `<li><a class="art art--${kind(p)}${p.cover ? " art--img" : ""}" href="/article?id=${p.id}">
+    <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
-    <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>
+    <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p></div>${thumb(p.cover)}
     <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
   const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, user: null });
 

@@ -36,23 +36,25 @@
       <button type="button" data-mode="login" aria-pressed="false">로그인</button>
     </div>
     <form class="form" id="form" novalidate>
-      <label class="field" data-only="signup">초대장 코드 <small>초대 링크로 들어오면 자동으로 채워져요</small>
-        <input name="code" type="text" autocomplete="off" autocapitalize="characters" maxlength="20" spellcheck="false">
+      <label class="field" data-only="signup">초대장 코드
+        <input name="code" type="text" placeholder="링크로 들어오면 자동으로 채워져요" autocomplete="off" autocapitalize="characters" maxlength="20" spellcheck="false">
       </label>
-      <p class="msg" id="codeMsg" data-only="signup" role="status" style="margin-top:-8px"></p>
+      <p class="msg" id="codeMsg" data-only="signup" role="status"></p>
       <label class="field">이메일
         <input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="none" required>
       </label>
-      <label class="field">비밀번호 <small data-only="signup">8자 이상</small>
-        <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+      <label class="field">비밀번호
+        <input name="password" type="password" placeholder="8자 이상" autocomplete="new-password" minlength="8" required>
       </label>
-      <label class="field" data-only="signup">닉네임 <small>2~20자, 나중에 바꿀 수 있어요</small>
-        <input name="nickname" type="text" autocomplete="nickname" maxlength="20">
+      <label class="field" data-only="signup">닉네임
+        <input name="nickname" type="text" placeholder="2~20자, 나중에 바꿀 수 있어요" autocomplete="nickname" maxlength="20">
       </label>
-      <p class="msg msg--err" id="err" role="alert"></p>
-      <button class="btn btn--block" type="submit" id="btn">가입하기</button>
+      <p class="note" data-only="signup" style="margin:0">초대장은 이미 가입한 팀원이 마이페이지에서 만들어 줘요.</p>
+      <div class="actions">
+        <p class="msg msg--err" id="err" role="alert"></p>
+        <button class="btn btn--block" type="submit" id="btn">가입하기</button>
+      </div>
     </form>
-    <p class="note" style="margin:24px 0 40px">초대장은 이미 가입한 팀원이 마이페이지에서 만들어 줘요.</p>
   </div>
 </main>
 </div>

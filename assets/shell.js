@@ -21,8 +21,23 @@
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
     (GATE ? "" : `<nav class="nav" aria-label="주요 메뉴">${TABS.slice(0, 3).map(([p, l]) => `<a href="${p}"${cur(p)}>${l}</a>`).join("")}</nav>`) +
     `</div></header>`);
-  if (!GATE) s.insertAdjacentHTML("afterend",
-    `<nav class="tabbar" aria-label="하단 메뉴">${TABS.map(([p, l, ic]) => `<a class="tab" href="${p}"${cur(p)}><span class="tab__ic">${ic}</span>${l}</a>`).join("")}</nav>`);
+  // 하단 메뉴는 가입 화면(/join)에도 둔다. 로그인 전에는 마이페이지(=가입·로그인)만 열리고 나머지는 잠금 표시.
+  const tabHtml = ([p, l, ic]) => {
+    const locked = GATE && p !== "/me", on = GATE ? p === "/me" : p === path;
+    return `<a class="tab${locked ? " tab--locked" : ""}" href="${GATE ? "/join" : p}"${on ? ' aria-current="page"' : ""}${locked ? ' aria-disabled="true"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
+  };
+  s.insertAdjacentHTML("afterend", `<nav class="tabbar" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
+  if (GATE) {
+    document.body.insertAdjacentHTML("beforeend", '<p class="toast" id="toast" role="status" aria-live="polite" hidden></p>');
+    let timer;
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".tab--locked")) return;
+      e.preventDefault();
+      const t = document.getElementById("toast");
+      t.textContent = "초대장으로 가입하거나 로그인하면 볼 수 있어요."; t.hidden = false;
+      clearTimeout(timer); timer = setTimeout(() => (t.hidden = true), 2400);
+    });
+  }
 
   // 스크롤 진행 표시: 헤더 아래 경계선이 왼쪽에서 오른쪽으로 차오른다
   const top = document.getElementById("top");

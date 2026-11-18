@@ -10,5 +10,5 @@ cp -r *.html api assets vercel.json package.json package-lock.json "$D/"; cp .ve
 cd "$D"
 URL=$(timeout 240 vercel deploy --prod --yes --scope mn-t 2>&1 | grep -o 'https://teamt-[a-z0-9]*-mn-t.vercel.app' | head -1)
 [ -n "$URL" ] || { echo "배포 실패"; exit 1; }
-vercel alias set "$URL" mid8-teamt.vercel.app --scope mn-t | tail -1
-echo "배포: $URL → https://mid8-teamt.vercel.app"
+for A in t-niping mid8-teamt; do vercel alias set "$URL" "$A.vercel.app" --scope mn-t | tail -1; done
+echo "배포: $URL → https://t-niping.vercel.app (옛 주소 mid8-teamt 도 같음)"

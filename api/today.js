@@ -1,4 +1,4 @@
-// HR 일력 — 로그인한 사람만. GET /api/today[?days=N] → 오늘 카드(없으면 만든다)와 지난 카드(있는 것만, 최근 N-1일 안, 기본 7일)
+// HR 일력 — 로그인한 사람만. GET /api/today[?days=N] → 오늘 카드(없으면 만든다)와 지난 카드(있는 것만, 최근 N-1장, 기본 7장·최대 400장 — 올해 지난 장을 모두 넘겨 볼 수 있다)
 const L = require("./_lib");
 const I = require("./_ilryeok");
 
@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
     const me = await L.currentUser(req);
     if (!me) return L.json(res, 401, { error: "로그인이 필요합니다." });
     if (req.method !== "GET") return L.json(res, 405, { error: "허용되지 않는 요청입니다." });
-    const db = L.db(), days = Math.min(30, Math.max(1, Number(req.query.days) || 7)), today = I.kstDate();
+    const db = L.db(), days = Math.min(400, Math.max(1, Number(req.query.days) || 7)), today = I.kstDate();
     const t = await I.ensure(db, today);
     const [rows] = await db.query("SELECT qdate, category, quote, note, question FROM daily_cards WHERE qdate < ? ORDER BY qdate DESC LIMIT ?", [today, days - 1]);
     return L.json(res, 200, { today: shape(t), past: rows.map(shape) });

@@ -134,7 +134,7 @@
     // 바로가기 카드 — 회의록·발표는 발표자에게만, 로그아웃은 모두. 새 소식 숫자는 shell.js(TT.alerts)가 계산하고 바뀔 때마다 여기서 다시 그린다.
     const tilesEl = $("#tiles"), IC = TT.icons;
     const tile = (id, ic, label, hint, n, tag = "button", href = "", cls = "") =>
-      `<${tag} class="tile${cls ? " " + cls : ""}" id="${id}" ${tag === "a" ? `href="${href}"` : 'type="button"'}${n ? ` aria-label="${label}, 새 소식 ${n}개"` : ""}><span class="tile__ic">${ic}</span><b class="tile__t">${label}</b><span class="tile__h">${hint}</span>${n ? `<i class="tile__n" aria-hidden="true">${n > 99 ? "99+" : n}</i>` : ""}</${tag}>`;
+      `<${tag} class="tile${cls ? " " + cls : ""}" id="${id}" ${tag === "a" ? `href="${href}"` : 'type="button"'}${n ? ` aria-label="${label}, 새 소식 ${n}개"` : ""}>${cls.includes("tile--prem") ? '<em class="tile__badge">설립멤버</em>' : ""}<span class="tile__ic">${ic}</span><b class="tile__t">${label}</b><span class="tile__h">${hint}</span>${n ? `<i class="tile__n" aria-hidden="true">${n > 99 ? "99+" : n}</i>` : ""}</${tag}>`;
     // 알림은 이 기기에서 아직 안 켠 사람에게만 카드가 계속 흔들린다(TT.pushOn: null = 아직 모름, true/false). 로그아웃은 중요해서 맨 마지막 줄에 넓게 둔다.
     function drawTiles() {
       const a = TT.alerts, off = TT.pushOn === false;
@@ -143,7 +143,7 @@
         tile("tPush", IC.bell, "알림", off ? "꺼져 있어요 · 눌러서 켜기" : TT.pushOn ? "켜져 있어요" : "폰 알림 설정", 0, "button", "", off ? "tile--shake" : "") +
         tile("tInv", IC.mail, "초대장", "새 팀원 초대하기", 0) +
         tile("tProf", IC.edit, "정보 변경", "닉네임·한 줄 소개", 0) +
-        (user.presenter ? tile("tMin", IC.mic, "회의록", a.minutes ? `새 회의록 ${a.minutes}개` : "회의 요약·전사", a.minutes, "a", "/minutes") + tile("tPre", IC.present, "발표", a.deck ? "발표 자료가 바뀌었어요" : "전체화면 발표", a.deck) : "") +
+        (user.presenter ? tile("tMin", IC.mic, "회의록", a.minutes ? `새 회의록 ${a.minutes}개` : "회의 요약·전사", a.minutes, "a", "/minutes", "tile--prem") + tile("tPre", IC.present, "발표", a.deck ? "발표 자료가 바뀌었어요" : "전체화면 발표", a.deck, "button", "", "tile--prem") : "") +
         tile("tOut", IC.out, "로그아웃", "이 기기에서 나가기", 0, "button", "", "tile--out");
     }
     // 창(정보 변경·알림·초대장): 누르면 아래에서 올라오고, 바깥·✕·Esc 로 닫는다

@@ -25,12 +25,13 @@
 <main id="main">
   <section class="sec" aria-labelledby="gx-title">
     <div class="wrap">
-      <h1 class="sec__title" id="gx-title">HR 용어 사전 <small id="count"></small></h1>
+      <div class="gx__hd">
+        <h1 class="sec__title" id="gx-title">HR 용어 사전 <small id="count"></small></h1>
+        <button class="gx__find" id="find" type="button" aria-label="용어 검색" aria-haspopup="dialog"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+      </div>
       <p class="sec__lead">헷갈리는 용어를 쉬운 말로 풀었어요.</p>
-      <!-- 검색창·분류 칩은 스크롤해도 상단바 아래에 붙어 있다 -->
+      <!-- 분류 드롭다운은 스크롤해도 상단바 아래에 붙어 있다. 검색은 오른쪽 위 돋보기 버튼을 누르면 모달로 열린다(평소엔 숨김). -->
       <div class="gx__bar">
-        <label class="sr" for="q">용어 검색</label>
-        <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="용어나 약어로 찾기 (예: 통상임금, JD)">
         <div class="gx__pick"><span id="catL" class="sr">분류</span><select id="cat" data-label="catL"></select></div>
       </div>
       <ul class="gx__list" id="list"></ul>
@@ -39,13 +40,25 @@
   </section>
 </main>
 </div>
+<!-- 검색 모달: 돋보기를 누르면 버튼 자리에서 쪼잉 하고 나온다. 범위(전체·제목만·내용만)를 고르고, 결과를 누르면 그 용어가 목록에서 열린다 -->
+<div class="calm gxs" id="gxs" role="dialog" aria-modal="true" aria-labelledby="gxsT" hidden>
+  <div class="calm__bg" data-x></div>
+  <div class="calm__box">
+    <button class="calm__x" type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 class="gxs__t" id="gxsT">용어 검색</h2>
+    <input class="gxs__in" id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="용어나 약어 (예: 통상임금, JD)" aria-label="검색어">
+    <div class="gxs__scope" role="radiogroup" aria-label="검색 범위"><button type="button" role="radio" aria-checked="true" data-s="all">전체</button><button type="button" role="radio" aria-checked="false" data-s="title">제목만</button><button type="button" role="radio" aria-checked="false" data-s="body">내용만</button></div>
+    <p class="gxs__n" id="resN" role="status"></p>
+    <ul class="gxs__res" id="res"></ul>
+  </div>
+</div>
 <script>
   TT.ready.then(async (user) => {
     if (!user) return;
     const $ = (s) => document.querySelector(s), esc = TT.esc;
     // api/_gl.js 의 norm() 과 같은 규칙(검색용 정규화)
     const norm = (s) => String(s ?? "").normalize("NFKC").toLowerCase().replace(/[\s·\-/&().,]/g, "");
-    let terms = [], cats = [], cat = "", q = "", openSlug = "";
+    let terms = [], cats = [], cat = "", openSlug = "";
 
     try { const d = await TT.call("/api/glossary"); terms = d.terms; cats = d.categories.filter((c) => terms.some((t) => t.category === c)); }
     catch (x) { const e = $("#empty"); e.hidden = false; e.textContent = x.message; return; }
@@ -53,7 +66,11 @@
 
     // 검색: 이름·약어·별칭이 같으면 1순위, 앞부분이 같으면 2순위, 이름·별칭 안에 들어 있으면 3순위, 요약·본문에 있으면 4순위
     for (const t of terms) { t._keys = [t.name, t.abbr, t.en, ...t.aliases].filter(Boolean).map(norm); t._text = norm(t.summary + t.body); }
-    const score = (t, k) => (t._keys.includes(k) ? 1 : t._keys.some((x) => x.startsWith(k)) ? 2 : t._keys.some((x) => x.includes(k)) ? 3 : t._text.includes(k) ? 4 : 0);
+    // 범위: 제목만 = 이름·약어·영문·별칭, 내용만 = 요약·본문, 전체 = 둘 다(제목에 맞는 것이 먼저)
+    const score = (t, k, s = "all") => {
+      const T = t._keys.includes(k) ? 1 : t._keys.some((x) => x.startsWith(k)) ? 2 : t._keys.some((x) => x.includes(k)) ? 3 : 0, B = t._text.includes(k) ? 4 : 0;
+      return s === "title" ? T : s === "body" ? B : T || B;
+    };
 
     const monthsAgo = (d) => { if (!d) return 0; const a = new Date(d), n = new Date(); return (n.getFullYear() - a.getFullYear()) * 12 + n.getMonth() - a.getMonth(); };
     const kd = (d) => { const t = new Date(d); return `${t.getMonth() + 1}월 ${t.getDate()}일`; };
@@ -73,20 +90,18 @@
         <div class="gx__body" id="b-${esc(t.slug)}"${open ? "" : " hidden"}>${open ? body(t) : ""}</div></li>`;
     }
     function draw() {
-      const k = norm(q);
-      let rows = terms.filter((t) => !cat || t.category === cat);
-      if (k) rows = rows.map((t) => [score(t, k), t]).filter(([s]) => s).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name, "ko")).map(([, t]) => t);
+      const rows = terms.filter((t) => !cat || t.category === cat);
       $("#list").innerHTML = rows.map(row).join("");
       const e = $("#empty");
       e.hidden = !!rows.length;
-      e.innerHTML = terms.length ? `찾는 용어가 없어요.<br>다른 말로 검색하거나 분류를 바꿔 보세요.` : `아직 올라온 용어가 없어요.`;
+      e.innerHTML = terms.length ? `이 분류에는 아직 용어가 없어요.` : `아직 올라온 용어가 없어요.`;
     }
     draw();
 
     // 용어를 열고(검색·분류는 풀어서 보이게) 그 자리로 부드럽게 이동. 딥링크 /glossary?t=<slug>·«헷갈리는 짝» 이 쓴다.
     function openTerm(slug, scroll) {
       const t = terms.find((x) => x.slug === slug); if (!t) return;
-      if (!(!cat || t.category === cat) || (q && !score(t, norm(q)))) { cat = ""; q = ""; $("#q").value = ""; catEl.value = ""; catSel.sync(); }
+      if (cat && t.category !== cat) { cat = ""; catEl.value = ""; catSel.sync(); }
       openSlug = slug; draw();
       if (scroll) document.getElementById("t-" + slug)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }
@@ -101,7 +116,39 @@
     catEl.innerHTML = [`<option value="">전체 분류 (${terms.length})</option>`, ...cats.map((c) => `<option value="${esc(c)}">${esc(c)} (${terms.filter((t) => t.category === c).length})</option>`)].join("");
     const catSel = TT.select(catEl);
     catEl.addEventListener("change", () => { cat = catEl.value; draw(); });
-    $("#q").addEventListener("input", (e) => { q = e.target.value; draw(); });
+
+    // ── 검색 모달 ──
+    const modal = $("#gxs"), box = modal.querySelector(".calm__box"), findBtn = $("#find"), qEl = $("#q");
+    let scope = "all", closing = 0;
+    function results() {
+      const k = norm(qEl.value);
+      if (!k) { $("#res").innerHTML = ""; $("#resN").textContent = ""; return; }
+      const rows = terms.map((t) => [score(t, k, scope), t]).filter(([s]) => s).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name, "ko")).map(([, t]) => t);
+      $("#resN").textContent = rows.length ? `${rows.length}개${rows.length > 30 ? " 중 30개" : ""}` : scope === "all" ? "찾는 용어가 없어요." : "찾는 용어가 없어요. 범위를 «전체»로 바꿔 보세요.";
+      $("#res").innerHTML = rows.slice(0, 30).map((t) => `<li><button type="button" data-go="${esc(t.slug)}"><b>${esc(t.name)}</b><span>${esc(t.summary)}</span></button></li>`).join("");
+    }
+    function openFind() {
+      clearTimeout(closing); modal.classList.remove("is-out"); modal.hidden = false;
+      const b = findBtn.getBoundingClientRect();   // 모달이 돋보기 버튼에서 튀어나오도록(offset* 은 애니메이션 배율의 영향을 안 받는다)
+      box.style.transformOrigin = `${b.left + b.width / 2 - box.offsetLeft}px ${b.top + b.height / 2 - box.offsetTop}px`;
+      qEl.focus({ preventScroll: true }); qEl.select(); results();
+    }
+    function closeFind(back = true) {
+      if (modal.hidden || modal.classList.contains("is-out")) return;
+      const done = () => { modal.hidden = true; modal.classList.remove("is-out"); if (back) findBtn.focus({ preventScroll: true }); };
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return done();
+      modal.classList.add("is-out"); closing = setTimeout(done, 320);
+    }
+    findBtn.addEventListener("click", openFind);
+    modal.addEventListener("click", (e) => { if (e.target.closest("[data-x]")) closeFind(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modal.hidden) closeFind(); });
+    qEl.addEventListener("input", results);
+    $(".gxs__scope").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-s]"); if (!b) return; scope = b.dataset.s;
+      for (const x of $(".gxs__scope").children) x.setAttribute("aria-checked", String(x === b));
+      results(); qEl.focus({ preventScroll: true });
+    });
+    $("#res").addEventListener("click", (e) => { const b = e.target.closest("[data-go]"); if (!b) return; closeFind(false); openTerm(b.dataset.go, true); });
     const want = new URLSearchParams(location.search).get("t");
     if (want) openTerm(want, true);
   });

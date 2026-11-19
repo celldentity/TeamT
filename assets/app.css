@@ -795,8 +795,24 @@ a.art { text-decoration: none; color: inherit; }
 
 /* HR 용어 사전(.gx) — 접어 두고 누르면 펼친다. 글자는 크게, 줄 간격은 넉넉하게(읽기 편한 것이 먼저). */
 .gx__bar { position: sticky; top: var(--top-h); z-index: 6; margin: 14px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) 8px; background: var(--paper); }
-.gx__bar input { width: 100%; min-height: 48px; padding: 0 16px; font: inherit; font-size: 1rem; color: var(--ink); background: var(--field); border: 1.5px solid transparent; border-radius: 14px; outline: none; }
-.gx__bar input:focus { background: #fff; border-color: var(--pink-deep); }
+.gx__hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gx__find { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -8px; padding: 0; color: var(--ink); background: transparent; border: 0; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gx__find svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.gx__find:active { background: var(--hover); }
+/* 검색 모달(.gxs) — 공용 .calm 쪼잉 모달을 위쪽에 붙여 쓴다(키보드가 올라와도 결과가 보이게) */
+.gxs { place-items: start center; padding-top: calc(var(--top-h) + 8px); }
+.gxs .calm__box { width: min(100%, 420px); max-height: calc(100dvh - var(--top-h) - 24px); padding-top: 16px; }
+.gxs__t { margin: 0 44px 12px 0; font-size: 1.0625rem; font-weight: 800; letter-spacing: -.02em; }
+.gxs__in { width: 100%; min-height: 48px; padding: 0 16px; font: inherit; font-size: 1rem; color: var(--ink); background: var(--field); border: 1.5px solid transparent; border-radius: 14px; outline: none; }
+.gxs__in:focus { background: #fff; border-color: var(--pink-deep); }
+.gxs__scope { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; padding: 4px; background: var(--lavender-tint); border-radius: 12px; }
+.gxs__scope button { min-height: 40px; font: inherit; font-size: .9375rem; font-weight: 700; color: var(--ink-soft); background: transparent; border: 0; border-radius: 9px; cursor: pointer; }
+.gxs__scope button[aria-checked="true"] { color: var(--ink); background: #fff; box-shadow: 0 1px 4px rgb(87 74 140 / .18); }
+.gxs__n { min-height: 1.4em; margin-top: 10px; font-size: .8125rem; color: var(--ink-soft); }
+.gxs__res li + li { border-top: 1px solid var(--line); }
+.gxs__res button { display: block; width: 100%; padding: 12px 2px; font: inherit; text-align: left; color: var(--ink); background: none; border: 0; cursor: pointer; }
+.gxs__res b { display: block; font-size: 1.0625rem; letter-spacing: -.02em; }
+.gxs__res span { display: block; margin-top: 2px; font-size: .875rem; line-height: 1.55; color: var(--ink-soft); }
 .gx__pick { margin-top: 10px; }
 .gx__list { margin-top: 8px; border-top: 1px solid var(--line); }
 .gx__item { border-bottom: 1px solid var(--line); }
@@ -841,3 +857,12 @@ a.art { text-decoration: none; color: inherit; }
 .tile--shake .tile__h { font-weight: 700; color: var(--pink-ink); }
 @keyframes tile-shake { 0%, 24%, 100% { transform: none; } 3% { transform: rotate(-3.2deg); } 7% { transform: rotate(3.2deg); } 11% { transform: rotate(-2.4deg); } 15% { transform: rotate(2.4deg); } 19% { transform: rotate(-1.2deg); } 22% { transform: rotate(.8deg); } }
 @media (prefers-reduced-motion: reduce) { .sh__box, .tile--shake { animation: none; } }
+
+/* 회의록·발표 — 설립멤버 5명에게만 보이는 «프리미엄» 카드: 라벤더 그라데이션 바탕·분홍→라벤더 테두리·작은 «설립멤버» 표시, 가끔 한 번 빛이 지나간다 */
+.tile--prem { overflow: hidden; border: 1.5px solid transparent; background: linear-gradient(160deg, #fff 0%, var(--lavender-tint) 100%) padding-box, linear-gradient(135deg, var(--pink-deep), var(--lavender-deep)) border-box; box-shadow: 0 4px 14px rgb(87 74 140 / .14); }
+.tile--prem:hover { background: linear-gradient(160deg, #fff 0%, var(--lavender-tint) 100%) padding-box, linear-gradient(135deg, var(--pink-deep), var(--lavender-deep)) border-box; }
+.tile--prem::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .85) 50%, transparent 62%); transform: translateX(-130%); animation: prem-shine 5.5s ease-in-out infinite; }
+.tile--prem .tile__ic { background: linear-gradient(135deg, var(--pink), var(--lavender-deep)); box-shadow: 0 2px 8px rgb(249 168 205 / .55); }
+.tile__badge { position: absolute; top: 8px; left: 8px; padding: 2px 7px; font-size: .625rem; font-weight: 800; letter-spacing: .01em; color: var(--ink); background: #fff; border: 1px solid var(--lavender-deep); border-radius: 99px; }
+@keyframes prem-shine { 0%, 62% { transform: translateX(-130%); } 90%, 100% { transform: translateX(130%); } }
+@media (prefers-reduced-motion: reduce) { .tile--prem::after { animation: none; display: none; } }

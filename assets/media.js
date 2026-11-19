@@ -43,8 +43,8 @@
     return { kind: "image", mime: "image/jpeg", main, thumb, w, h, preview: URL.createObjectURL(thumb) };
   }
 
-  async function prepareVideo(file, mime) {
-    if (file.size > MAX_VIDEO) throw fail("동영상은 300MB 까지 올릴 수 있어요.");
+  async function prepareVideo(file, mime, maxVideo = MAX_VIDEO) {
+    if (file.size > maxVideo) throw fail(`동영상은 ${Math.round(maxVideo / 1048576)}MB 까지 올릴 수 있어요.`);
     const url = URL.createObjectURL(file), v = document.createElement("video");
     v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
     const once = (ev, ms) => new Promise((ok) => { const t = setTimeout(() => ok(false), ms); v.addEventListener(ev, () => { clearTimeout(t); ok(true); }, { once: true }); });
@@ -62,11 +62,11 @@
     return { kind: "video", mime, main: file, thumb, w, h, preview: thumb ? URL.createObjectURL(thumb) : null };
   }
 
-  async function prepare(file) {
+  async function prepare(file, opts = {}) {   // opts.maxVideo: 동영상 한도(바이트, 댓글은 100MB)
     const c = classify(file);
     if (!c) throw fail("사진(JPG·PNG·WEBP)과 동영상(MP4·MOV·WEBM)만 올릴 수 있어요.");
     if (!file.size) throw fail("빈 파일이에요.");
-    return c.kind === "image" ? prepareImage(file) : prepareVideo(file, c.mime);
+    return c.kind === "image" ? prepareImage(file) : prepareVideo(file, c.mime, opts.maxVideo);
   }
 
   function put(item, url, type, blob, onBytes) {
@@ -81,9 +81,9 @@
     });
   }
 
-  async function upload(item, onProgress) {
+  async function upload(item, onProgress, scope) {   // scope: "comment" 면 서버가 댓글 한도(동영상 100MB)로 받는다
     const total = item.main.size + (item.thumb ? item.thumb.size : 0);
-    const r = await TT.call("/api/media?a=init", "POST", { kind: item.kind, mime: item.mime, size: item.main.size, w: item.w, h: item.h, thumbSize: item.thumb ? item.thumb.size : 0 });
+    const r = await TT.call("/api/media?a=init", "POST", { kind: item.kind, mime: item.mime, size: item.main.size, w: item.w, h: item.h, thumbSize: item.thumb ? item.thumb.size : 0, scope });
     item.id = r.id; let done = 0;
     if (item.thumb) { await put(item, r.thumb.url, r.thumb.type, item.thumb, (l) => onProgress((done + l) / total)); done += item.thumb.size; }
     await put(item, r.full.url, r.full.type, item.main, (l) => onProgress((done + l) / total));
@@ -94,5 +94,5 @@
   // 올리다 말고 뺀 파일은 서버에서도 치운다(실패해도 조용히 — 하루 뒤 서버가 알아서 정리한다)
   const discard = (id) => TT.call("/api/media?a=remove", "POST", { id }).catch(() => {});
 
-  window.TT.media = { prepare, upload, discard, classify, MAX_FILES: 10, MAX_VIDEOS: 3 };
+  window.TT.media = { prepare, upload, discard, classify, MAX_FILES: 10, MAX_VIDEOS: 3, C_MAX_VIDEO: 100 * 1024 * 1024, C_MAX_FILES: 4, C_MAX_VIDEOS: 1 };
 })();

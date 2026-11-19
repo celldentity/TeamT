@@ -39,13 +39,14 @@ module.exports = async (req, res) => {
       if (kind === "image" && mime !== M.IMAGE_MIME) return L.json(res, 400, { error: "사진은 JPG 로 바꿔 올려져요. 다른 사진으로 해 보세요." });
       if (kind === "video" && !M.VIDEO_MIME.has(mime)) return L.json(res, 400, { error: "동영상은 MP4·MOV·WEBM 만 올릴 수 있어요." });
       if (kind === "image" && size > M.MAX_IMAGE) return L.json(res, 400, { error: "사진 용량이 너무 커요." });
-      if (kind === "video" && size > M.MAX_VIDEO) return L.json(res, 400, { error: "동영상은 300MB 까지 올릴 수 있어요." });
+      const forComment = b.scope === "comment";   // 댓글에 붙일 파일은 동영상 한도가 100MB
+      if (kind === "video" && size > (forComment ? M.C_MAX_VIDEO : M.MAX_VIDEO)) return L.json(res, 400, { error: forComment ? "댓글에는 동영상을 100MB 까지 올릴 수 있어요." : "동영상은 300MB 까지 올릴 수 있어요." });
       if (thumbSize > M.MAX_THUMB) return L.json(res, 400, { error: "썸네일이 너무 커요." });
 
       // 글에 안 붙은 채 하루 넘게 남은 내 파일은 이때 정리한다(글쓰기를 중간에 그만둔 경우)
-      const [stale] = await db.query("SELECT id FROM post_media WHERE owner_id = ? AND post_id IS NULL AND created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)", [me.id]);
+      const [stale] = await db.query("SELECT id FROM post_media WHERE owner_id = ? AND post_id IS NULL AND comment_id IS NULL AND created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)", [me.id]);
       if (stale.length) { await db.query("DELETE FROM post_media WHERE id IN (?)", [stale.map((s) => s.id)]); await M.removeFiles(stale.map((s) => s.id)); }
-      const [[{ n }]] = await db.query("SELECT COUNT(*) AS n FROM post_media WHERE owner_id = ? AND post_id IS NULL", [me.id]);
+      const [[{ n }]] = await db.query("SELECT COUNT(*) AS n FROM post_media WHERE owner_id = ? AND post_id IS NULL AND comment_id IS NULL", [me.id]);
       if (n >= 30) return L.json(res, 429, { error: "올려 둔 파일이 너무 많아요. 글을 올리거나 지운 뒤 다시 해 주세요." });
 
       const [r] = await db.query("INSERT INTO post_media (owner_id, kind, mime, size, has_thumb, w, h) VALUES (?, ?, ?, ?, ?, ?, ?)", [me.id, kind, mime, size, thumbSize ? 1 : 0, w, h]);
@@ -65,7 +66,7 @@ module.exports = async (req, res) => {
       if (!m) return L.json(res, 404, { error: "파일을 찾을 수 없어요." });
 
       if (a === "remove") {
-        if (m.post_id) return L.json(res, 409, { error: "글에 붙은 파일은 글을 고쳐서 빼 주세요." });
+        if (m.post_id || m.comment_id) return L.json(res, 409, { error: "글·댓글에 붙은 파일은 글이나 댓글을 고쳐서 빼 주세요." });
         await db.query("DELETE FROM post_media WHERE id = ?", [id]); await M.removeFiles([id]);
         return L.json(res, 200, { ok: true });
       }

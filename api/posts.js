@@ -20,8 +20,8 @@ const fields = (b) => {
 // 붙이려는 파일이 모두 내 것이고 다 올라왔는지(status 1), 아직 다른 글에 안 붙었는지 확인한다. 문제가 있으면 안내 문구를 돌려준다.
 async function checkMedia(db, ids, userId, postId) {
   if (!ids.length) return null;
-  const [rows] = await db.query("SELECT id, kind, post_id, status FROM post_media WHERE id IN (?) AND owner_id = ?", [ids, userId]);
-  if (rows.length !== ids.length || rows.some((m) => m.status !== 1 || (m.post_id && m.post_id !== postId))) return "올리던 사진·동영상을 찾을 수 없어요. 다시 올려 주세요.";
+  const [rows] = await db.query("SELECT id, kind, post_id, comment_id, status FROM post_media WHERE id IN (?) AND owner_id = ?", [ids, userId]);
+  if (rows.length !== ids.length || rows.some((m) => m.status !== 1 || m.comment_id || (m.post_id && m.post_id !== postId))) return "올리던 사진·동영상을 찾을 수 없어요. 다시 올려 주세요.";
   if (rows.filter((m) => m.kind === "video").length > M.MAX_VIDEOS) return `동영상은 ${M.MAX_VIDEOS}개까지 붙일 수 있어요.`;
   return null;
 }
@@ -77,12 +77,14 @@ module.exports = async (req, res) => {
           (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'c' AND l.target_id = c.id AND l.user_id = ?) AS liked
         FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? ORDER BY c.created_at, c.id`, [me.id, id]);
       const [ms] = await db.query("SELECT id, kind, w, h, has_thumb FROM post_media WHERE post_id = ? AND status = 1 ORDER BY pos, id", [id]);
+      const [cms] = cs.length ? await db.query("SELECT id, comment_id, kind, w, h, has_thumb FROM post_media WHERE comment_id IN (?) AND status = 1 ORDER BY pos, id", [cs.map((c) => c.id)]) : [[]];
+      const cmedia = (cid) => cms.filter((m) => m.comment_id === cid).map(M.shape);
       return L.json(res, 200, {
         categories: L.CATS,
         post: { ...shape(rows[0], me), body: rows[0].body, media: ms.map(M.shape) },
         comments: cs.map((c) => c.deleted
           ? { id: c.id, parentId: c.parent_id, deleted: true, createdAt: c.created_at }
-          : { id: c.id, parentId: c.parent_id, deleted: false, author: who(c.author_id, c.nickname, c.photo_v), body: c.body, createdAt: c.created_at, updatedAt: c.updated_at, likes: Number(c.likes), liked: Number(c.liked) > 0, mine: !!c.author_id && c.author_id === me.id, byTarget: !!c.author_id && c.author_id === rows[0].target_id }),
+          : { id: c.id, parentId: c.parent_id, deleted: false, author: who(c.author_id, c.nickname, c.photo_v), body: c.body, media: cmedia(c.id), createdAt: c.created_at, updatedAt: c.updated_at, likes: Number(c.likes), liked: Number(c.liked) > 0, mine: !!c.author_id && c.author_id === me.id, byTarget: !!c.author_id && c.author_id === rows[0].target_id }),
       });
     }
 
@@ -115,11 +117,12 @@ module.exports = async (req, res) => {
         return L.json(res, 200, { id });
       }
 
-      const [mine] = await db.query("SELECT id FROM post_media WHERE post_id = ?", [id]);
+      const [mine] = await db.query("SELECT id FROM post_media WHERE post_id = ? OR comment_id IN (SELECT id FROM comments WHERE post_id = ?)", [id, id]);
       const conn = await db.getConnection();
       try {
         await conn.beginTransaction();
         await conn.query("DELETE FROM likes WHERE target_type = 'c' AND target_id IN (SELECT id FROM comments WHERE post_id = ?)", [id]);
+        await conn.query("DELETE FROM post_media WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?)", [id]);   // 댓글에 붙은 파일(댓글을 지우기 전에)
         await conn.query("DELETE FROM comments WHERE post_id = ?", [id]);
         await conn.query("DELETE FROM likes WHERE target_type = 'p' AND target_id = ?", [id]);
         await conn.query("DELETE FROM post_media WHERE post_id = ?", [id]);

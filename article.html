@@ -22,6 +22,7 @@
 <body>
 <div class="app">
 <script src="/assets/shell.js"></script>
+<script src="/assets/media.js"></script>
 <main id="main">
   <section class="sec" aria-labelledby="post-title">
     <div class="wrap">
@@ -33,6 +34,7 @@
         <form class="cmt-form" id="cmForm">
           <div class="writer" id="cmWho"></div>
           <textarea class="ta" name="body" rows="3" maxlength="1000" placeholder="댓글을 남겨 보세요 (1000자까지)" aria-label="댓글 쓰기"></textarea>
+          <div class="cm-att" data-att></div>
           <p class="msg msg--err" id="cmErr" role="alert"></p>
           <button class="btn btn--sm" type="submit">댓글 등록</button>
         </form>
@@ -74,16 +76,17 @@
       const g = $("#gal"); if (!g) return;
       const n = $("#galN");
       if (n) g.addEventListener("scroll", () => { n.textContent = `${Math.round(g.scrollLeft / g.clientWidth) + 1} / ${g.children.length}`; }, { passive: true });
-      g.addEventListener("click", (e) => {
-        const b = e.target.closest("[data-big]"); if (!b) return;
+      g.addEventListener("click", (e) => { const b = e.target.closest("[data-big]"); if (b) openBig(b); });
+    }
+    function openBig(b) {
         const lb = document.createElement("div"); lb.className = "lb"; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-label", "사진 크게 보기");
         lb.innerHTML = `<img src="${media({ id: b.dataset.big }, "full")}" alt=""><button class="lb__x" type="button" aria-label="닫기">×</button>`;
         const close = () => { lb.remove(); document.removeEventListener("keydown", esc); document.body.style.overflow = ""; b.focus(); };
         const esc = (k) => { if (k.key === "Escape") close(); };
         lb.addEventListener("click", close); document.addEventListener("keydown", esc);
         document.body.style.overflow = "hidden"; document.body.appendChild(lb); lb.querySelector(".lb__x").focus();
-      });
     }
+    document.addEventListener("click", (e) => { const b = e.target.closest(".cmt__media [data-big]"); if (b) openBig(b); });   // 댓글에 붙은 사진도 크게 보기
     function drawPost() {
       const p = data.post, a = TT.who(p.author);
       document.title = p.title + " — HR T | 니핑 프로젝트";
@@ -118,17 +121,75 @@
       if (ta) ta.placeholder = p.special === "weekly" ? `의견을 남겨 주세요 (댓글 ${p.progress ? p.progress.goal : 10}개가 모이면 T조 AI가 정리해요)` : p.special === "daily" && p.forMe && !p.answered ? "지목받은 질문에 답해 보세요" : "댓글을 남겨 보세요 (1000자까지)";
     }
 
+    // ── 댓글 사진·동영상 첨부: 사진 4개까지·동영상 1개(100MB 이하). 파일은 서버를 거치지 않고 R2 로 바로 올라간다(assets/media.js).
+    const CM = TT.media;
+    const ATT_HTML = '<div class="cm-att__grid"></div><label class="cm-att__add"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h2l1.3-1.8h6.4L16.5 6h2A1.5 1.5 0 0 1 20 7.5v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5zM12 16.2a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8z"/></svg>사진·영상<input type="file" accept="image/*,video/mp4,video/quicktime,video/webm" multiple hidden></label><span class="cm-att__hint">사진 4개 · 영상 1개(100MB까지)</span>';
+    const atts = new WeakMap();   // 폼 → 첨부 도구
+    function attach(form, initial) {
+      const box = form.querySelector("[data-att]"); if (!box) return null;
+      box.innerHTML = ATT_HTML;
+      const grid = box.querySelector(".cm-att__grid"), input = box.querySelector("input"), err = (m) => showErr(form, m);
+      const items = (initial || []).map((m) => ({ id: m.id, kind: m.kind, preview: m.thumb ? media(m, "thumb") : null, done: true, old: true }));
+      const draw = () => {
+        grid.innerHTML = items.map((it, i) => `<div class="cm-att__it">${it.preview ? `<img src="${it.preview}" alt="">` : ""}${it.kind === "video" ? '<span class="cm-att__v" aria-hidden="true">▶</span>' : ""}${it.done ? "" : `<span class="cm-att__p">${Math.round((it.p || 0) * 100)}%</span>`}<button class="cm-att__x" type="button" data-i="${i}" aria-label="빼기">×</button></div>`).join("");
+        box.classList.toggle("is-full", items.length >= CM.C_MAX_FILES);
+      };
+      const A = {
+        ids: () => items.filter((it) => it.done).map((it) => it.id),
+        uploading: () => items.some((it) => !it.done),
+        reset() { items.length = 0; draw(); },                                                  // 보낸 뒤: 파일은 이제 댓글 것이라 지우지 않는다
+        dispose() { items.forEach((it) => { if (it.xhr) it.xhr.abort(); else if (it.done && !it.old) CM.discard(it.id); }); items.length = 0; },   // 쓰다 말았을 때: 새로 올린 파일은 치운다
+      };
+      grid.addEventListener("click", (e) => {
+        const x = e.target.closest(".cm-att__x"); if (!x) return;
+        const it = items.splice(Number(x.dataset.i), 1)[0];
+        if (it.xhr) it.xhr.abort(); else if (it.done && !it.old) CM.discard(it.id);
+        draw();
+      });
+      input.addEventListener("change", async () => {
+        const files = [...input.files]; input.value = ""; err("");
+        for (const file of files) {
+          const c = CM.classify(file);
+          if (!c) { err("사진(JPG·PNG·WEBP)과 동영상(MP4·MOV·WEBM)만 올릴 수 있어요."); continue; }
+          if (items.length >= CM.C_MAX_FILES) { err(`댓글에는 사진·동영상을 ${CM.C_MAX_FILES}개까지 붙일 수 있어요.`); break; }
+          if (c.kind === "video" && items.some((it) => it.kind === "video")) { err("댓글에는 동영상을 1개까지 붙일 수 있어요."); continue; }
+          let it;
+          try {
+            const p = await CM.prepare(file, { maxVideo: CM.C_MAX_VIDEO });
+            it = p; it.done = false; it.p = 0; it.id = 0; items.push(it); draw();   // 준비된 파일 객체를 그대로 항목으로 쓴다(올리는 동안 it.xhr 에 요청이 걸린다)
+            const m = await CM.upload(it, (v) => { it.p = v; const el = grid.children[items.indexOf(it)]; if (el) { const t = el.querySelector(".cm-att__p"); if (t) t.textContent = Math.round(v * 100) + "%"; } }, "comment");
+            it.id = m.id; it.done = true; it.xhr = null; draw();
+          } catch (x) {
+            const k = it ? items.indexOf(it) : -1; if (k >= 0) items.splice(k, 1); draw();
+            if (!x.aborted) err(x.friendly || /^동영상|^댓글|^사진|^올/.test(x.message) ? x.message : "올리지 못했어요. 다시 시도해 주세요.");
+          }
+        }
+      });
+      draw(); atts.set(form, A); return A;
+    }
+    // 댓글에 붙은 사진·동영상 보여 주기(하나면 크게, 여러 개면 2열 타일). 사진은 누르면 크게, 동영상은 그 자리에서 재생.
+    const cmedia = (ms) => !ms || !ms.length ? "" : `<div class="cmt__media cmt__media--${Math.min(ms.length, 2)}">${ms.map((m, i) => m.kind === "video"
+      ? `<div class="cm-m cm-m--v"><video controls playsinline preload="metadata"${m.thumb ? ` poster="${media(m, "thumb")}"` : ""} src="${media(m, "full")}"></video></div>`
+      : `<button class="cm-m cm-m--i" type="button" data-big="${m.id}" aria-label="사진 크게 보기"><img src="${media(m, ms.length === 1 ? "full" : "thumb")}" alt="" loading="lazy" decoding="async"></button>`).join("")}</div>`;
+    function bindAtts() {
+      document.querySelectorAll("form[data-act]").forEach((f) => {
+        const c = f.dataset.act === "save-edit" ? data.comments.find((x) => x.id === Number(f.dataset.id)) : null;
+        attach(f, c && c.media);
+      });
+    }
+    const disposeAtts = () => document.querySelectorAll("form[data-act]").forEach((f) => { const a = atts.get(f); if (a) a.dispose(); });
+
     function cmt(c, reply) {
       if (c.deleted) return `<div class="cmt"><span class="cmt__av cmt__av--gone"></span><div><p class="cmt__txt cmt__txt--gone">삭제된 댓글이에요.</p></div></div>`;
       const a = TT.who(c.author), isEdit = editing === c.id;
       return `<div class="cmt" data-cid="${c.id}"><span class="cmt__av">${TT.avatar(a)}</span><div>
         <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span>${c.author === null ? '<span class="chip chip--ai chip--xs">AI</span>' : ""}${c.byTarget ? '<span class="chip chip--daily chip--xs">지목 답변</span>' : ""}<span class="cmt__time">${TT.when(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
-        ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><p class="msg msg--err" role="alert"></p>
+        ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
-          : `<p class="cmt__txt">${TT.esc(c.body)}</p>
+          : `${c.body ? `<p class="cmt__txt">${TT.esc(c.body)}</p>` : ""}${cmedia(c.media)}
         <div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}${reply ? "" : `<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>`}
           ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}
-        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><p class="msg msg--err" role="alert"></p>
+        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">답글 등록</button></div></form>` : ""}
       </div></div>`;
     }
@@ -139,6 +200,7 @@
         const kids = all.filter((k) => k.parentId === c.id);
         return `<li class="cmt-item">${cmt(c, false)}${kids.length ? `<div class="cmt__replies">${kids.map((k) => cmt(k, true)).join("")}</div>` : ""}</li>`;
       }).join("") : `<li class="empty" style="margin-top:12px">첫 댓글을 남겨 보세요.</li>`;
+      bindAtts();
     }
 
     const send = (url, method, body) => TT.call(url, method, body);
@@ -148,10 +210,13 @@
     // 댓글 쓰기
     $("#cmForm").addEventListener("submit", async (e) => {
       e.preventDefault(); const f = e.currentTarget; $("#cmErr").textContent = "";
-      if (!f.body.value.trim()) { $("#cmErr").textContent = "댓글 내용을 적어 주세요."; return; }
-      try { await send("/api/comments", "POST", { postId: id, body: f.body.value }); f.body.value = ""; await load(); } catch (x) { $("#cmErr").textContent = x.message; }
+      const A = atts.get(f), ids = A ? A.ids() : [];
+      if (A && A.uploading()) { $("#cmErr").textContent = "사진·동영상을 올리는 중이에요. 잠시만 기다려 주세요."; return; }
+      if (!f.body.value.trim() && !ids.length) { $("#cmErr").textContent = "댓글 내용을 적어 주세요(사진·동영상만 올려도 돼요)."; return; }
+      try { await send("/api/comments", "POST", { postId: id, body: f.body.value, media: ids }); f.body.value = ""; if (A) A.reset(); await load(); } catch (x) { $("#cmErr").textContent = x.message; }
     });
 
+    attach($("#cmForm"));
     // 좋아요: 낙관적 갱신. 같은 하트를 연타해도 요청은 순서대로 하나씩 간다(서버는 누를 때마다 켜고 끄는 방식이라 누른 횟수의 홀짝이 맞아야 한다).
     const likeQ = new Map(), likeWait = new Map();   // 대상(글/댓글+번호) → 이어 붙인 요청 줄 / 아직 안 끝난 요청 수
     function paintLike(b, liked, n) { b.setAttribute("aria-pressed", String(liked)); b.querySelector("span").textContent = n; }
@@ -182,9 +247,9 @@
         if (act === "like") {   // 하트는 누르는 순간 화면에 먼저 반영하고(숫자만 바꾼다 — 쓰던 답글·수정 내용이 사라지지 않게), 저장은 뒤에서 조용히 한다
           like(b, cid);
         } else if (act === "answer") { const ta = $("#cmForm textarea"); ta.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => ta.focus(), 400);
-        } else if (act === "reply") { replying = replying === cid ? 0 : cid; editing = 0; drawComments(); }
-        else if (act === "edit") { editing = cid; replying = 0; drawComments(); }
-        else if (act === "cancel") { replying = 0; editing = 0; drawComments(); }
+        } else if (act === "reply") { disposeAtts(); replying = replying === cid ? 0 : cid; editing = 0; drawComments(); }
+        else if (act === "edit") { disposeAtts(); editing = cid; replying = 0; drawComments(); }
+        else if (act === "cancel") { disposeAtts(); replying = 0; editing = 0; drawComments(); }
         else if (act === "del") { if (confirm("이 댓글을 지울까요? 되돌릴 수 없어요.")) { await send("/api/comments?id=" + cid, "DELETE", {}); await load(); } }
         else if (act === "del-post") { if (confirm("이 글을 지울까요? 댓글과 좋아요도 함께 지워지고 되돌릴 수 없어요.")) { await send("/api/posts?id=" + id, "DELETE", {}); location.href = "/articles"; } }
       } catch (x) { alert(x.message); }
@@ -192,11 +257,13 @@
     document.addEventListener("submit", async (e) => {
       const f = e.target.closest("form[data-act]"); if (!f) return; e.preventDefault();
       const act = f.dataset.act, cid = Number(f.dataset.id); showErr(f, "");
-      if (!textOf(f).trim()) { showErr(f, "내용을 적어 주세요."); return; }
+      const A = atts.get(f), ids = A ? A.ids() : [];
+      if (A && A.uploading()) { showErr(f, "사진·동영상을 올리는 중이에요. 잠시만 기다려 주세요."); return; }
+      if (!textOf(f).trim() && !ids.length) { showErr(f, "내용을 적어 주세요(사진·동영상만 올려도 돼요)."); return; }
       try {
-        if (act === "save-edit") await send("/api/comments?id=" + cid, "PATCH", { body: textOf(f) });
-        else await send("/api/comments", "POST", { postId: id, parentId: cid, body: textOf(f) });
-        replying = 0; editing = 0; await load();
+        if (act === "save-edit") await send("/api/comments?id=" + cid, "PATCH", { body: textOf(f), media: ids });
+        else await send("/api/comments", "POST", { postId: id, parentId: cid, body: textOf(f), media: ids });
+        if (A) A.reset(); replying = 0; editing = 0; await load();
       } catch (x) { showErr(f, x.message); }
     });
 

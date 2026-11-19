@@ -141,6 +141,8 @@ ALTER = [
     "ALTER TABLE users ADD COLUMN invited_by BIGINT NULL AFTER photo_v",
     "ALTER TABLE users ADD COLUMN cover_v INT NOT NULL DEFAULT 0 AFTER photo_v",   # 커버 사진(0 = 없음, 올릴 때마다 +1)
     "ALTER TABLE users ADD COLUMN notif_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",   # 알림을 마지막으로 확인한 시각(이후 생긴 것이 «새 알림»)
+    "ALTER TABLE post_media ADD COLUMN comment_id BIGINT NULL AFTER post_id",   # 댓글에 붙인 사진·동영상(글에 붙은 것은 post_id, 둘 다 NULL = 올려 두기만 한 것)
+    "ALTER TABLE post_media ADD KEY ix_media_comment (comment_id)",
     "ALTER TABLE users ADD COLUMN presenter TINYINT NOT NULL DEFAULT 0",   # 1 = 발표 버튼이 보이는 사람. 칸을 처음 만들 때 «그때 가입해 있던 사람 전원» 만 1 로 하고(아래), 이후 가입자는 0
     # 오늘의 질문·주간 토론: posts.kind = post(일반)|daily(오늘의 질문)|weekly(이번 주 토론)|digest(AI가 정리한 아티클)
     "ALTER TABLE posts ADD COLUMN kind VARCHAR(10) NOT NULL DEFAULT 'post'",

@@ -40,10 +40,11 @@
     out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H6a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 6 20h3M16 8l4 4-4 4M20 12H9"/></svg>',
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
     ai: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4.5 11.8 9l4.5 1.8L11.8 12.6 10 17.1 8.2 12.6 3.7 10.8 8.2 9zM18 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7zM17.5 14.5l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8z"/></svg>',
+    lib: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect class="f" x="3.5" y="5" width="17" height="14" rx="2.2"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
     present: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 4.5h17M5 4.5v10.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4.5M12 16v4M8.5 20.5h7M9.5 11l2-2.2 1.6 1.6 2.4-2.9"/></svg>',
   };
-  const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
+  const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/library", "자료실", IC.lib], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
   const s = document.currentScript;
   s.parentElement.classList.toggle("app--gate", GATE);
   // 발표·회의록 버튼은 «발표자인지» 를 서버에 물어본 뒤에야 알 수 있어서, 페이지를 옮길 때마다 없다가 나타나 깜박였다. 지난번 확인 결과를 이 브라우저에 기억해 두고(tt_pr) 처음부터 그 상태로 그린다. 서버 확인이 끝나면 맞춰 고친다.

@@ -56,7 +56,7 @@ input, select, textarea { accent-color: var(--pink-ink); }
 .logo i { font-style: normal; margin: 0 .12em; color: var(--pink-deep); }
 
 /* 하단 고정 메뉴(52px). 선택 표시 = 위쪽 검정 표시선 + 진한 글자(분홍 강조 없음) */
-.tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(249 245 255 / .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+.tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(249 245 255 / .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
 .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 5px 2px 4px; text-decoration: none; font-size: .6875rem; font-weight: 500; line-height: 1.2; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
 .tab svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .tab__ic { display: grid; place-items: center; height: 24px; }
@@ -635,3 +635,30 @@ a.art { text-decoration: none; color: inherit; }
 /* 저장하지 못했을 때만 뜨는 안내(assets/outbox.js) */
 .ob-fail { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0; padding: 12px 14px; font-size: .875rem; line-height: 1.5; color: #a3302a; background: #fdeceb; border: 1px solid #f3c6c2; border-radius: 14px; }
 .ob-fail p { margin: 0; } .ob-fail div { display: flex; flex: none; gap: 6px; }
+
+/* 자료실(/library): 링크를 붙여넣으면 미리보기 카드 */
+.lib__add { display: flex; gap: 8px; margin-top: 16px; }
+.lib__add input { flex: 1; min-width: 0; min-height: 48px; padding: 0 14px; font: 400 1rem/1.4 "Noto Sans KR", var(--font); color: var(--ink); background: #fff; border: 1.5px solid var(--field); border-radius: 12px; }
+.lib__add input:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--lavender); }
+.lib__add .btn { flex: none; min-height: 48px; padding: 0 18px; }
+.lib__hint { margin: 8px 2px 0; font-size: .8125rem; color: var(--ink-soft); }
+.lib__list { display: grid; gap: 14px; margin: 18px 0 0; padding: 0; list-style: none; }
+.lc { overflow: hidden; background: #fff; border: 1.5px solid var(--lavender); border-radius: 18px; }
+.lc__media { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; padding: 0; overflow: hidden; background: var(--lavender-tint); border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lc--instagram .lc__media, .lc--threads .lc__media { aspect-ratio: 1 / 1; }
+.lc__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lc__ph { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; color: var(--ink-soft); background: linear-gradient(135deg, var(--lavender-tint), var(--blush)); }
+.lc__play { position: absolute; inset: 0; display: grid; place-items: center; background: linear-gradient(transparent 55%, rgb(0 0 0 / .28)); }
+.lc__play i { display: grid; place-items: center; width: 54px; height: 54px; background: rgb(255 255 255 / .92); border-radius: 50%; box-shadow: 0 4px 16px rgb(0 0 0 / .25); }
+.lc__play svg { width: 24px; height: 24px; margin-left: 3px; fill: var(--ink); }
+.lc__plat { position: absolute; left: 10px; top: 10px; padding: 3px 9px; font-size: .75rem; font-weight: 800; color: #fff; background: rgb(25 20 45 / .78); border-radius: 99px; }
+.lc__embed { display: block; width: 100%; border: 0; background: #fff; }
+.lc__embed--youtube { aspect-ratio: 16 / 9; }
+.lc__embed--instagram, .lc__embed--threads { height: 600px; }
+.lc__body { padding: 12px 14px 14px; }
+.lc__title { margin: 0; font-weight: 700; font-size: .9375rem; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lc__orig { margin: 2px 0 0; font-size: .8125rem; color: var(--ink-soft); }
+.lc__foot { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: .8125rem; color: var(--ink-soft); }
+.lc__foot .sp-grow { flex: 1; }
+.lc__lnk { font-size: .8125rem; font-weight: 700; color: var(--ink); text-decoration: underline; text-underline-offset: 2px; background: none; border: 0; padding: 4px 2px; cursor: pointer; font-family: inherit; }
+.lc__lnk.is-armed { color: #c8423a; }

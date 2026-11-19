@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>자료실 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="유튜브·인스타그램·스레드 링크를 모아 두는 팀 자료실.">
+<meta name="theme-color" content="#fff6fa">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v3.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" href="/assets/icons/icon-v3-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<script src="/assets/outbox.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="lib-title">
+    <div class="wrap">
+      <h1 class="sec__title" id="lib-title">자료실 <small id="count"></small></h1>
+      <p class="sec__lead">유튜브·인스타그램·스레드 링크를 붙여넣으면 미리보기 카드가 만들어져요.</p>
+      <form class="lib__add" id="form" autocomplete="off" novalidate>
+        <label class="sr" for="url">링크</label>
+        <input id="url" name="url" type="url" inputmode="url" placeholder="링크를 붙여넣어 보세요" enterkeyhint="go">
+        <button class="btn" type="submit">추가</button>
+      </form>
+      <p class="msg msg--err" id="err" role="alert"></p>
+      <ul class="lib__list" id="list"></ul>
+      <div class="empty" id="empty" hidden>아직 올라온 자료가 없어요.<br>마음에 든 유튜브·인스타그램·스레드 게시물 링크를 붙여넣어 보세요.</div>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s), OB = TT.outbox;
+    const NAME = { youtube: "유튜브", instagram: "인스타그램", threads: "스레드" }, FALLBACK = { youtube: "유튜브 영상", instagram: "인스타그램 게시물", threads: "스레드 게시물" };
+    const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
+    let items = [], opened = new Set();
+
+    // 붙여넣은 주소 알아보기(서버 api/_oembed.js 의 parse 와 같은 규칙)
+    function parse(input) {
+      let u; try { u = new URL(String(input || "").trim()); } catch { return null; }
+      if (!/^https?:$/.test(u.protocol)) return null;
+      const h = u.hostname.toLowerCase().replace(/^(www\.|m\.)/, ""), parts = u.pathname.split("/").filter(Boolean);
+      if (h === "youtu.be" && /^[\w-]{11}$/.test(parts[0] || "")) return { platform: "youtube", extId: parts[0], url: `https://www.youtube.com/watch?v=${parts[0]}` };
+      if (h === "youtube.com" || h === "youtube-nocookie.com" || h === "music.youtube.com") {
+        let id = ""; if (u.pathname === "/watch") id = u.searchParams.get("v") || ""; else if (["shorts", "live", "embed", "v"].includes(parts[0])) id = parts[1] || "";
+        return /^[\w-]{11}$/.test(id) ? { platform: "youtube", extId: id, url: parts[0] === "shorts" ? `https://www.youtube.com/shorts/${id}` : `https://www.youtube.com/watch?v=${id}` } : null;
+      }
+      if (h === "instagram.com" || h === "instagr.am") {
+        const i = parts.findIndex((x) => ["p", "reel", "reels", "tv"].includes(x)), code = i >= 0 ? parts[i + 1] : "";
+        return /^[\w-]{5,20}$/.test(code || "") ? { platform: "instagram", extId: code, url: `https://www.instagram.com/${parts[i] === "reels" ? "reel" : parts[i]}/${code}/` } : null;
+      }
+      if (h === "threads.net" || h === "threads.com") {
+        const i = parts.indexOf("post"), uname = (parts[0] || "").replace(/^@/, ""), code = i >= 0 ? parts[i + 1] : "";
+        return /^[\w.]{1,40}$/.test(uname) && /^[\w-]{5,20}$/.test(code || "") ? { platform: "threads", extId: code, url: `https://www.threads.com/@${uname}/post/${code}` } : null;
+      }
+      return null;
+    }
+    const embedSrc = (x) => x.platform === "youtube" ? `https://www.youtube-nocookie.com/embed/${x.extId}?autoplay=1&rel=0&playsinline=1`
+      : x.platform === "instagram" ? `${x.url}embed/` : `${x.url}/embed`;
+    const thumbSrc = (x) => x.id ? (x.thumb ? `/api/library?img=${x.id}` : "") : (x.platform === "youtube" ? `https://i.ytimg.com/vi/${x.extId}/mqdefault.jpg` : "");
+
+    // 서버에 있는 목록 + 아직 저장 중인 추가(맨 위)·삭제(뺀다)
+    function view() {
+      const pend = OB.list().filter((o) => o.kind === "lib" && o.state !== "fail" && !items.some((x) => x.platform === o.view.platform && x.extId === o.view.extId))
+        .map((o) => ({ id: 0, oid: o.oid, platform: o.view.platform, extId: o.view.extId, url: o.view.url, title: "", author: "", thumb: false, by: user, createdAt: new Date(o.at).toISOString(), mine: true }));
+      const gone = new Set(OB.list().filter((o) => o.kind === "lib-del").map((o) => o.libId));
+      return pend.reverse().concat(items.filter((x) => !gone.has(x.id)));
+    }
+    function card(x) {
+      const th = thumbSrc(x), isOpen = opened.has(x.platform + x.extId);
+      const media = isOpen
+        ? `<iframe class="lc__embed lc__embed--${x.platform}" src="${embedSrc(x)}" title="${NAME[x.platform]} 미리보기" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-popups allow-presentation allow-forms"></iframe>`
+        : `<button class="lc__media" type="button" data-act="open" aria-label="${NAME[x.platform]} 미리보기 열기">${th ? `<img src="${th}" alt="" loading="lazy" decoding="async">` : `<span class="lc__ph">${NAME[x.platform]}</span>`}<span class="lc__plat">${NAME[x.platform]}</span><span class="lc__play"><i>${PLAY}</i></span></button>`;
+      return `<li class="lc lc--${x.platform}" data-k="${x.platform}${x.extId}" data-id="${x.id}">${media}
+        <div class="lc__body"><p class="lc__title">${TT.esc(x.title || FALLBACK[x.platform])}</p>${x.author ? `<p class="lc__orig">${TT.esc(x.author)}</p>` : ""}
+          <div class="lc__foot">${TT.chip(x.by)}<span>${TT.when(x.createdAt)}</span><span class="sp-grow"></span>
+            <a class="lc__lnk" href="${TT.esc(x.url)}" target="_blank" rel="noopener noreferrer">원본 보기</a>${x.mine && x.id ? `<button class="lc__lnk" type="button" data-act="del">삭제</button>` : ""}</div></div></li>`;
+    }
+    function draw() {
+      const v = view();
+      $("#list").innerHTML = v.map(card).join(""); $("#count").textContent = v.length || ""; $("#empty").hidden = v.length > 0;
+    }
+    async function load() { try { items = (await TT.call("/api/library")).items; } catch (e) { $("#err").textContent = e.message; } draw(); }
+
+    // 링크 추가: 알아볼 수 있으면 곧바로 카드가 보이고(유튜브는 썸네일까지), 제목·미리보기 이미지를 가져와 저장하는 건 뒤에서 한다
+    function add(raw) {
+      const err = $("#err"); err.textContent = "";
+      const p = parse(raw);
+      if (!p) { err.textContent = "유튜브·인스타그램·스레드의 게시물 링크만 붙여넣을 수 있어요."; return; }
+      if (view().some((x) => x.platform === p.platform && x.extId === p.extId)) { TT.toast("이미 자료실에 있는 링크예요."); $("#url").value = ""; return; }
+      OB.add({ kind: "lib", url: "/api/library", method: "POST", body: { url: p.url }, view: p });
+      $("#url").value = ""; draw();
+    }
+    $("#form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("#url").value.trim(); if (v) add(v); });
+    $("#url").addEventListener("paste", () => setTimeout(() => { if (parse($("#url").value)) $("#form").requestSubmit(); }, 0));   // 붙여넣으면 바로 만든다
+    $("#list").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-act]"); if (!b) return; const li = b.closest(".lc");
+      if (b.dataset.act === "open") { opened.add(li.dataset.k); draw(); }
+      else if (b.dataset.act === "del") {
+        if (!b.classList.contains("is-armed")) { b.classList.add("is-armed"); b.textContent = "정말 삭제"; setTimeout(() => { if (b.isConnected) { b.classList.remove("is-armed"); b.textContent = "삭제"; } }, 4000); return; }
+        OB.add({ kind: "lib-del", url: "/api/library?id=" + li.dataset.id, method: "DELETE", libId: Number(li.dataset.id) }); draw();
+      }
+    });
+    OB.on((ev) => {
+      const k = ev.item && ev.item.kind; if (k !== "lib" && k !== "lib-del") return;
+      if (ev.type === "done") { if (ev.result && ev.result.dup) TT.toast("이미 자료실에 있는 링크예요."); load(); }
+      else if (ev.type === "fail") { OB.drop(ev.item.oid); draw(); }
+    });
+    load();
+  });
+</script>
+</body>
+</html>

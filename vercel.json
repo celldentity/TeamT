@@ -75,6 +75,9 @@
     },
     "api/ask.js": {
       "maxDuration": 60
+    },
+    "api/library.js": {
+      "maxDuration": 30
     }
   }
 }

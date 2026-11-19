@@ -118,6 +118,20 @@ CREATE = [
       note   VARCHAR(300) NOT NULL DEFAULT '',
       KEY ix_cron_ran (ran_at)
     ) CHARACTER SET utf8mb4""",
+    # 자료실(/library): 유튜브·인스타그램·스레드 링크 카드. 같은 게시물은 한 번만(platform+ext_id 유니크), 미리보기 이미지는 R2 library/<id>.jpg
+    """CREATE TABLE IF NOT EXISTS library (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id    BIGINT NOT NULL,
+      platform   VARCHAR(12)  NOT NULL,
+      ext_id     VARCHAR(40)  NOT NULL,
+      url        VARCHAR(400) NOT NULL,
+      title      VARCHAR(300) NOT NULL DEFAULT '',
+      author     VARCHAR(120) NOT NULL DEFAULT '',
+      has_thumb  TINYINT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_library (platform, ext_id),
+      KEY ix_library_created (created_at)
+    ) CHARACTER SET utf8mb4""",
     # AI 도우미(/ai) 사용 기록: 하루 질문 수 제한용(30일이 지나면 자동 정리)
     """CREATE TABLE IF NOT EXISTS ai_usage (
       id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -178,6 +192,6 @@ with db.cursor() as cur:
         except pymysql.err.OperationalError as e:
             if e.args[0] not in (1060, 1061):
                 raise
-    for t in ("users", "invites", "posts", "comments", "likes", "post_media", "meetings"):
+    for t in ("users", "invites", "posts", "comments", "likes", "post_media", "meetings", "library"):
         cur.execute(f"SHOW COLUMNS FROM {t}")
         print(t, [r[0] for r in cur.fetchall()])

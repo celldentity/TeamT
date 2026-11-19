@@ -35,9 +35,20 @@
         <button class="cal__ic" type="button" id="calNext" aria-label="다음 장" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <label class="cal__jump" title="날짜를 골라 그 장으로 이동"><span id="calPos"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9h15M7 3.5v3M17 3.5v3M5.5 5.5h13a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/></svg><input type="date" id="calDate" aria-label="날짜로 이동"></label>
         <button class="cal__ic" type="button" id="calShare" aria-label="이 장 공유하기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 12.5v6a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-6"/></svg></button>
+        <button class="cal__ic" type="button" id="calHelp" aria-label="해설과 생각해 볼 질문 보기" aria-haspopup="dialog" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 9.3a2.9 2.9 0 1 1 4.3 2.5c-.9.5-1.5 1.1-1.5 2.1M12 17.6v.1"/></svg></button>
       </div>
     </div>
   </section>
+
+  <!-- 해설·생각해 볼 질문: «?» 버튼으로 여는 창(내용은 지금 보는 장 기준) -->
+  <div class="calm" id="calM" hidden>
+    <div class="calm__bg" data-x></div>
+    <div class="calm__box" role="dialog" aria-modal="true" aria-label="해설과 생각해 볼 질문">
+      <button class="calm__x" type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <section><h3>해설</h3><p id="calMn"></p></section>
+      <section><h3>생각해 볼 질문</h3><p class="calm__ask" id="calMq"></p></section>
+    </div>
+  </div>
 
   <section class="sec home__new" aria-labelledby="new-title">
     <div class="wrap">
@@ -62,8 +73,7 @@
         <div class="cal__mid"><i class="cal__rule" aria-hidden="true"></i><span class="cal__mon" aria-label="${p.m}월">${p.m}</span></div>
         <span class="cal__side cal__side--r" aria-hidden="true">${DOW[p.w]}</span></div>
         <div class="cal__day" aria-label="${p.y}년 ${p.m}월 ${p.d}일">${p.d}</div>
-        ${c.quote ? `<blockquote class="cal__q"><p>${TT.esc(c.quote)}</p></blockquote>
-        <div class="cal__more"><section><h3>해설</h3><p>${TT.esc(c.note)}</p></section><section><h3>생각해 볼 질문</h3><p class="cal__ask">${TT.esc(c.question)}</p></section></div>`
+        ${c.quote ? `<blockquote class="cal__q"><p>${TT.esc(c.quote)}</p></blockquote>`
         : `<div class="cal__wait" aria-hidden="true"><i></i><i></i><i></i></div>`}`;
     };
     const kst = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);
@@ -74,9 +84,30 @@
     }
     function paint() {
       sheet.innerHTML = sheetHtml(cards[at]);
-      const p = dparts(cards[at].date); $("#calPos").textContent = at === 0 ? `오늘 · ${p.m}월 ${p.d}일` : `${p.m}월 ${p.d}일`;
+      const p = dparts(cards[at].date); $("#calPos").textContent = at === 0 ? "오늘" : `${p.m}월 ${p.d}일`;   // 날짜는 위에 크게 있으니 오늘은 «오늘»만
+      $("#calHelp").disabled = !cards[at].quote;
       nav();
     }
+    // «?» — 버튼 자리에서 쪼잉 하고 커지는 창. 닫을 때는 다시 쪼그라든다.
+    const modal = $("#calM"), box = modal.querySelector(".calm__box"), helpBtn = $("#calHelp");
+    let closing = 0;
+    function openHelp() {
+      const c = cards[at]; if (!c || !c.quote) return;
+      $("#calMn").textContent = c.note; $("#calMq").textContent = c.question;
+      clearTimeout(closing); modal.classList.remove("is-out"); modal.hidden = false;
+      const b = helpBtn.getBoundingClientRect();   // 창이 버튼에서 튀어나오도록 기준점을 버튼 중심으로(offset* 은 애니메이션 배율의 영향을 안 받는다)
+      box.style.transformOrigin = `${b.left + b.width / 2 - box.offsetLeft}px ${b.top + b.height / 2 - box.offsetTop}px`;
+      box.querySelector(".calm__x").focus({ preventScroll: true });
+    }
+    function closeHelp() {
+      if (modal.hidden || modal.classList.contains("is-out")) return;
+      const done = () => { modal.hidden = true; modal.classList.remove("is-out"); helpBtn.focus({ preventScroll: true }); };
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return done();
+      modal.classList.add("is-out"); closing = setTimeout(done, 320);
+    }
+    helpBtn.addEventListener("click", openHelp);
+    modal.addEventListener("click", (e) => { if (e.target.closest("[data-x]")) closeHelp(); });
+    addEventListener("keydown", (e) => { if (e.key === "Escape") closeHelp(); });
     function turn(dir) {   // dir +1 = 지난 장으로, -1 = 다음 장으로
       const to = at + dir; if (to < 0 || to >= cards.length) return;
       const go = () => { at = to; paint(); };

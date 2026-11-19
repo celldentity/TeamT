@@ -11,7 +11,7 @@
   const MIN = 500;   // 최소 0.5초(2026-11-18 요청) — 이보다 빨리 준비돼도 이만큼은 보여 준 뒤 내린다
   let busy = 0, shownAt = Date.now(), offT = 0, failT = 0;   // busy = 진행 중인 서버 호출 수(전부 끝나야 내려간다)
   document.body.insertAdjacentHTML("afterbegin",
-    `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><img class="gl__img" src="/assets/icons/icon-v3-192.png" alt="" width="96" height="96" decoding="async"><i class="gl__sh"></i></div>` +
+    `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><svg class="gl__svg" viewBox="0 0 96 96" aria-hidden="true"><path class="e" d="M21 36 17 11l22 12zM75 36l4-25-22 12z"/><ellipse class="b" cx="48" cy="54" rx="31" ry="28"/><g class="gl__eye"><circle cx="37" cy="48" r="3.6"/><circle cx="59" cy="48" r="3.6"/></g><ellipse class="c" cx="29" cy="57" rx="5.5" ry="3.4"/><ellipse class="c" cx="67" cy="57" rx="5.5" ry="3.4"/><path class="m" d="M43 56q5 5 10 0"/><circle class="ball" cx="48" cy="76" r="11"/><path class="pt" d="m48 70 5 3.6-2 5.8h-6l-2-5.8z"/><ellipse class="h" cx="34" cy="72" rx="6" ry="4.5"/><ellipse class="h" cx="62" cy="72" rx="6" ry="4.5"/></svg><i class="gl__sh"></i></div>` +
     `<p class="gl__t">불러오는 중<span class="gl__d" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></p></div>`);
   const glEl = document.getElementById("gl");
   const gl = {

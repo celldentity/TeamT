@@ -61,6 +61,10 @@
   s.parentElement.classList.toggle("app--gate", GATE);
   // 마이페이지 하단 메뉴의 새 소식 숫자(회의록·발표 자료 — 발표자에게만). 숫자는 서버 확인이 끝나야 알 수 있어서, 지난번 값을 기억해 두고(tt_al) 처음부터 그려 깜박임을 없앤다. 서버 확인이 끝나면 맞춰 고친다.
   let al = 0; try { al = Number(localStorage.getItem("tt_al")) || 0; } catch {}
+  // 하단 «마이페이지» 아이콘 = 내 사진(없으면 첫 글자). /api/me 를 기다렸다 그리면 페이지를 옮길 때마다 «사람 아이콘 → 내 사진» 으로 깜박이므로, 지난번 값을 이 브라우저에 기억해 두고(tt_av = {i: 첫 글자, u: 사진 주소, d: 사진 데이터}) 처음부터 같은 모습으로 그린다.
+  let av = null; try { if (localStorage.getItem("tt_in") === "1") av = JSON.parse(localStorage.getItem("tt_av") || "null"); } catch {}
+  const avSig = (a) => a.i + "|" + a.u;
+  const avHtml = (a) => `<span class="tab__av">${a.d || a.u ? `<img src="${(a.d || a.u).replace(/"/g, "")}" alt="">` : a.i.replace(/[&<>"']/g, "")}</span>`;
   s.insertAdjacentHTML("beforebegin",
     // 상단: 로고 + (로그인한 뒤) AI 도우미·알림. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다. 회의록·발표·로그아웃은 마이페이지 안 «바로가기» 카드로 옮겼다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
@@ -69,7 +73,7 @@
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
   const tabPath = /^\/(article|write)$/.test(path) ? "/articles" : path === "/team" ? "/me" : path; // 글 보기·글쓰기도 «아티클», T조 소개는 마이페이지 안에서 여니 «마이페이지» 로 친다
-  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}${p === "/me" && al ? ` aria-label="${l}, 새 소식 ${al}개"` : ""}><span class="tab__ic">${ic}</span>${l}${p === "/me" ? `<b class="tab__n" id="meN"${al ? "" : " hidden"}>${al > 99 ? "99+" : al || ""}</b>` : ""}</a>`;
+  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}${p === "/me" && al ? ` aria-label="${l}, 새 소식 ${al}개"` : ""}><span class="tab__ic"${p === "/me" && av ? ` data-sig="${avSig(av).replace(/"/g, "")}"` : ""}>${p === "/me" && av ? avHtml(av) : ic}</span>${l}${p === "/me" ? `<b class="tab__n" id="meN"${al ? "" : " hidden"}>${al > 99 ? "99+" : al || ""}</b>` : ""}</a>`;
   s.insertAdjacentHTML("afterend", GATE
     ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
     : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
@@ -243,11 +247,10 @@
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;
-    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr"), localStorage.removeItem("tt_al")); } catch {}
+    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr"), localStorage.removeItem("tt_al"), localStorage.removeItem("tt_av")); } catch {}
     if (!user && !GATE) { location.replace("/join"); return never; }
     if (user && GATE) { location.replace("/"); return never; }
-    const me = document.querySelector('.tab[href="/me"] .tab__ic');
-    if (user && me) me.innerHTML = `<span class="tab__av">${avatar(user)}</span>`;
+    TT.setTabUser(user);
     html.classList.remove("pending");
     if (user && !GATE) call("/api/notifications?count=1").then((r) => TT.setBell(r.unread)).catch(() => {});
     return user;
@@ -373,5 +376,16 @@
     document.getElementById("logoutYes").addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
   }
   // 로그인 상태가 바뀌면 하단 메뉴 아이콘 갱신
-  TT.setTabUser = (u) => { const me = document.querySelector('.tab[href="/me"] .tab__ic'); if (me) me.innerHTML = u ? `<span class="tab__av">${avatar(u)}</span>` : TABS[3][2]; };
+  TT.setTabUser = (u) => {
+    const me = document.querySelector('.tab[href="/me"] .tab__ic'); if (!me) return;
+    const save = () => { try { localStorage.setItem("tt_av", JSON.stringify(av)); } catch {} };
+    if (!u) { av = null; try { localStorage.removeItem("tt_av"); } catch {} delete me.dataset.sig; me.innerHTML = IC.me; return; }
+    const i = initial(u), p = u.photoUrl || "";
+    if (!av || av.i !== i || av.u !== p) {   // 사진·닉네임이 바뀌었을 때만 새로 기억한다(사진은 데이터로 받아 두어, 다음 페이지부터는 네트워크 없이 바로 뜬다)
+      const mine = (av = { i, u: p, d: "" }); save();
+      if (p) fetch(p, { credentials: "same-origin" }).then((r) => r.blob()).then((b) => new Promise((ok) => { const f = new FileReader(); f.onload = () => ok(f.result); f.readAsDataURL(b); }))
+        .then((d) => { if (av === mine && /^data:image\//.test(d)) { av.d = d; save(); } }).catch(() => {});
+    }
+    if (me.dataset.sig !== avSig(av)) { me.innerHTML = avHtml(av); me.dataset.sig = avSig(av); }   // 이미 같은 모습이면 건드리지 않는다
+  };
 })();

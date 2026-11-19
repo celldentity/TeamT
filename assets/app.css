@@ -48,16 +48,20 @@ input, select, textarea { accent-color: var(--pink-ink); }
 .top { view-transition-name: top; }
 .tabbar { view-transition-name: tabbar; }
 ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .14s; }
+/* 상단바·하단바는 페이지를 옮겨도 «옛 모습 → 새 모습» 으로 겹쳐 보이지 않게, 새 모습을 바로 보여 준다(깜박임 방지) */
+::view-transition-group(top), ::view-transition-group(tabbar) { animation: none; }
+::view-transition-old(top), ::view-transition-old(tabbar) { display: none; }
+::view-transition-new(top), ::view-transition-new(tabbar) { animation: none; }
 
 /* 상단 메뉴 + 스크롤 진행 표시: 헤더 아래 경계선이 왼쪽에서 오른쪽으로 차오른다 */
-.top { position: fixed; top: 0; inset-inline: 0; z-index: 10; width: 100%; max-width: var(--app-w); margin-inline: auto; background: rgb(255 246 250 / .95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
+.top { position: fixed; top: 0; inset-inline: 0; z-index: 10; width: 100%; max-width: var(--app-w); margin-inline: auto; background: rgb(255 246 250); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); }
 .top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--pink-deep); transform: scaleX(var(--p, 0)); transform-origin: left; }
 .top__in { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
 .logo { text-decoration: none; font-weight: 800; font-size: 1.1875rem; letter-spacing: -.03em; white-space: nowrap; }
 .logo i { font-style: normal; margin: 0 .12em; color: var(--pink-deep); }
 
 /* 하단 고정 메뉴(52px). 선택 표시 = 위쪽 검정 표시선 + 진한 글자(분홍 강조 없음) */
-.tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(249 245 255 / .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
+.tabbar { position: fixed; inset-inline: 0; bottom: 0; z-index: 15; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: rgb(249 245 255); border-top: 1px solid var(--line); }
 .tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: 5px 2px 4px; text-decoration: none; font-size: .6875rem; font-weight: 500; line-height: 1.2; color: var(--ink-soft); -webkit-tap-highlight-color: transparent; }
 .tab svg { display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
 .tab__ic { display: grid; place-items: center; height: 24px; }

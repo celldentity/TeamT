@@ -38,6 +38,7 @@ def save(png, qid):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--only"); ap.add_argument("--redo"); ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--until", help='이 시각("2026-11-20 08:30", 로컬)이 지나면 새 그림을 시작하지 않고 끝낸다 — 예약 실행용')
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     scenes = json.loads((HERE / "scenes.json").read_text(encoding="utf-8"))
@@ -54,6 +55,8 @@ def main():
             for f in (OUT / f"{qid}.jpg", OUT / f"{qid}.t.jpg"): f.unlink(missing_ok=True)
         if (OUT / f"{qid}.jpg").exists(): continue
         if a.limit and n >= a.limit: break
+        if a.until and time.time() >= time.mktime(time.strptime(a.until, "%Y-%m-%d %H:%M")):
+            print("--until 시각이 지나 멈춤", flush=True); break
         attempt = tries.get(qid, 0)
         tmp = OUT / "_tmp.png"
         try:

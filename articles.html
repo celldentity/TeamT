@@ -27,10 +27,13 @@
     <div class="wrap">
       <div class="sec__head">
         <h1 class="sec__title" id="art-title">아티클 <small id="count"></small></h1>
+        <div class="filt" id="filt">
+          <button class="filt__btn" id="filtBtn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="filtPop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg><span id="filtLbl">필터</span></button>
+          <div class="filt__pop" id="filtPop" role="dialog" aria-label="분류로 거르기" hidden><ul id="filtList" role="listbox"></ul></div>
+        </div>
       </div>
       <p class="sec__lead">팀원과 T조 AI가 함께 쓰는 HR 이야기예요.</p>
-      <div class="artfilter"><select id="pick" aria-label="분류로 거르기" hidden></select></div>
-      <ul class="arts" id="arts"></ul>
+            <ul class="arts" id="arts"></ul>
       <div class="empty" id="empty" hidden></div>
       <p class="msg msg--err" id="err" role="alert"></p>
     </div>
@@ -42,25 +45,45 @@
     if (!user) return;
     const $ = (id) => document.getElementById(id);
     let posts = [], cats = [], cur = "전체";
-    // 분류 드롭다운으로 거르기(회의록의 «보기» 와 같은 TT.select) — 분류마다 글 수를 함께 보여 준다.
-    const pick = $("pick");
+    // 분류 거르기: 제목 옆 «필터» 버튼 → 누르면 분류 창이 펼쳐지고, 하나를 고르면 «쪼잉» 하고 닫히며 그 분류 글만 다시 보인다.
+    // 분류가 골라져 있으면(전체가 아니면) 버튼에 불이 들어오고 고른 분류 이름이 보인다.
+    const btn = $("filtBtn"), pop = $("filtPop");
+    let closing = 0;
     function draw() {
       const list = cur === "전체" ? posts : posts.filter((p) => p.category === cur);
       $("arts").innerHTML = list.map(TT.postCard).join("");
       $("count").textContent = list.length;
       $("empty").hidden = list.length > 0;
       $("empty").textContent = posts.length ? "이 분류에는 아직 글이 없어요." : "아직 글이 없어요. 첫 글을 써 보세요.";
+      const on = cur !== "전체";
+      btn.classList.toggle("is-on", on); $("filtLbl").textContent = on ? cur : "필터";
+      btn.setAttribute("aria-label", on ? `분류 거르기, 지금은 ${cur}` : "분류 거르기");
     }
-    function fill() {
-      pick.innerHTML = ["전체", ...cats].map((c) => {
+    function drawList() {
+      $("filtList").innerHTML = ["전체", ...cats].map((c) => {
         const n = c === "전체" ? posts.length : posts.filter((p) => p.category === c).length;
-        return `<option value="${TT.esc(c)}">${TT.esc(c)} · ${n}</option>`;
+        return `<li><button type="button" class="filt__opt" role="option" data-c="${TT.esc(c)}" aria-selected="${c === cur}"><span>${TT.esc(c)}</span><em>${n}</em><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></li>`;
       }).join("");
-      pick.value = cur; pick.hidden = false;
-      TT.select(pick); pick._sel.build();
     }
-    pick.addEventListener("change", () => { cur = pick.value; draw(); window.scrollTo({ top: 0 }); });
-    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; fill(); draw(); }
+    const isOpen = () => !pop.hidden && !closing;
+    function open() { if (isOpen()) return; drawList(); pop.classList.remove("is-out"); pop.hidden = false; btn.setAttribute("aria-expanded", "true"); document.addEventListener("pointerdown", away, true); document.addEventListener("keydown", esc); pop.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true }); }
+    function close(pick) {
+      if (pop.hidden || closing) return;
+      document.removeEventListener("pointerdown", away, true); document.removeEventListener("keydown", esc); btn.setAttribute("aria-expanded", "false");
+      const fin = () => { pop.hidden = true; pop.classList.remove("is-out"); closing = 0; };
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return fin();
+      pop.classList.add("is-out"); closing = setTimeout(fin, 380);   // «쪼잉»: 살짝 부풀었다가 버튼 쪽으로 쏙 사라진다
+      if (!pick) btn.focus({ preventScroll: true });
+    }
+    const away = (e) => { if (!$("filt").contains(e.target)) close(); };
+    const esc = (e) => { if (e.key === "Escape") close(); };
+    btn.addEventListener("click", () => (isOpen() ? close() : open()));
+    pop.addEventListener("click", (e) => {
+      const o = e.target.closest("[data-c]"); if (!o) return;
+      const next = o.dataset.c; o.setAttribute("aria-selected", "true");
+      close(true); if (next !== cur) { cur = next; draw(); window.scrollTo({ top: 0 }); }
+    });
+    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; draw(); }
     catch (e) { $("err").textContent = e.message; }
   });
 </script>

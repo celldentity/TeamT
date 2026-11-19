@@ -537,37 +537,25 @@ a.art { text-decoration: none; color: inherit; }
 .sp-card--weekly { display: block; }
 .sp-card--weekly .btn { margin-top: 10px; }
 
-/* 아티클 분류 드롭다운 */
-.artfilter { margin: 14px 0 6px; }
-.artfilter .sel__btn { min-height: 46px; font-weight: 700; }
-
-/* AI 도우미(/ai) */
-.top__ai svg { fill: var(--pink); stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
-.app--ai { padding-bottom: calc(var(--tabbar-h) + 78px); }
-.ai__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.ai__new { flex: none; padding: 7px 12px; font: 700 .8125rem/1 "Noto Sans KR", var(--font); color: var(--ink); background: #fff; border: 1.5px solid var(--lavender-deep); border-radius: 99px; cursor: pointer; }
-.ai__new:hover { background: var(--lavender-tint); }
-.ai__starter { display: grid; gap: 8px; margin-top: 18px; }
-.ai__hint { margin: 0 0 2px; font-size: .8125rem; font-weight: 700; color: var(--ink-soft); }
-.ai__chip { text-align: left; padding: 12px 14px; font: 500 .9375rem/1.45 "Noto Sans KR", var(--font); color: var(--ink); background: var(--lavender-tint); border: 1.5px solid var(--lavender); border-radius: 14px; cursor: pointer; }
-.ai__chip:hover { border-color: var(--lavender-deep); }
-.ai__log { display: grid; gap: 14px; margin: 18px 0 0; padding: 0; list-style: none; }
-.ai__m { display: flex; gap: 8px; align-items: flex-start; }
-.ai__m--me { justify-content: flex-end; }
-.ai__av { flex: none; width: 28px; height: 28px; border-radius: 30%; margin-top: 2px; }
-.ai__b { min-width: 0; max-width: 88%; padding: 11px 14px; font-size: .9375rem; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; border-radius: 16px; }
-.ai__m--me .ai__b { background: var(--pink); color: var(--ink); border-bottom-right-radius: 5px; }
-.ai__m--ai .ai__b { max-width: calc(100% - 36px); background: var(--lavender-tint); border: 1.5px solid var(--lavender); border-top-left-radius: 5px; }
-.ai__b p { margin: 0; } .ai__b p + p, .ai__b p + ul, .ai__b p + ol, .ai__b ul + p, .ai__b ol + p { margin-top: 10px; }
-.ai__b ul, .ai__b ol { margin: 0; padding-left: 1.3em; } .ai__b ul { list-style: disc; } .ai__b ol { list-style: decimal; } .ai__b li + li { margin-top: 4px; }
-.ai__ref { display: inline-block; padding: 0 7px; font-size: .75rem; font-weight: 700; line-height: 1.7; color: var(--pink-ink); text-decoration: none; background: #fff; border: 1px solid var(--pink-deep); border-radius: 99px; }
-.ai__b--wait { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: .875rem; }
-.ai__dots { display: inline-flex; gap: 3px; } .ai__dots i { width: 6px; height: 6px; background: var(--pink-deep); border-radius: 50%; animation: gl-dot 1.2s infinite; }
-.ai__dots i:nth-child(2) { animation-delay: .2s; } .ai__dots i:nth-child(3) { animation-delay: .4s; }
-.ai__bar { position: fixed; z-index: 14; bottom: var(--tabbar-h); inset-inline: 0; display: flex; align-items: flex-end; gap: 8px; width: 100%; max-width: var(--app-w); margin-inline: auto; padding: 10px 12px; background: rgb(255 255 255 / .96); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
-.ai__bar textarea { flex: 1; min-width: 0; max-height: 132px; padding: 11px 14px; font: 400 1rem/1.5 "Noto Sans KR", var(--font); color: var(--ink); resize: none; overflow-y: hidden; background: #fff; border: 1.5px solid var(--field); border-radius: 18px; }
-.ai__bar textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--lavender); }
-.ai__send { flex: none; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; background: var(--pink); border: 0; border-radius: 50%; cursor: pointer; transition: opacity .15s, transform .1s; }
-.ai__send svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.ai__send:disabled { opacity: .35; cursor: default; }
-.ai__send:not(:disabled):active { transform: scale(.94); }
+/* 아티클 분류 필터: 제목 옆 버튼 + 펼침 창(고르면 «쪼잉» 하고 닫힘). 분류가 골라져 있으면 버튼에 불이 들어온다 */
+.filt { position: relative; flex: none; }
+.filt__btn { display: inline-flex; align-items: center; gap: 6px; max-width: 150px; min-height: 40px; padding: 0 14px 0 11px; font: 700 .875rem/1 "Noto Sans KR", var(--font); color: var(--ink); background: #fff; border: 1.5px solid var(--lavender-deep); border-radius: 99px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .2s, border-color .2s, box-shadow .25s, transform .12s; }
+.filt__btn svg { flex: none; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; }
+.filt__btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filt__btn:active { transform: scale(.95); }
+.filt__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lavender); }
+.filt__btn.is-on { background: var(--pink); border-color: var(--pink-deep); box-shadow: 0 0 0 3px rgb(249 168 205 / .4), 0 4px 14px rgb(231 127 176 / .5); }
+.filt__pop { position: absolute; z-index: 19; top: calc(100% + 8px); right: 0; width: min(250px, calc(100vw - 2 * var(--gutter))); padding: 6px; background: #fff; border: 1.5px solid var(--lavender); border-radius: 18px; box-shadow: 0 16px 38px rgb(87 74 140 / .26); transform-origin: calc(100% - 28px) 0; animation: filt-in .34s cubic-bezier(.34, 1.56, .64, 1) both; }
+.filt__pop[hidden] { display: none; }
+.filt__pop.is-out { pointer-events: none; animation: filt-out .36s cubic-bezier(.5, -.4, .6, 1) both; }
+.filt__pop ul { margin: 0; padding: 0; list-style: none; }
+.filt__opt { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 46px; padding: 0 12px; font: 500 1rem/1 "Noto Sans KR", var(--font); text-align: left; color: var(--ink); background: none; border: 0; border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.filt__opt span { flex: 1; }
+.filt__opt em { font-style: normal; font-size: .8125rem; color: var(--ink-soft); }
+.filt__opt svg { flex: none; width: 18px; height: 18px; fill: none; stroke: var(--pink-ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.filt__opt:hover, .filt__opt:focus-visible { outline: none; background: var(--hover); }
+.filt__opt[aria-selected="true"] { font-weight: 800; background: var(--lavender-tint); }
+.filt__opt[aria-selected="true"] svg { opacity: 1; }
+@keyframes filt-in { from { opacity: 0; transform: scale(.6) translateY(-8px); } to { opacity: 1; transform: none; } }
+@keyframes filt-out { 0% { opacity: 1; transform: scale(1); } 28% { opacity: 1; transform: scale(1.07); } 100% { opacity: 0; transform: scale(.2) translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .filt__pop, .filt__pop.is-out { animation: none; } .filt__btn { transition: none; } }

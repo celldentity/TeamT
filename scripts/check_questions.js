@@ -1,5 +1,5 @@
 // 질문 은행 점검 — node scripts/check_questions.js  (실패하면 종료 코드 1)
-// 중복(제목·같은 문장) · 길이(제목 2~80자, 본문 비어 있지 않음, 토론 본문 ≤ 3000자) · 분류 · 민감한 소재 · 종류별 개수.
+// 중복(제목·같은 문장) · 길이(제목 2~80자, 본문 비어 있지 않음, 토론 본문 ≤ 3000자) · 분류 · 민감한 소재 · 종류별 개수 · 그림 장면(id 별).
 const Q = require("../api/_qbank");
 const L = require("../api/_lib");
 const len = (s) => [...String(s)].length;
@@ -7,9 +7,13 @@ const bad = [], note = (m) => bad.push(m);
 const SENSITIVE = ["연봉", "월급", "몇 살", "나이", "결혼", "이혼", "종교", "정당", "대통령", "임신", "질병", "우울", "가족", "부모님"];
 const TYPES = { HR: 36, 커리어: 20, 상식: 15, 일상: 15 };   // 요일마다 한 번씩 쓰이므로 종류별 최소 개수(요일 주기로 ≥ 15주)
 
+const scenes = require("./qimg/scenes.json");   // 질문마다 일러스트 장면(영어)이 있어야 한다
+const ids = new Set();
 const seen = new Map();
 for (const [kind, list] of [["daily", Q.DAILY], ["weekly", Q.WEEKLY]]) {
   for (const q of list) {
+    if (ids.has(q.id)) note(`id 중복: ${q.id}`); ids.add(q.id);
+    if (!scenes[q.id]) note(`그림 장면(scenes.json)이 없어요: ${q.id} ${q.title}`);
     const key = q.title.replace(/\s+/g, "");
     if (seen.has(key)) note(`중복: ${q.title}`); seen.set(key, 1);
     if (len(q.title) < 2 || len(q.title) > 80) note(`제목 길이 ${len(q.title)}: ${q.title}`);

@@ -5,6 +5,7 @@ const AI = require("./_ai");
 const Q = require("./_qbank");
 const Push = require("./_push");
 const H = require("./_holidays");
+const Img = require("./_qimg");
 
 const GOAL = 10;                 // 주간 토론: 사람이 단 댓글이 이만큼 모이면 진척도 100%
 const MORE_COMMENTS = 3;         // AI 가 반문한 뒤 이만큼 댓글이 더 달리면 다음 단계로
@@ -55,7 +56,7 @@ async function newQuestion(db, kind, date) {
   const fresh = pool.filter((q) => !lastOf.has(q.title));
   // 안 쓴 게 남아 있으면 그중 무작위, 바닥났으면 가장 오래전에 쓴 것부터 다시
   const q = fresh.length ? pick(fresh) : pool.reduce((m, x) => (lastOf.get(x.title) < lastOf.get(m.title) ? x : m));
-  return { category: q.category, title: q.title, body: q.body, type, from: "bank" };
+  return { id: q.id, category: q.category, title: q.title, body: q.body, type, from: "bank" };
 }
 
 async function makeDaily(db, now = new Date()) {
@@ -73,8 +74,9 @@ async function makeDaily(db, now = new Date()) {
     const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, target_id, qdate) VALUES (NULL, 1, ?, ?, ?, 'daily', ?, ?)", [q.category, q.title, q.body, who.id, date]);
     id = r.insertId;
   } catch (e) { if (e.code === "ER_DUP_ENTRY") return { skipped: "이미 있음" }; throw e; }   // 동시에 두 번 불려도 한 번만
+  const img = await Img.attachFor(db, id, q, "daily");   // 질문에 맞는 일러스트(없으면 같은 분류의 다른 그림, 그래도 없으면 그림 없이)
   const push = await Push.notify([who.id], () => ({ title: "오늘의 질문이 도착했어요", body: q.title, url: `/article?id=${id}`, tag: `daily-${date}`, badge: "auto" })).catch((e) => ({ error: e.message }));
-  return { id, date, target: who.nickname, from: q.from, type: q.type, title: q.title, push, ...(H.covered(date) ? {} : { note: "공휴일 정보 없음(주말만 쉼)" }) };
+  return { id, date, target: who.nickname, from: q.from, type: q.type, title: q.title, img, push, ...(H.covered(date) ? {} : { note: "공휴일 정보 없음(주말만 쉼)" }) };
 }
 
 async function makeWeekly(db, now = new Date()) {
@@ -88,8 +90,9 @@ async function makeWeekly(db, now = new Date()) {
     const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, qdate, goal, stage) VALUES (NULL, 1, ?, ?, ?, 'weekly', ?, ?, 'open')", [q.category, q.title, q.body, mon, GOAL]);
     id = r.insertId;
   } catch (e) { if (e.code === "ER_DUP_ENTRY") return { skipped: "이미 있음" }; throw e; }
+  const img = await Img.attachFor(db, id, q, "weekly");
   const push = await Push.notify(null, () => ({ title: "이번 주 토론 주제가 올라왔어요", body: q.title, url: `/article?id=${id}`, tag: `weekly-${mon}`, badge: "auto" })).catch((e) => ({ error: e.message }));
-  return { id, week: mon, from: q.from, title: q.title, push };
+  return { id, week: mon, from: q.from, title: q.title, img, push };
 }
 
 // ── 토론 정리: 100% → Claude 가 요약·반문 → 댓글이 더 달리면 다시 판단 → 글로 정리 ──
@@ -138,6 +141,7 @@ async function wrapOne(db, post) {
       if (L.len(body) < 10) throw new Error("정리된 글이 너무 짧아요.");
       const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, ref_post_id) VALUES (NULL, 1, ?, ?, ?, 'digest', ?)", [cat, title, body, post.id]);
       await db.query("UPDATE posts SET stage = 'done', ref_post_id = ? WHERE id = ?", [r.insertId, post.id]);
+      await Img.attachFromPost(db, r.insertId, post.id);   // 정리한 글에도 토론 글의 그림을 붙인다
       const cid = await aiComment(db, post.id, `이야기가 충분히 모여서 아티클로 정리했어요. 인살롱에 올려도 좋은지 한 번씩 읽어 보고 고칠 곳이 있으면 알려 주세요.\n\n정리된 글: «${title}»`);
       const push = await Push.notify(null, () => ({ title: "토론이 아티클로 정리됐어요", body: title, url: `/article?id=${r.insertId}`, tag: `digest-${post.id}`, badge: "auto" })).catch(() => null);
       return { id: post.id, step: "digest", digest: r.insertId, push, cid };

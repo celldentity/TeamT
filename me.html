@@ -45,12 +45,17 @@
       </div>
 
       <!-- 포인트: 올해 점수(해가 바뀌면 0 에서 다시 시작)·누적·올해 순위·받는 방법·최근 적립. 규칙 숫자는 서버(api/_points.js)가 내려준다 -->
-      <section class="pt" id="ptBox" aria-labelledby="pt-title" hidden>
-        <div class="pt__head"><h2 id="pt-title">포인트</h2><span class="pt__rank" id="ptRank"></span></div>
-        <p class="pt__big"><b id="ptYear">0</b><span>점</span><small id="ptSub"></small></p>
-        <ol class="pt__board" id="ptBoard" aria-label="올해 포인트 순위"></ol>
-        <ul class="pt__log" id="ptLog" aria-label="최근에 받은 포인트"></ul>
-        <details class="pt__how"><summary>포인트는 어떻게 받나요?</summary><ul id="ptHow"></ul></details>
+      <section class="pt" id="ptBox" aria-label="포인트" hidden>
+        <!-- 평소엔 점수만 보이고, 누르면 순위표·최근 적립·받는 방법이 드롭다운으로 펼쳐진다(처음부터 다 펼쳐 두지 않는다) -->
+        <button class="pt__top" type="button" id="ptTop" aria-expanded="false" aria-controls="ptBody">
+          <span class="pt__head"><span class="pt__ttl">포인트</span><span class="pt__rank" id="ptRank"></span><i class="pt__chev" aria-hidden="true"></i></span>
+          <span class="pt__big"><b id="ptYear">0</b><span>점</span><small id="ptSub"></small></span>
+        </button>
+        <div class="pt__body" id="ptBody"><div class="pt__in">
+          <ol class="pt__board" id="ptBoard" aria-label="올해 포인트 순위"></ol>
+          <ul class="pt__log" id="ptLog" aria-label="최근에 받은 포인트"></ul>
+          <details class="pt__how"><summary>포인트는 어떻게 받나요?</summary><ul id="ptHow"></ul></details>
+        </div></div>
       </section>
 
       <form class="form me-sec" id="profForm" novalidate>
@@ -129,6 +134,7 @@
       ].join("");
       $("#ptBox").hidden = false;
     }).catch(() => {});
+    $("#ptTop").addEventListener("click", () => { const on = $("#ptBox").classList.toggle("is-open"); $("#ptTop").setAttribute("aria-expanded", on); });
 
     $("#profForm").addEventListener("submit", async (e) => {
       e.preventDefault();

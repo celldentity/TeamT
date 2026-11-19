@@ -723,7 +723,16 @@ a.art { text-decoration: none; color: inherit; }
 .pt { margin-top: 20px; padding: 18px 16px 14px; background: var(--lavender-tint); border-radius: 24px; }
 .pt[hidden] { display: none; }
 .pt__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.pt__head h2 { margin: 0; font-size: 1.0625rem; font-weight: 800; letter-spacing: -.02em; }
+.pt__top { display: block; width: 100%; padding: 0; font: inherit; color: inherit; text-align: left; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pt__ttl { flex: 1; font-size: 1.0625rem; font-weight: 800; letter-spacing: -.02em; }
+.pt__head { justify-content: flex-start; }
+.pt__chev { flex: none; width: 9px; height: 9px; margin: -3px 4px 0 2px; border: solid var(--ink-soft); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), margin .3s; }
+.pt.is-open .pt__chev { margin-top: 3px; transform: rotate(225deg); }
+/* 드롭다운: 닫혀 있으면 높이 0(보이지도 포커스되지도 않음), 열리면 부드럽게 펼쳐진다 */
+.pt__body { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows .32s ease, visibility 0s .32s; }
+.pt.is-open .pt__body { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows .32s ease, visibility 0s; }
+.pt__in { min-height: 0; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .pt__body, .pt.is-open .pt__body, .pt__chev { transition: none; } }
 .pt__rank { padding: 2px 11px; font-size: .75rem; font-weight: 800; line-height: 1.7; color: var(--pink-ink); background: #fff; border: 1px solid var(--pink); border-radius: 99px; }
 .pt__big { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
 .pt__big b { font-size: 2.75rem; font-weight: 800; line-height: 1.1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }

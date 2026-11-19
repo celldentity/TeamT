@@ -132,6 +132,16 @@ CREATE = [
       UNIQUE KEY uq_library (platform, ext_id),
       KEY ix_library_created (created_at)
     ) CHARACTER SET utf8mb4""",
+    # HR 일력(홈): 그날(한국 날짜) 한 장. 처음 요청될 때 만들고(Claude 또는 문구 은행) 같은 날은 한 장만
+    """CREATE TABLE IF NOT EXISTS daily_cards (
+      qdate      DATE NOT NULL PRIMARY KEY,
+      category   VARCHAR(8)   NOT NULL,
+      quote      VARCHAR(200) NOT NULL,
+      note       VARCHAR(600) NOT NULL,
+      question   VARCHAR(200) NOT NULL,
+      source     VARCHAR(8)   NOT NULL DEFAULT 'bank',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) CHARACTER SET utf8mb4""",
     # AI 도우미(/ai) 사용 기록: 하루 질문 수 제한용(30일이 지나면 자동 정리)
     """CREATE TABLE IF NOT EXISTS ai_usage (
       id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,

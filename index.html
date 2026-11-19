@@ -24,28 +24,15 @@
 <script src="/assets/shell.js"></script>
 <script src="/assets/outbox.js"></script>
 <main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap hero__in">
-      <div>
-        <p class="eyebrow">MIDFIELDER 8TH · TEAM T</p>
-        <h1 class="hero__title" id="hero-title">오늘도 HR에<br>인사이트<br>한 스푼!</h1>
-        <p class="hero__lead">AI가 만들어가는 우리의<br>HR 이야기</p>
+  <section class="cal" aria-label="오늘의 HR 일력">
+    <div class="wrap">
+      <div class="cal__stack" id="calStack">
+        <article class="cal__sheet" id="calSheet" aria-live="polite"></article>
       </div>
-      <div class="hero__art">
-        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <ellipse cx="100" cy="188" rx="54" ry="7" fill="#f3cfe0" opacity=".8"/>
-          <path d="M100 178C40 132 14 99 14 69 14 45 32 29 54 29c19 0 36 10 46 28 10-18 27-28 46-28 22 0 40 16 40 40 0 30-26 63-86 109Z" fill="#f9a8cd"/>
-          <rect x="60" y="66" width="80" height="90" rx="13" fill="#e77fb0" transform="rotate(-7 100 111)"/>
-          <rect x="63" y="60" width="80" height="90" rx="13" fill="#fff" stroke="#f9a8cd" stroke-width="3" transform="rotate(-3 103 105)"/>
-          <g transform="rotate(-3 103 105)">
-            <circle cx="88" cy="88" r="3.4" fill="#2b2540"/><circle cx="118" cy="88" r="3.4" fill="#2b2540"/>
-            <ellipse cx="80" cy="97" rx="6" ry="4" fill="#f9a8cd" opacity=".7"/><ellipse cx="126" cy="97" rx="6" ry="4" fill="#f9a8cd" opacity=".7"/>
-            <path d="M94 97q9 9 18 0" fill="none" stroke="#2b2540" stroke-width="2.6" stroke-linecap="round"/>
-            <rect x="79" y="114" width="48" height="6" rx="3" fill="#b9a6f0"/>
-            <rect x="79" y="126" width="32" height="6" rx="3" fill="#dcd2fa"/>
-          </g>
-          <path d="M172 6q2 16 18 18-16 2-18 18-2-16-18-18 16-2 18-18Z" fill="#b9a6f0"/>
-        </svg>
+      <div class="cal__nav">
+        <button class="cal__btn" type="button" id="calPrev" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg>지난 장</button>
+        <span class="cal__pos" id="calPos"></span>
+        <button class="cal__btn" type="button" id="calNext" disabled>다음 장<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
       <div class="hero__act"><a class="btn" href="/articles">아티클 만나보기</a></div>
     </div>
@@ -64,6 +51,32 @@
 <script>
   TT.ready.then(async (user) => {
     if (!user) return;
+    // ── HR 일력: 오늘 카드와 지난 카드. 날짜는 바로 보이고(서버 응답 전에도), 내용은 받아 오는 대로 채운다. «지난 장»을 누르면 지금 장이 종이처럼 떨어져 나가며 앞 장이 보인다.
+    const WD = ["일", "월", "화", "수", "목", "금", "토"], $ = (s) => document.querySelector(s), sheet = $("#calSheet");
+    let cards = [], at = 0;
+    const dparts = (iso) => { const [y, m, d] = iso.split("-").map(Number), w = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); return { y, m, d, w: WD[w] }; };
+    const sheetHtml = (c) => { const p = dparts(c.date); return `<div class="cal__bind" aria-hidden="true"><i></i><i></i></div>
+      <div class="cal__head"><span class="cal__ym">${p.y}년 ${p.m}월</span><span class="cal__cat">${TT.esc(c.category || "")}</span></div>
+      <div class="cal__day">${p.d}</div><p class="cal__wd">${p.w}요일</p>
+      ${c.quote ? `<blockquote class="cal__q">${TT.esc(c.quote)}</blockquote><p class="cal__note">${TT.esc(c.note)}</p><p class="cal__ask"><b>생각해 볼 질문</b>${TT.esc(c.question)}</p>` : `<div class="cal__wait" aria-hidden="true"><i></i><i></i><i></i></div>`}`; };
+    const kst = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);
+    sheet.innerHTML = sheetHtml({ date: kst });   // 내용이 오기 전에도 오늘 날짜는 먼저 보인다
+    function paint() {
+      sheet.innerHTML = sheetHtml(cards[at]);
+      $("#calPrev").disabled = at >= cards.length - 1; $("#calNext").disabled = at <= 0;
+      $("#calPos").textContent = at === 0 ? "오늘" : `${at}일 전 장`;
+    }
+    function turn(dir) {   // dir +1 = 지난 장으로, -1 = 다음 장으로
+      const to = at + dir; if (to < 0 || to >= cards.length) return;
+      const go = () => { at = to; paint(); };
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return go();
+      const old = sheet.cloneNode(true); old.removeAttribute("id"); old.removeAttribute("aria-live"); old.classList.add(dir > 0 ? "is-tear" : "is-tear is-tear--back"); old.setAttribute("aria-hidden", "true");
+      sheet.parentNode.insertBefore(old, sheet); go();
+      sheet.classList.remove("is-in"); void sheet.offsetWidth; sheet.classList.add("is-in");
+      old.addEventListener("animationend", () => old.remove(), { once: true }); setTimeout(() => old.remove(), 900);
+    }
+    $("#calPrev").addEventListener("click", () => turn(1)); $("#calNext").addEventListener("click", () => turn(-1));
+    TT.call("/api/today?days=14").then((r) => { cards = [r.today, ...r.past]; at = 0; paint(); }).catch(() => { sheet.innerHTML = sheetHtml({ date: kst, category: "", quote: "" }); });
     try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = TT.outbox.merge(posts, user).slice(0, 3).map(TT.postCard).join(""); } catch {}
   });
 </script>

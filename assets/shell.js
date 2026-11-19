@@ -27,7 +27,7 @@
     gl.show();
   });
   addEventListener("pageshow", (e) => { if (e.persisted) gl.hide(); });
-  failT = setTimeout(() => gl.hide(), 4000);   // 무슨 일이 있어도 4초 뒤에는 화면을 돌려준다
+  failT = setTimeout(() => gl.hide(), 15000);   // 서버가 아예 안 답하는 경우에만: 15초 뒤에는 화면을 돌려준다(그 전에는 «다 그려졌다» 는 신호를 기다린다)
 
   const IC = {
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
@@ -263,9 +263,17 @@
     async refresh() { if (!pushOK() || Notification.permission !== "granted") return; try { if (sessionStorage.getItem("tt_push_ref")) return; sessionStorage.setItem("tt_push_ref", "1"); } catch {} await subscribe(false).catch(() => {}); },
   };
   TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); } });
-  // 로더 내리기: 로그인 확인 + 화면 뼈대(DOM)가 준비되고, 페이지가 시작한 서버 호출까지 모두 끝나면(첫 틱 뒤에 확인해야 페이지 스크립트가 호출을 시작한 뒤가 된다)
-  const settle = () => (busy ? setTimeout(settle, 60) : gl.hide());
-  Promise.all([TT.ready, new Promise((r) => (document.readyState !== "loading" ? r() : addEventListener("DOMContentLoaded", r, { once: true })))]).then(() => setTimeout(settle, 0));   // 사진·글꼴이 다 받아질 때까지(load) 기다리지 않는다 — 그게 로더가 오래 떠 있던 주된 이유
+  // 로더 내리기(2026-11-19 요청: 화면이 다 그려졌다는 신호를 받아서 내린다). 아래가 전부 끝나야 내려간다:
+  //  ① 로그인 확인(TT.ready) + 화면 뼈대(DOM)  ② 진행 중인 서버 호출이 없음(busy)  ③ 페이지가 TT.ready.then(...) 에 건 핸들러가 끝남(pend) — 목록을 받아 그리는 async 핸들러가 끝나야 «그림이 완성된 것» 이다
+  //  ④ 그 뒤 실제 화면 갱신(두 프레임)이 지나감. 그 사이에 새 호출·핸들러가 시작되면 다시 기다린다. 4초 같은 시간제한으로 먼저 내리지 않는다(15초 안전장치만).
+  let pend = 0;
+  const afterPaint = (fn) => { let done = false; const go = () => { if (!done) { done = true; fn(); } }; requestAnimationFrame(() => requestAnimationFrame(go)); setTimeout(go, 300); };   // 숨은 탭은 프레임이 안 돌아서 300ms 로도 진행
+  const settle = () => (busy || pend ? setTimeout(settle, 50) : afterPaint(() => (busy || pend ? settle() : gl.hide())));
+  const go = () => setTimeout(settle, 0);
+  Promise.all([TT.ready, new Promise((r) => (document.readyState !== "loading" ? r() : addEventListener("DOMContentLoaded", r, { once: true })))]).then(go, go);   // 사진·글꼴이 다 받아질 때까지(load) 기다리지 않는다 — 그게 로더가 오래 떠 있던 주된 이유
+  // 페이지 스크립트가 TT.ready.then(핸들러) 로 건 핸들러가 끝났는지 센다(async 핸들러는 반환된 약속이 끝날 때까지). 이 줄 뒤에 거는 핸들러만 센다.
+  const readyThen = TT.ready.then.bind(TT.ready);
+  TT.ready.then = (ok, bad) => readyThen(typeof ok === "function" ? (v) => { pend++; let r; try { r = ok(v); } catch (e) { pend--; throw e; } return Promise.resolve(r).finally(() => { pend--; }); } : ok, bad);
   // 발표 버튼: 현재 가입한 5명(users.presenter)에게만 보인다(기기 상관없이). 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
   // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
   TT.ready.then((u) => {

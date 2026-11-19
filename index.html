@@ -16,7 +16,7 @@
 <link rel="icon" type="image/png" href="/assets/icons/icon-v3-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=Archivo+Black&display=swap">
 <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
@@ -24,26 +24,26 @@
 <script src="/assets/shell.js"></script>
 <script src="/assets/outbox.js"></script>
 <main id="main">
+  <!-- HR 일력: 하루 한 장. 큰 날짜 숫자 · 줄 쳐진 오늘의 한 줄 · 해설과 질문 -->
   <section class="cal" aria-label="오늘의 HR 일력">
-    <div class="wrap">
+    <div class="cal__in">
       <div class="cal__stack" id="calStack">
         <article class="cal__sheet" id="calSheet" aria-live="polite"></article>
       </div>
-      <div class="cal__nav">
-        <button class="cal__btn" type="button" id="calPrev" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg>지난 장</button>
-        <label class="cal__pos cal__jump" title="날짜를 골라 그 장으로 이동"><span id="calPos"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9h15M7 3.5v3M17 3.5v3M5.5 5.5h13a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/></svg><input type="date" id="calDate" aria-label="날짜로 이동"></label>
-        <button class="cal__btn" type="button" id="calNext" disabled>다음 장<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+      <div class="cal__bar">
+        <button class="cal__ic" type="button" id="calPrev" aria-label="지난 장" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6"/></svg></button>
+        <button class="cal__ic" type="button" id="calNext" aria-label="다음 장" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <label class="cal__jump" title="날짜를 골라 그 장으로 이동"><span id="calPos"></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9h15M7 3.5v3M17 3.5v3M5.5 5.5h13a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z"/></svg><input type="date" id="calDate" aria-label="날짜로 이동"></label>
+        <button class="cal__ic" type="button" id="calShare" aria-label="이 장 공유하기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 12.5v6a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-6"/></svg></button>
       </div>
-      <div class="hero__act"><a class="btn" href="/articles">아티클 만나보기</a></div>
     </div>
   </section>
 
-  <section class="sec" aria-labelledby="new-title">
+  <section class="sec home__new" aria-labelledby="new-title">
     <div class="wrap">
-      <h2 class="sec__title" id="new-title">새로 올라온 글</h2>
+      <div class="sec__head home__head"><h2 class="home__h" id="new-title">새로 올라온 글</h2><a class="home__more" href="/articles">전체 보기</a></div>
       <ul class="arts" id="newArts"></ul>
-      <p class="note"><a href="/articles"><b>아티클 전체 보기</b></a></p>
-      <p class="note" style="margin-top:32px">HR T | 니핑 프로젝트(B급 부제: HR 떡밥 리텐션 프로젝트)는 가칭이며 이름이 바뀔 수 있습니다.<br>© 2026 Midfielder 8th · Team T</p>
+      <p class="note home__foot">HR T | 니핑 프로젝트(B급 부제: HR 떡밥 리텐션 프로젝트)는 가칭이며 이름이 바뀔 수 있습니다.<br>© 2026 Midfielder 8th · Team T</p>
     </div>
   </section>
 </main>
@@ -52,19 +52,27 @@
   TT.ready.then(async (user) => {
     if (!user) return;
     // ── HR 일력: 오늘 카드와 지난 카드. 날짜는 바로 보이고(서버 응답 전에도), 내용은 받아 오는 대로 채운다. «지난 장»을 누르면 지금 장이 종이처럼 떨어져 나가며 앞 장이 보인다.
-    const WD = ["일", "월", "화", "수", "목", "금", "토"], $ = (s) => document.querySelector(s), sheet = $("#calSheet");
+    const MON = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"], DOW = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    const $ = (s) => document.querySelector(s), sheet = $("#calSheet");
     let cards = [], at = 0;
-    const dparts = (iso) => { const [y, m, d] = iso.split("-").map(Number), w = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); return { y, m, d, w: WD[w] }; };
-    const sheetHtml = (c) => { const p = dparts(c.date); return `<div class="cal__bind" aria-hidden="true"><i></i><i></i></div>
-      <div class="cal__head"><span class="cal__ym">${p.y}년 ${p.m}월</span><span class="cal__cat">${TT.esc(c.category || "")}</span></div>
-      <div class="cal__day">${p.d}</div><p class="cal__wd">${p.w}요일</p>
-      ${c.quote ? `<blockquote class="cal__q">${TT.esc(c.quote)}</blockquote><p class="cal__note">${TT.esc(c.note)}</p><p class="cal__ask"><b>생각해 볼 질문</b>${TT.esc(c.question)}</p>` : `<div class="cal__wait" aria-hidden="true"><i></i><i></i><i></i></div>`}`; };
+    const dparts = (iso) => { const [y, m, d] = iso.split("-").map(Number); return { y, m, d, w: new Date(Date.UTC(y, m - 1, d)).getUTCDay() }; };
+    const sheetHtml = (c) => {
+      const p = dparts(c.date);
+      return `<div class="cal__top"><span class="cal__side cal__side--l" aria-hidden="true">${MON[p.m - 1]}</span>
+        <div class="cal__mid"><i class="cal__rule" aria-hidden="true"></i><span class="cal__mon" aria-label="${p.m}월">${p.m}</span></div>
+        <span class="cal__side cal__side--r" aria-hidden="true">${DOW[p.w]}</span></div>
+        <div class="cal__day" aria-label="${p.y}년 ${p.m}월 ${p.d}일">${p.d}</div>
+        ${c.quote ? `<blockquote class="cal__q"><p>${TT.esc(c.quote)}</p></blockquote>
+        <div class="cal__src"><span>${p.y} · HR 일력${c.category ? " · " + TT.esc(c.category) : ""}</span><span>T조 AI</span></div>
+        <div class="cal__more"><section><h3>해설</h3><p>${TT.esc(c.note)}</p></section><section><h3>생각해 볼 질문</h3><p class="cal__ask">${TT.esc(c.question)}</p></section></div>`
+        : `<div class="cal__wait" aria-hidden="true"><i></i><i></i><i></i></div>`}`;
+    };
     const kst = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);
     sheet.innerHTML = sheetHtml({ date: kst });   // 내용이 오기 전에도 오늘 날짜는 먼저 보인다
     function paint() {
       sheet.innerHTML = sheetHtml(cards[at]);
       $("#calPrev").disabled = at >= cards.length - 1; $("#calNext").disabled = at <= 0;
-      const p = dparts(cards[at].date); $("#calPos").textContent = at === 0 ? "오늘" : `${p.m}월 ${p.d}일 장`;
+      const p = dparts(cards[at].date); $("#calPos").textContent = at === 0 ? `오늘 · ${p.m}월 ${p.d}일` : `${p.m}월 ${p.d}일`;
       const di = $("#calDate"); di.value = cards[at].date; di.max = cards[0].date; di.min = cards[cards.length - 1].date;
     }
     function turn(dir) {   // dir +1 = 지난 장으로, -1 = 다음 장으로
@@ -82,6 +90,10 @@
       at = to; paint(); sheet.classList.remove("is-in"); void sheet.offsetWidth; sheet.classList.add("is-in");
     });
     $("#calPrev").addEventListener("click", () => turn(1)); $("#calNext").addEventListener("click", () => turn(-1));
+    $("#calShare").addEventListener("click", async () => {   // 이 장의 한 줄을 공유(기기의 공유 창, 없으면 복사)
+      const c = cards[at]; if (!c || !c.quote) return; const p = dparts(c.date), text = `${c.quote}\n— HR 일력 · ${p.m}월 ${p.d}일`;
+      try { if (navigator.share) await navigator.share({ title: "HR 일력", text, url: location.origin }); else { await navigator.clipboard.writeText(`${text}\n${location.origin}`); TT.toast("이 장을 복사했어요."); } } catch { /* 공유 창을 닫은 경우 */ }
+    });
     TT.call("/api/today?days=400").then((r) => { cards = [r.today, ...r.past]; at = 0; paint(); }).catch(() => { sheet.innerHTML = sheetHtml({ date: kst, category: "", quote: "" }); });
     try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = TT.outbox.merge(posts, user).slice(0, 3).map(TT.postCard).join(""); } catch {}
   });

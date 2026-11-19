@@ -678,9 +678,9 @@ a.art { text-decoration: none; color: inherit; }
   min-height: calc(2.2em * 5); border-top: 1.5px solid var(--ink);
   background: linear-gradient(to bottom, transparent calc(2.2em - 1px), rgb(25 20 45 / .85) calc(2.2em - 1px)) 0 0 / 100% 2.2em repeat-y; }
 .cal__q p { margin: 0; padding: 0 4px; word-break: keep-all; text-wrap: balance; }
-.cal__src { display: flex; justify-content: space-between; margin-top: 9px; font-size: .75rem; font-weight: 700; color: var(--ink); }
-.cal__more { display: grid; gap: 14px; margin-top: 22px; }
+.cal__more { display: grid; gap: 14px; margin-top: 16px; }
 .cal__more section { padding-top: 10px; border-top: 1px solid rgb(25 20 45 / .85); }
+.cal__more section:first-child { padding-top: 0; border-top: 0; }
 .cal__more h3 { margin: 0 0 4px; font-size: .75rem; font-weight: 800; letter-spacing: .04em; color: var(--pink-ink); }
 .cal__more p { margin: 0; font-size: .9375rem; line-height: 1.75; color: var(--ink-soft); word-break: keep-all; }
 .cal__more .cal__ask { font-weight: 700; color: var(--ink); }

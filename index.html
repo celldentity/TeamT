@@ -63,7 +63,6 @@
         <span class="cal__side cal__side--r" aria-hidden="true">${DOW[p.w]}</span></div>
         <div class="cal__day" aria-label="${p.y}년 ${p.m}월 ${p.d}일">${p.d}</div>
         ${c.quote ? `<blockquote class="cal__q"><p>${TT.esc(c.quote)}</p></blockquote>
-        <div class="cal__src"><span>${p.y} · HR 일력${c.category ? " · " + TT.esc(c.category) : ""}</span><span>T조 AI</span></div>
         <div class="cal__more"><section><h3>해설</h3><p>${TT.esc(c.note)}</p></section><section><h3>생각해 볼 질문</h3><p class="cal__ask">${TT.esc(c.question)}</p></section></div>`
         : `<div class="cal__wait" aria-hidden="true"><i></i><i></i><i></i></div>`}`;
     };

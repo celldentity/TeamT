@@ -4,6 +4,7 @@
 //   DELETE /api/comments?id=N                      → 내 댓글 삭제(답글이 달려 있으면 «삭제된 댓글»로 자리만 남긴다)
 const L = require("./_lib");
 const M = require("./_media");
+const P = require("./_points");
 
 // 사진·영상만 있는 댓글도 허용한다(hasMedia). 글자는 1000자까지.
 const bodyOf = (b, hasMedia) => { const t = String(b.body || "").replace(/\r\n/g, "\n").trim(); return (L.len(t) < 1 && !hasMedia) || L.len(t) > 1000 ? null : t; };
@@ -69,7 +70,9 @@ module.exports = async (req, res) => {
           body: snip, url: `/article?id=${postId}#c${r.insertId}`, tag: `c-${r.insertId}`, badge: "auto",
         }));
       } catch (e) { console.error("push comment", e); }
-      return L.json(res, 201, { id: r.insertId });
+      let points = 0;   // 오늘의 질문에서 지목된 사람이 제대로 답했으면 포인트(실패해도 댓글은 성공)
+      try { points = await P.onComment(db, { postId, commentId: r.insertId, userId: me.id, text }); } catch (e) { console.error("points", e); }
+      return L.json(res, 201, { id: r.insertId, points });
     }
 
     const id = Number(req.query.id);
@@ -87,10 +90,13 @@ module.exports = async (req, res) => {
       if (mids) { const bad = await checkMedia(db, mids, me.id, id); if (bad) return L.json(res, 400, { error: bad }); }
       await db.query("UPDATE comments SET body = ?, updated_at = NOW() WHERE id = ?", [text, id]);
       if (mids) await setMedia(db, id, mids);
-      return L.json(res, 200, { id });
+      let points = 0;
+      try { const [[cm]] = await db.query("SELECT post_id FROM comments WHERE id = ?", [id]); points = await P.onComment(db, { postId: cm.post_id, commentId: id, userId: me.id, text }); } catch (e) { console.error("points", e); }
+      return L.json(res, 200, { id, points });
     }
 
     // 삭제: 답글이 있으면 자리만 남기고, 없으면 지운다. 마지막 답글을 지웠는데 부모가 «삭제된 댓글»이면 부모도 함께 지운다.
+    try { await P.onGone(db, id); } catch (e) { console.error("points", e); }   // 이 댓글로 받은 오늘의 질문 포인트는 회수
     await dropMedia(db, id);   // 붙은 사진·동영상은 댓글이 «삭제된 댓글» 자리만 남더라도 지운다
     const drop = async (cid) => { await db.query("DELETE FROM likes WHERE target_type = 'c' AND target_id = ?", [cid]); await db.query("DELETE FROM comments WHERE id = ?", [cid]); };
     const [kids] = await db.query("SELECT COUNT(*) AS n FROM comments WHERE parent_id = ?", [id]);

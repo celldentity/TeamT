@@ -44,6 +44,15 @@
         <p class="msg msg--err" id="coverMsg" role="alert"></p>
       </div>
 
+      <!-- 포인트: 올해 점수(해가 바뀌면 0 에서 다시 시작)·누적·올해 순위·받는 방법·최근 적립. 규칙 숫자는 서버(api/_points.js)가 내려준다 -->
+      <section class="pt" id="ptBox" aria-labelledby="pt-title" hidden>
+        <div class="pt__head"><h2 id="pt-title">포인트</h2><span class="pt__rank" id="ptRank"></span></div>
+        <p class="pt__big"><b id="ptYear">0</b><span>점</span><small id="ptSub"></small></p>
+        <ol class="pt__board" id="ptBoard" aria-label="올해 포인트 순위"></ol>
+        <ul class="pt__log" id="ptLog" aria-label="최근에 받은 포인트"></ul>
+        <details class="pt__how"><summary>포인트는 어떻게 받나요?</summary><ul id="ptHow"></ul></details>
+      </section>
+
       <form class="form me-sec" id="profForm" novalidate>
         <label class="field">닉네임
           <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
@@ -100,6 +109,26 @@
       $("#me-lead").textContent = u.nickname + "님, 반가워요.";
     }
     render(user);
+
+    // 포인트 카드 — 서버에서 받아 그린다(실패하면 카드는 그냥 숨겨 둔다)
+    TT.call("/api/points").then((d) => {
+      const R = d.rules, e = TT.esc;
+      $("#ptYear").textContent = d.me.year; $("#ptRank").textContent = `${d.year}년 ${d.me.rank}위`;
+      $("#ptSub").textContent = `${d.year}년 포인트 · 누적 ${d.me.total}점`;
+      $("#ptBoard").innerHTML = d.board.map((b) => `<li class="pt__row${b.me ? " is-me" : ""}"><span class="pt__no">${b.rank}</span>${TT.chip(b)}<b class="pt__pt">${b.year}<small>점</small></b></li>`).join("");
+      const past = d.years.filter((y) => y.year !== d.year);
+      $("#ptLog").innerHTML = d.recent.length
+        ? d.recent.map((r) => `<li><a href="/article?id=${r.postId}"><span class="pt__lab">${e(r.label)}${r.title ? `<small>${e(r.title)}</small>` : ""}</span><b>+${r.pts}</b><time>${TT.when(r.at)}</time></a></li>`).join("") + (past.length ? `<li class="pt__past">지난 기록 · ${past.map((y) => `${y.year}년 ${y.pts}점`).join(" · ")}</li>` : "")
+        : `<li class="pt__none">아직 받은 포인트가 없어요. 오늘의 질문과 주간 토론에 참여해 보세요.</li>`;
+      $("#ptHow").innerHTML = [
+        `<li><b>오늘의 질문</b> 지목된 날 제대로 답하면 <em>+${R.DAILY}</em> (공백 빼고 ${R.DAILY_MIN}자 이상)</li>`,
+        `<li><b>주간 토론 참여</b> 댓글을 하나라도 남기면 <em>+${R.JOIN}</em>, 하나도 없으면 0점</li>`,
+        `<li><b>댓글 최다</b> 의미 있는 댓글(공백 빼고 ${R.TOP_MIN}자 이상)을 가장 많이 남기면 <em>+${R.TOP}</em></li>`,
+        `<li><b>핵심 역할</b> 토론이 끝날 때 T조 AI가 대화의 흐름과 결론에 핵심적이었다고 판단하면 <em>+${R.KEY}</em> (최대 ${R.KEY_MAX}명)</li>`,
+        `<li>주간 토론 점수는 AI가 토론을 아티클로 정리할 때 한꺼번에 들어와요. 올해 점수는 해마다 새로 시작하고, 누적 기록은 남아요.</li>`,
+      ].join("");
+      $("#ptBox").hidden = false;
+    }).catch(() => {});
 
     $("#profForm").addEventListener("submit", async (e) => {
       e.preventDefault();

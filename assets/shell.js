@@ -16,6 +16,15 @@
   document.body.insertAdjacentHTML("afterbegin",
     `<div class="gl" id="gl" role="status" aria-label="불러오는 중"><div class="gl__m"><div class="gl__bob"><div class="gl__card">${CHARS.map((c) => `<img src="${c}" alt="" width="96" height="96">`).join("")}</div></div><i class="gl__sh"></i></div>` +
     `<p class="gl__t">불러오는 중<span class="gl__d" aria-hidden="true"><b>.</b><b>.</b><b>.</b></span></p></div>`);
+  // ── 낙엽 배경(2026-11-19 요청): 앱 뒤쪽에 낙엽 여섯 장이 아주 천천히 흩날린다. 스타일·움직임은 app.css 의 .leaves/.lf(CSS 애니메이션만, JS 반복 없음).
+  // 값은 고정표(무작위 없음 → 페이지마다 같은 그림): x=가로 위치(%) s=크기 o=진하기 d=한 바퀴 걸리는 초 dl=시작 시차(음수 = 이미 떨어지는 중) sx=좌우 흔들림 r=처음 기울기
+  const app = document.querySelector(".app");
+  if (app && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const LEAVES = [[8, 22, .5, 34, -6, 38, -20, 0], [24, 28, .42, 42, -27, -46, 40, 1], [42, 18, .55, 30, -14, 30, 110, 2], [61, 26, .45, 38, -2, -36, -70, 0], [78, 20, .52, 46, -33, 44, 10, 1], [92, 24, .4, 36, -19, -30, 150, 2]];
+    app.insertAdjacentHTML("afterbegin", `<div class="leaves" aria-hidden="true">${LEAVES.map(([x, s, o, d, dl, sx, r, k]) => `<i class="lf lf--${k}" style="--x:${x}%;--s:${s}px;--o:${o};--d:${d}s;--dl:${dl}s;--sx:${sx}px;--r:${r}deg"></i>`).join("")}</div>`);
+    const lv = app.querySelector(".leaves");
+    document.addEventListener("visibilitychange", () => lv.classList.toggle("leaves--off", document.hidden));   // 탭이 가려지면 멈춘다(배터리)
+  }
   const glEl = document.getElementById("gl");
   const gl = {
     show() { clearTimeout(offT); clearTimeout(failT); shownAt = Date.now(); glEl.classList.remove("is-off"); },

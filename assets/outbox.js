@@ -46,6 +46,7 @@
           const res = await post(it);
           read(); q = q.filter((x) => x.oid !== it.oid); write();
           if (it.kind === "post" && res && res.id) rememberDone(it.oid, res.id);
+          if (res && res.points > 0 && TT.toast) TT.toast(`포인트 +${res.points}점을 받았어요!`);   // 오늘의 질문에서 지목된 사람이 제대로 답했을 때
           emit("done", it, { result: res || {} });
         } catch (e) {
           read(); const cur = q.find((x) => x.oid === it.oid); if (!cur) continue;

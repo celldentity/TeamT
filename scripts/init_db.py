@@ -158,6 +158,22 @@ CREATE = [
       PRIMARY KEY (target_type, target_id, user_id),
       KEY ix_likes_user (user_id)
     ) CHARACTER SET utf8mb4""",
+    # 포인트(2026-11-19): 한 줄 = 한 번의 적립. kind = daily(오늘의 질문 답변) | w_join·w_top·w_key(주간 토론 참여·댓글 최다·핵심 역할). 같은 일로 두 번 받지 않게 유니크.
+    # yr = 받은 해(한국 시각) — 해가 바뀌면 «올해 포인트»는 새로 시작하고 옛 줄은 누적 기록으로 남는다. 규칙은 api/_points.js
+    """CREATE TABLE IF NOT EXISTS points (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id    BIGINT NOT NULL,
+      kind       VARCHAR(8) NOT NULL,
+      post_id    BIGINT NOT NULL,
+      comment_id BIGINT NULL,
+      pts        INT NOT NULL,
+      yr         SMALLINT NOT NULL,
+      note       VARCHAR(200) NOT NULL DEFAULT '',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_points (user_id, kind, post_id),
+      KEY ix_points_year (yr, user_id),
+      KEY ix_points_comment (comment_id)
+    ) CHARACTER SET utf8mb4""",
 ]
 # 이미 만들어진 users 표에 새 칸 덧붙이기(있으면 1060 오류라 건너뜀)
 ALTER = [

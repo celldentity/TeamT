@@ -6,6 +6,7 @@ const Q = require("./_qbank");
 const Push = require("./_push");
 const H = require("./_holidays");
 const Img = require("./_qimg");
+const P = require("./_points");
 
 const GOAL = 10;                 // 주간 토론: 사람이 단 댓글이 이만큼 모이면 진척도 100%
 const MORE_COMMENTS = 3;         // AI 가 반문한 뒤 이만큼 댓글이 더 달리면 다음 단계로
@@ -135,16 +136,23 @@ async function wrapOne(db, post) {
     await db.query("UPDATE posts SET ai_try_at = NOW() WHERE id = ?", [post.id]);
     const last = post.ai_round >= MAX_ROUNDS || waited >= 72;
     const out = AI.json(await AI.ask({ system: SYS, max: 4000,
-      user: `${topic}\n\n지금까지의 댓글(마지막 AI 댓글 이후 사람이 ${fresh}개 더 달았어요):\n${await thread(db, post.id)}\n\n해야 할 일: 이 토론이 «인살롱(HR 커뮤니티)에 올려도 될 정도의 글»이 될 만큼 충분히 모였는지 판단하세요. 기준은 서로 다른 관점, 근거나 사례, 실무에 쓸 수 있는 결론입니다.${last ? " 이번이 마지막 차례이므로 부족한 점이 있어도 지금까지의 내용으로 글을 정리하세요(ready 는 true)." : ""}\n충분하면 글로 정리하세요: 제목 80자 이내, 분류는 ${L.CATS.join("/")} 중 하나, 본문은 1500~3500자로 도입-관점별 정리-결론과 실무 팁 순서의 일반 글(소제목은 한 줄 문장으로), 토론에 참여한 닉네임을 자연스럽게 언급하세요.\n부족하면 추가 질문 1~2개를 만드세요.\n출력(충분): {"ready":true,"title":"제목","category":"분류","body":"본문"}\n출력(부족): {"ready":false,"questions":["질문1"]}` }));
+      user: `${topic}\n\n지금까지의 댓글(마지막 AI 댓글 이후 사람이 ${fresh}개 더 달았어요):\n${await thread(db, post.id)}\n\n해야 할 일: 이 토론이 «인살롱(HR 커뮤니티)에 올려도 될 정도의 글»이 될 만큼 충분히 모였는지 판단하세요. 기준은 서로 다른 관점, 근거나 사례, 실무에 쓸 수 있는 결론입니다.${last ? " 이번이 마지막 차례이므로 부족한 점이 있어도 지금까지의 내용으로 글을 정리하세요(ready 는 true)." : ""}\n충분하면 글로 정리하세요: 제목 80자 이내, 분류는 ${L.CATS.join("/")} 중 하나, 본문은 1500~3500자로 도입-관점별 정리-결론과 실무 팁 순서의 일반 글(소제목은 한 줄 문장으로), 토론에 참여한 닉네임을 자연스럽게 언급하세요. 또한 포인트 가산점을 위해, 이 대화의 흐름을 이끌었거나 결론을 내는 데 «핵심적인 역할»을 한 팀원을 최대 ${P.RULES.KEY_MAX}명 고르세요(댓글 수가 아니라 기여의 질로 판단: 새로운 관점·근거나 사례를 보탰거나, 엇갈린 의견을 조율했거나, 결론의 뼈대를 만든 사람. 닉네임은 댓글에 적힌 그대로, 이유는 한 문장. 마땅한 사람이 없으면 빈 배열).\n부족하면 추가 질문 1~2개를 만드세요.\n출력(충분): {"ready":true,"title":"제목","category":"분류","body":"본문","key":[{"nickname":"닉네임","reason":"한 문장 이유"}]}\n출력(부족): {"ready":false,"questions":["질문1"]}` }));
     if (out.ready || last) {
       const title = String(out.title || post.title).trim().slice(0, 80), body = String(out.body || "").trim().slice(0, 4900), cat = L.CATS.includes(out.category) ? out.category : post.category;
       if (L.len(body) < 10) throw new Error("정리된 글이 너무 짧아요.");
       const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, ref_post_id) VALUES (NULL, 1, ?, ?, ?, 'digest', ?)", [cat, title, body, post.id]);
       await db.query("UPDATE posts SET stage = 'done', ref_post_id = ? WHERE id = ?", [r.insertId, post.id]);
       await Img.attachFromPost(db, r.insertId, post.id);   // 정리한 글에도 토론 글의 그림을 붙인다
-      const cid = await aiComment(db, post.id, `이야기가 충분히 모여서 아티클로 정리했어요. 인살롱에 올려도 좋은지 한 번씩 읽어 보고 고칠 곳이 있으면 알려 주세요.\n\n정리된 글: «${title}»`);
+      // 포인트 정산(참여·댓글 최다·Claude 가 고른 핵심 역할). 실패해도 정리 글은 이미 올라갔으니 로그만 남긴다(scripts/points_admin.js 로 다시 정산할 수 있다)
+      let pts = null;
+      try { pts = await P.settleWeek(db, post, out.key); } catch (e) { console.error("settle", post.id, e.message); }
+      const R = P.RULES, ptsNote = pts && Object.keys(pts.gave).length
+        ? `\n\n포인트도 드렸어요. 댓글을 남긴 분께 참여 +${R.JOIN}${pts.top.length ? `, 의미 있는 댓글을 가장 많이 남긴 ${pts.top.join("·")}님께 +${R.TOP}` : ""}${pts.key.length ? `, 대화의 흐름과 결론에 핵심 역할을 한 분께 가산점 +${R.KEY}` : ""}.${pts.key.length ? "\n" + pts.key.map((k) => `· ${k.nickname}님 — ${k.reason || "핵심 역할"}`).join("\n") : ""}`
+        : "";
+      const cid = await aiComment(db, post.id, `이야기가 충분히 모여서 아티클로 정리했어요. 인살롱에 올려도 좋은지 한 번씩 읽어 보고 고칠 곳이 있으면 알려 주세요.\n\n정리된 글: «${title}»${ptsNote}`);
       const push = await Push.notify(null, () => ({ title: "토론이 아티클로 정리됐어요", body: title, url: `/article?id=${r.insertId}`, tag: `digest-${post.id}`, badge: "auto" })).catch(() => null);
-      return { id: post.id, step: "digest", digest: r.insertId, push, cid };
+      if (pts) await Push.notify(Object.keys(pts.gave).map(Number), (uid) => ({ title: `토론 포인트 +${pts.gave[uid].pts}점이 들어왔어요`, body: pts.gave[uid].parts.join(" · "), url: "/me", tag: `pts-${post.id}`, badge: "auto" })).catch(() => null);
+      return { id: post.id, step: "digest", digest: r.insertId, push, cid, points: pts && Object.fromEntries(Object.entries(pts.gave).map(([u, v]) => [u, v.pts])) };
     }
     const qs = (out.questions || []).map((x) => String(x).trim()).filter(Boolean).slice(0, 2);
     if (!qs.length) throw new Error("반문이 비어 있어요.");

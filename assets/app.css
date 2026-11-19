@@ -423,23 +423,23 @@ a.art { text-decoration: none; color: inherit; }
 .sw[aria-checked="true"] .sw__k { transform: translateX(20px); }
 .sw[disabled] { opacity: .55; cursor: progress; }
 
-/* 전역 로더(shell.js): 마스코트가 콩콩 뛴다(착지할 때 납작, 뜰 때 길쭉). 앱 틀(430px) 전체를 덮고, 끝나면 서서히 사라진다. */
+/* 전역 로더(shell.js): 우리 캐릭터 카드가 위아래로 튀며 0.3초마다 다른 캐릭터로 바뀐다. 그림은 shell.js 안의 데이터 주소라 따로 내려받지 않는다. 덮는 범위는 아래 .gl 규칙을 따른다. */
 .gl { position: fixed; top: var(--top-h); bottom: calc(var(--tabbar-h) + 1px); left: 0; right: 0; z-index: 16; width: 100%; max-width: var(--app-w); margin-inline: auto; display: grid; place-content: center; justify-items: center; gap: 14px; background: var(--paper); transition: opacity .28s ease, visibility 0s .28s; }
 .gl.is-off { opacity: 0; visibility: hidden; pointer-events: none; }
-.gl__m { position: relative; display: grid; justify-items: center; width: 96px; height: 124px; }
-.gl__svg { width: 96px; height: 96px; margin-top: 16px; overflow: visible; transform-origin: 50% 100%; animation: gl-hop .9s ease-in-out infinite; }
-.gl__svg .e, .gl__svg .h { fill: var(--lavender-deep); } .gl__svg .b { fill: var(--lavender); } .gl__svg .c { fill: var(--pink); opacity: .85; }
-.gl__svg .gl__eye { fill: var(--ink); transform-box: fill-box; transform-origin: center; animation: gl-blink 3s infinite; }
-.gl__svg .m { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; } .gl__svg .ball { fill: #fff; stroke: var(--pink-deep); stroke-width: 2; } .gl__svg .pt { fill: var(--pink-deep); }
-.gl__sh { position: absolute; bottom: 2px; width: 70px; height: 10px; border-radius: 50%; background: rgb(87 74 140 / .2); animation: gl-sh .9s ease-in-out infinite; }
+.gl__m { position: relative; display: grid; justify-items: center; width: 120px; height: 150px; }
+.gl__bob { margin-top: 10px; transform-origin: 50% 100%; animation: gl-bob .6s ease-in-out infinite; }
+.gl__card { position: relative; width: 96px; height: 96px; overflow: hidden; border-radius: 26%; background: var(--blush); box-shadow: 0 10px 22px rgb(87 74 140 / .25); }
+.gl__card img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; animation: gl-pick 3s step-end infinite; }   /* 10장이 0.3초씩 번갈아 나온다 */
+.gl__card img:nth-child(2) { animation-delay: 0.3s; } .gl__card img:nth-child(3) { animation-delay: 0.6s; } .gl__card img:nth-child(4) { animation-delay: 0.9s; } .gl__card img:nth-child(5) { animation-delay: 1.2s; } .gl__card img:nth-child(6) { animation-delay: 1.5s; } .gl__card img:nth-child(7) { animation-delay: 1.8s; } .gl__card img:nth-child(8) { animation-delay: 2.1s; } .gl__card img:nth-child(9) { animation-delay: 2.4s; } .gl__card img:nth-child(10) { animation-delay: 2.7s; }
+.gl__sh { position: absolute; bottom: 4px; width: 70px; height: 10px; border-radius: 50%; background: rgb(87 74 140 / .22); animation: gl-sh .6s ease-in-out infinite; }
 .gl__t { margin: 0; font-size: .9375rem; font-weight: 800; color: var(--ink); }
 .gl__d b { font-weight: 800; color: var(--pink-deep); animation: gl-dot 1.2s infinite; }
 .gl__d b:nth-child(2) { animation-delay: .2s; } .gl__d b:nth-child(3) { animation-delay: .4s; }
-@keyframes gl-hop { 0%, 100% { transform: translateY(0) scale(1.1, .88); } 15%, 85% { transform: translateY(-6px) scale(.96, 1.05); } 50% { transform: translateY(-26px) scale(1, 1); } }
-@keyframes gl-sh { 0%, 100% { transform: scale(1.1); opacity: 1; } 50% { transform: scale(.55); opacity: .45; } }
-@keyframes gl-blink { 0%, 92%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes gl-pick { 0% { opacity: 1; } 10% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes gl-bob { 0%, 100% { transform: translateY(0) scale(1.06, .92); } 50% { transform: translateY(-20px) scale(.97, 1.04) rotate(-3deg); } }
+@keyframes gl-sh { 0%, 100% { transform: scale(1.05); opacity: 1; } 50% { transform: scale(.6); opacity: .45; } }
 @keyframes gl-dot { 0%, 60%, 100% { opacity: .25; } 30% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .gl__svg, .gl__eye, .gl__sh, .gl__d b { animation: none; } .gl { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gl__card img, .gl__bob, .gl__sh, .gl__d b { animation: none; } .gl__card img:first-child { opacity: 1; } .gl { transition: none; } }
 
 /* 회의록(/minutes, 발표자 5명만) */
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

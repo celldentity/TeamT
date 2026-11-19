@@ -254,6 +254,13 @@
   // 상단 알림 숫자(0 이면 숨김), 로그아웃
   // 앱 아이콘 위 숫자(배지) — 홈 화면에 추가한 앱에서 보인다. 상단 종 숫자(안 읽은 알림 수)와 같은 값.
   const appBadge = (n) => { try { const r = n > 0 ? navigator.setAppBadge?.(n) : navigator.clearAppBadge?.(); r?.catch?.(() => {}); } catch {} };
+  // 가벼운 알림 띠: 화면을 막지 않고 잠깐 떴다 사라진다(좋아요·알림 스위치처럼 «먼저 바꿔 보여 주고 뒤에서 저장»하는 동작이 실패했을 때 되돌린 이유를 알린다)
+  let toastT = 0;
+  TT.toast = (msg) => {
+    let el = document.getElementById("toast");
+    if (!el) { document.body.insertAdjacentHTML("beforeend", '<div class="toast" id="toast" role="status" aria-live="polite"></div>'); el = document.getElementById("toast"); }
+    el.textContent = msg; el.classList.add("is-on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("is-on"), 2600);
+  };
   TT.setBell = (n) => { appBadge(n); const b = document.getElementById("bellN"); if (!b) return; b.hidden = !n; b.textContent = n > 99 ? "99+" : n; document.querySelector(".bell")?.setAttribute("aria-label", n ? `알림 ${n}개` : "알림"); };
   // ── 폰 알림(웹 푸시): 이 기기에서 켜고 끄기 ──
   const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;

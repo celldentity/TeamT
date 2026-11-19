@@ -152,15 +152,35 @@
       try { await send("/api/comments", "POST", { postId: id, body: f.body.value }); f.body.value = ""; await load(); } catch (x) { $("#cmErr").textContent = x.message; }
     });
 
+    // 좋아요: 낙관적 갱신. 같은 하트를 연타해도 요청은 순서대로 하나씩 간다(서버는 누를 때마다 켜고 끄는 방식이라 누른 횟수의 홀짝이 맞아야 한다).
+    const likeQ = new Map(), likeWait = new Map();   // 대상(글/댓글+번호) → 이어 붙인 요청 줄 / 아직 안 끝난 요청 수
+    function paintLike(b, liked, n) { b.setAttribute("aria-pressed", String(liked)); b.querySelector("span").textContent = n; }
+    function like(b, cid) {
+      const kind = b.dataset.kind, key = kind + cid, target = kind === "p" ? [data.post] : data.comments.filter((c) => c.id === cid);
+      const was = b.getAttribute("aria-pressed") === "true", n = Number(b.querySelector("span").textContent) || 0;
+      const liked = !was, count = Math.max(0, n + (liked ? 1 : -1));
+      paintLike(b, liked, count); target.forEach((x) => { x.liked = liked; x.likes = count; });
+      likeWait.set(key, (likeWait.get(key) || 0) + 1);
+      likeQ.set(key, (likeQ.get(key) || Promise.resolve()).then(async () => {
+        try {
+          const r = await send("/api/likes", "POST", { type: kind, id: cid });
+          if (likeWait.get(key) === 1) { const el = document.querySelector(`button[data-act="like"][data-kind="${kind}"][data-id="${cid}"]`); if (el) paintLike(el, r.liked, r.count); target.forEach((x) => { x.liked = r.liked; x.likes = r.count; }); }   // 마지막 요청이 끝났을 때만 서버 숫자(다른 사람이 누른 것 포함)로 맞춘다
+        } catch (x) {
+          const el = document.querySelector(`button[data-act="like"][data-kind="${kind}"][data-id="${cid}"]`);   // 저장 실패: 이 한 번의 변경만 되돌린다
+          if (el) { const c = Number(el.querySelector("span").textContent) || 0, was2 = el.getAttribute("aria-pressed") === "true"; paintLike(el, !was2, Math.max(0, c + (was2 ? -1 : 1))); }
+          target.forEach((y) => { y.liked = !y.liked; y.likes = Math.max(0, y.likes + (y.liked ? 1 : -1)); });
+          TT.toast("좋아요를 저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.");
+        } finally { likeWait.set(key, likeWait.get(key) - 1); }
+      }));
+    }
+
     // 나머지 동작은 한곳에서 받는다(목록이 다시 그려져도 동작하도록)
     document.addEventListener("click", async (e) => {
       const b = e.target.closest("button[data-act]"); if (!b || !data) return;
       const act = b.dataset.act, cid = Number(b.dataset.id);
       try {
-        if (act === "like") {   // 하트는 화면 전체를 다시 그리지 않고 숫자만 바꾼다(쓰던 답글·수정 내용이 사라지지 않게)
-          const r = await send("/api/likes", "POST", { type: b.dataset.kind, id: cid });
-          b.setAttribute("aria-pressed", r.liked); b.querySelector("span").textContent = r.count;
-          (b.dataset.kind === "p" ? [data.post] : data.comments.filter((c) => c.id === cid)).forEach((x) => { x.liked = r.liked; x.likes = r.count; });
+        if (act === "like") {   // 하트는 누르는 순간 화면에 먼저 반영하고(숫자만 바꾼다 — 쓰던 답글·수정 내용이 사라지지 않게), 저장은 뒤에서 조용히 한다
+          like(b, cid);
         } else if (act === "answer") { const ta = $("#cmForm textarea"); ta.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => ta.focus(), 400);
         } else if (act === "reply") { replying = replying === cid ? 0 : cid; editing = 0; drawComments(); }
         else if (act === "edit") { editing = cid; replying = 0; drawComments(); }

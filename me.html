@@ -194,11 +194,16 @@
           : "스위치를 켜면 위 소식을 앱을 열지 않아도 이 폰으로 받아요.";
         sw.setAttribute("aria-checked", String(on)); sw.hidden = st === "denied";
       }
+      // 스위치는 누르는 순간 바뀐 모습으로 먼저 보여 주고, 구독 등록·해제는 뒤에서 한다. 끝나면(또는 실패하면) 실제 상태로 조용히 맞춘다.
+      let pushBusy = false;
       sw.addEventListener("click", async () => {
-        msg.textContent = ""; sw.disabled = true;
-        try { if (sw.getAttribute("aria-checked") === "true") await TT.push.disable(); else await TT.push.enable(); }
+        if (pushBusy) return; pushBusy = true; msg.textContent = "";
+        const was = sw.getAttribute("aria-checked") === "true", next = !was;
+        sw.setAttribute("aria-checked", String(next));
+        state.textContent = next ? "켜짐 — 이 기기로 알림이 와요" : "꺼짐";
+        try { if (was) await TT.push.disable(); else await TT.push.enable(); }
         catch (x) { msg.textContent = x.message || "알림을 바꾸지 못했어요. 잠시 뒤 다시 시도해 주세요."; }
-        finally { sw.disabled = false; await draw(); }
+        finally { pushBusy = false; await draw(); }
       });
       draw();
     })();

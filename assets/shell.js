@@ -99,6 +99,15 @@
     if (s < 60) return "방금"; if (s < 3600) return `${Math.floor(s / 60)}분 전`; if (s < 86400) return `${Math.floor(s / 3600)}시간 전`; if (s < 7 * 86400) return `${Math.floor(s / 86400)}일 전`;
     const t = new Date(d); return `${t.getMonth() + 1}월 ${t.getDate()}일`;
   };
+  // 글·댓글을 쓴 정확한 시각: 오늘 09:54 / 어제 21:03 / 11월 17일 09:54 / 2025년 12월 3일 09:54 (이 기기의 시간대 기준)
+  const stamp = (d) => {
+    const t = new Date(d), n = new Date(), p = (v) => String(v).padStart(2, "0"), hm = `${p(t.getHours())}:${p(t.getMinutes())}`;
+    const day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), diff = Math.round((day(n) - day(t)) / 864e5);
+    if (diff === 0) return `오늘 ${hm}`; if (diff === 1) return `어제 ${hm}`;
+    return `${t.getFullYear() === n.getFullYear() ? "" : t.getFullYear() + "년 "}${t.getMonth() + 1}월 ${t.getDate()}일 ${hm}`;
+  };
+  // «언제 썼는지» 를 한 번에: 일주일 안이면 «오늘 09:54 · 24분 전», 그보다 오래되면 날짜·시각만
+  const when = (d) => { const a = ago(d); return /전$|^방금$/.test(a) ? `${stamp(d)} · ${a}` : stamp(d); };
   const heart = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 20.5C5.5 15.8 3 12.6 3 9.4 3 7 4.8 5.2 7.1 5.2c1.9 0 3.7 1 4.9 2.8 1.2-1.8 3-2.8 4.9-2.8C19.2 5.2 21 7 21 9.4c0 3.2-2.5 6.4-9 11.1Z"/></svg>';
   const bubble = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 5h14a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5v-9A1.5 1.5 0 0 1 5 5Z"/></svg>';
   // 닉네임 옆에 아주 작은 프로필 사진(없으면 첫 글자)
@@ -125,8 +134,8 @@
     <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${specialChip(p)}${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>${specialLine(p)}</div>${thumb(p.cover)}
-    <div class="art__foot">${chip(p.author)}<span>${ago(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
-  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, heart, bubble, postCard, kind, kindChip, kindChipOf, specialChip, SPECIAL, user: null, loader: gl });
+    <div class="art__foot">${chip(p.author)}<span>${when(p.createdAt)}</span><span class="stat${p.liked ? " stat--on" : ""}">${heart}${p.likes}</span><span class="stat">${bubble}${p.comments}</span></div></a></li>`;
+  const TT = (window.TT = { call, esc, initial, avatar, who, chip, ago, stamp, when, heart, bubble, postCard, kind, kindChip, kindChipOf, specialChip, SPECIAL, user: null, loader: gl });
 
   // 꾸민 드롭다운: <select> 를 숨겨 두고(값은 그대로 폼에 실린다) 그 자리에 버튼+목록을 그린다.
   // 키보드(↑↓ Enter Space Esc Home End)·스크린리더(listbox)를 지원하고, 아래 공간이 모자라면 위로 펼친다.

@@ -91,7 +91,7 @@
       $("#post").innerHTML = `
         <div class="art__meta"><span class="chip">${TT.esc(p.category)}</span>${TT.specialChip(p)}${TT.kindChip(p)}</div>
         <h1 class="post__title" id="post-title">${TT.esc(p.title)}</h1>
-        <div class="by"><span class="by__av">${TT.avatar(a)}</span><div><p class="by__name">${TT.esc(a.nickname)}</p><p class="by__time">${TT.ago(p.createdAt)}${p.updatedAt ? " · 수정됨" : ""}</p></div></div>
+        <div class="by"><span class="by__av">${TT.avatar(a)}</span><div><p class="by__name">${TT.esc(a.nickname)}</p><p class="by__time">${TT.when(p.createdAt)}${p.updatedAt ? " · 수정됨" : ""}</p></div></div>
         <div id="spBanner"></div>
         ${gallery(p.media || [])}
         <div class="post__body">${TT.esc(p.body)}</div>
@@ -122,7 +122,7 @@
       if (c.deleted) return `<div class="cmt"><span class="cmt__av cmt__av--gone"></span><div><p class="cmt__txt cmt__txt--gone">삭제된 댓글이에요.</p></div></div>`;
       const a = TT.who(c.author), isEdit = editing === c.id;
       return `<div class="cmt" data-cid="${c.id}"><span class="cmt__av">${TT.avatar(a)}</span><div>
-        <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span>${c.author === null ? '<span class="chip chip--ai chip--xs">AI</span>' : ""}${c.byTarget ? '<span class="chip chip--daily chip--xs">지목 답변</span>' : ""}<span class="cmt__time">${TT.ago(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
+        <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span>${c.author === null ? '<span class="chip chip--ai chip--xs">AI</span>' : ""}${c.byTarget ? '<span class="chip chip--daily chip--xs">지목 답변</span>' : ""}<span class="cmt__time">${TT.when(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
         ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
           : `<p class="cmt__txt">${TT.esc(c.body)}</p>

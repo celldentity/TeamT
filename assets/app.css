@@ -559,3 +559,47 @@ a.art { text-decoration: none; color: inherit; }
 @keyframes filt-in { from { opacity: 0; transform: scale(.6) translateY(-8px); } to { opacity: 1; transform: none; } }
 @keyframes filt-out { 0% { opacity: 1; transform: scale(1); } 28% { opacity: 1; transform: scale(1.07); } 100% { opacity: 0; transform: scale(.2) translateY(-10px); } }
 @media (prefers-reduced-motion: reduce) { .filt__pop, .filt__pop.is-out { animation: none; } .filt__btn { transition: none; } }
+
+/* AI 도우미 창(assets/ai.js) — 상단바 ✦ 버튼으로 연다. 상단바와 하단바 사이에 뜨는 카드 */
+.top__ai { background: var(--pink); border-radius: 12px; width: 40px; height: 40px; margin-right: 4px; transition: box-shadow .2s, transform .1s; }
+.top__ai:hover { background: var(--pink); filter: brightness(.97); }
+.top__ai svg { width: 22px; height: 22px; fill: var(--ink); stroke: var(--ink); stroke-width: 1.3; stroke-linejoin: round; }
+.top__ai.is-open { box-shadow: 0 0 0 3px rgb(249 168 205 / .45); }
+.aip { position: fixed; z-index: 17; inset-inline: 8px; margin-inline: auto; max-width: 414px; display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1.5px solid var(--lavender); border-radius: 18px; box-shadow: 0 18px 48px rgb(87 74 140 / .32);
+  bottom: calc(var(--tabbar-h) + 8px); height: min(36rem, calc(100dvh - var(--top-h) - var(--tabbar-h) - 16px)); animation: aip-in .3s cubic-bezier(.34, 1.4, .64, 1) both; transform-origin: calc(100% - 60px) 0; }
+.aip.is-kb { bottom: calc(var(--aip-kb) + 8px); height: min(36rem, calc(var(--aip-vh) - var(--top-h) - 16px)); }
+.aip[hidden] { display: none; }
+.aip__head { display: flex; align-items: center; gap: 4px; padding: 10px 8px 10px 14px; background: var(--pink); color: var(--ink); }
+.aip__logo { display: grid; place-items: center; width: 30px; height: 30px; margin-right: 6px; background: #fff; border-radius: 10px; }
+.aip__logo svg { width: 20px; height: 20px; fill: var(--pink-deep); stroke: var(--ink); stroke-width: 1.3; stroke-linejoin: round; }
+.aip__ttl { flex: 1; min-width: 0; } .aip__ttl p { margin: 0; font-weight: 800; font-size: 1rem; line-height: 1.25; } .aip__ttl small { display: block; font-size: .75rem; line-height: 1.3; color: rgb(25 20 45 / .7); }
+.aip__hb { flex: none; display: inline-grid; place-items: center; min-width: 36px; height: 36px; padding: 0; color: var(--ink); background: none; border: 0; border-radius: 99px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.aip__hb svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.aip__hb:hover, .aip__hb.is-on { background: rgb(255 255 255 / .55); }
+.aip__hb[hidden] { display: none; }
+.aip__hb.is-armed { padding: 0 12px; color: #fff; background: #c8423a; } .aip__hb.is-armed svg { display: none; } .aip__hb.is-armed::after { content: "정말 삭제"; font-size: .8125rem; font-weight: 700; }
+.aip__body, .aip__list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 14px 18px; background: var(--lavender-tint); scrollbar-width: none; }
+.aip__body { display: flex; flex-direction: column; gap: 10px; } .aip__body[hidden], .aip__list[hidden] { display: none; }
+.aip__hello, .aip__ai, .aip__wait, .aip__err { margin: 0; width: fit-content; max-width: 94%; padding: 10px 13px; font-size: .9375rem; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; background: #fff; border: 1px solid var(--lavender); border-radius: 16px 16px 16px 5px; color: var(--ink); }
+.aip__me { margin: 0 0 0 auto; width: fit-content; max-width: 88%; padding: 10px 13px; font-size: .9375rem; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; background: var(--pink); color: var(--ink); border-radius: 16px 16px 5px 16px; }
+.aip__ai p { margin: 0; } .aip__ai p + p, .aip__ai p + ul, .aip__ai p + ol, .aip__ai ul + p, .aip__ai ol + p { margin-top: 9px; }
+.aip__ai ul, .aip__ai ol { margin: 0; padding-left: 1.3em; } .aip__ai ul { list-style: disc; } .aip__ai ol { list-style: decimal; } .aip__ai li + li { margin-top: 3px; }
+.aip__ref { display: inline-block; padding: 0 7px; font-size: .75rem; font-weight: 700; line-height: 1.7; color: var(--pink-ink); text-decoration: none; background: var(--blush); border: 1px solid var(--pink-deep); border-radius: 99px; }
+.aip__wait { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: .875rem; }
+.aip__dots { display: inline-flex; gap: 3px; } .aip__dots i { width: 6px; height: 6px; background: var(--pink-deep); border-radius: 50%; animation: gl-dot 1.2s infinite; } .aip__dots i:nth-child(2) { animation-delay: .2s; } .aip__dots i:nth-child(3) { animation-delay: .4s; }
+.aip__err { color: #a3302a; background: #fdeceb; border-color: #f3c6c2; }
+.aip__form { padding: 10px 12px 8px; background: #fff; border-top: 1px solid var(--line); } .aip__form[hidden] { display: none; }
+.aip__row { display: flex; align-items: flex-end; gap: 10px; } .aip__lab { flex: 1; min-width: 0; }
+.aip__form textarea { display: block; width: 100%; padding: 9px 12px; font: 400 1rem/1.55 "Noto Sans KR", var(--font); color: var(--ink); resize: none; background: #fff; border: 1.5px solid var(--field); border-radius: 12px; }
+.aip__form textarea:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px var(--lavender); }
+.aip__send { flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; background: var(--pink); border: 0; border-radius: 50%; cursor: pointer; transition: opacity .15s, transform .1s; }
+.aip__send svg { width: 21px; height: 21px; fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; } .aip__send:disabled { background: var(--lavender); opacity: .8; cursor: default; } .aip__send:not(:disabled):active { transform: scale(.94); }
+.aip__cnt { margin: 3px 2px 0; text-align: right; font-size: .75rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.aip__title { margin: 0 0 8px 2px; font-weight: 800; } .aip__empty { padding: 28px 0; text-align: center; font-size: .9375rem; line-height: 1.7; color: var(--ink-soft); } .aip__note { margin: 12px 2px 0; font-size: .8125rem; line-height: 1.6; color: var(--ink-soft); }
+.aip__list ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.aip__it { display: flex; align-items: center; gap: 2px; padding-right: 4px; background: #fff; border: 1.5px solid var(--lavender); border-radius: 12px; } .aip__it.is-cur { border-color: var(--pink-deep); }
+.aip__open { flex: 1; min-width: 0; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; } .aip__open b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9375rem; } .aip__open span { font-size: .8125rem; color: var(--ink-soft); }
+.aip__x { flex: none; display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 2px; font: 700 .8125rem/1 "Noto Sans KR", var(--font); color: var(--ink-soft); background: none; border: 0; border-radius: 99px; cursor: pointer; } .aip__x svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.aip__x.is-armed { padding: 0 10px; color: #fff; background: #c8423a; }
+@keyframes aip-in { from { opacity: 0; transform: translateY(-8px) scale(.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .aip { animation: none; } }

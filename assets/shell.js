@@ -49,7 +49,7 @@
   s.insertAdjacentHTML("beforebegin",
     // 상단: 로고 + (로그인한 뒤) 알림·로그아웃. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<div class="top__r"><a class="top__out top__ai" id="aiTop" href="/ai" aria-label="AI에게 물어보기" title="AI에게 물어보기">${IC.ai}</a><a class="top__out" id="minutesTop" href="/minutes" aria-label="회의록" title="회의록" hidden>${IC.mic}</a><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)" hidden>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
+    (GATE ? "" : `<div class="top__r"><button class="top__out top__ai" type="button" id="aiTop" aria-label="AI 도우미 열기" aria-haspopup="dialog" aria-expanded="false" title="AI 도우미">${IC.ai}</button><a class="top__out" id="minutesTop" href="/minutes" aria-label="회의록" title="회의록" hidden>${IC.mic}</a><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)" hidden>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
     `</div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
@@ -208,6 +208,12 @@
     build();
     return (native._sel = { sync, build, open, close });
   };
+  // AI 도우미 창: 상단바 ✦ 버튼을 누르면 어느 페이지에서든 떠오른다. 코드는 첫 클릭 때 불러온다(assets/ai.js).
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest || !e.target.closest("#aiTop")) return;
+    if (TT.ai) return TT.ai.toggle();
+    const el = document.createElement("script"); el.src = "/assets/ai.js"; el.onload = () => TT.ai && TT.ai.toggle(); document.head.append(el);
+  });
   // 서비스워커 등록(폰 알림·홈 화면 앱에 필요)
   if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다

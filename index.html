@@ -71,7 +71,7 @@
       const to = at + dir; if (to < 0 || to >= cards.length) return;
       const go = () => { at = to; paint(); };
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) return go();
-      const old = sheet.cloneNode(true); old.removeAttribute("id"); old.removeAttribute("aria-live"); old.classList.add(dir > 0 ? "is-tear" : "is-tear is-tear--back"); old.setAttribute("aria-hidden", "true");
+      const old = sheet.cloneNode(true); old.removeAttribute("id"); old.removeAttribute("aria-live"); old.classList.remove("is-in"); old.classList.add("is-tear"); if (dir < 0) old.classList.add("is-tear--back"); old.setAttribute("aria-hidden", "true");
       sheet.parentNode.insertBefore(old, sheet); go();
       sheet.classList.remove("is-in"); void sheet.offsetWidth; sheet.classList.add("is-in");
       old.addEventListener("animationend", () => old.remove(), { once: true }); setTimeout(() => old.remove(), 900);

@@ -9,6 +9,7 @@
   --lavender: #dcd2fa;
   --lavender-deep: #b9a6f0;
   --lavender-tint: #eee9fc;
+  --violet: #7a5fd6;              /* 검색 버튼처럼 «분홍·검정과 다른» 포인트가 필요할 때 */
   --blush: #fff1f6;
   --ink: #171719;
   --ink-soft: #57546b;
@@ -795,10 +796,6 @@ a.art { text-decoration: none; color: inherit; }
 
 /* HR 용어 사전(.gx) — 접어 두고 누르면 펼친다. 글자는 크게, 줄 간격은 넉넉하게(읽기 편한 것이 먼저). */
 .gx__bar { position: sticky; top: var(--top-h); z-index: 6; margin: 14px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) 8px; background: var(--paper); }
-.gx__hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.gx__find { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-right: -8px; padding: 0; color: var(--ink); background: transparent; border: 0; border-radius: 50%; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.gx__find svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-.gx__find:active { background: var(--hover); }
 /* 검색 모달(.gxs) — 공용 .calm 쪼잉 모달을 위쪽에 붙여 쓴다(키보드가 올라와도 결과가 보이게) */
 .gxs { place-items: start center; padding-top: calc(var(--top-h) + 8px); }
 .gxs .calm__box { width: min(100%, 420px); max-height: calc(100dvh - var(--top-h) - 24px); padding-top: 16px; }
@@ -866,3 +863,9 @@ a.art { text-decoration: none; color: inherit; }
 .tile__badge { position: absolute; top: 8px; left: 8px; padding: 2px 7px; font-size: .625rem; font-weight: 800; letter-spacing: .01em; color: var(--ink); background: #fff; border: 1px solid var(--lavender-deep); border-radius: 99px; }
 @keyframes prem-shine { 0%, 62% { transform: translateX(-130%); } 90%, 100% { transform: translateX(130%); } }
 @media (prefers-reduced-motion: reduce) { .tile--prem::after { animation: none; display: none; } }
+
+/* HR 사전의 둥근 돋보기(.fab-find) — 하단바 오른쪽 위에 떠 있고, 둘레 링(보라)이 스크롤 위치를 보여 준다. 꾹 누르면 맨 위로. */
+.fab-find { position: fixed; z-index: 14; right: max(16px, calc((100vw - var(--app-w)) / 2 + 16px)); bottom: calc(var(--tabbar-h) + 16px); display: grid; place-items: center; width: 56px; height: 56px; padding: 0; color: var(--violet); background: conic-gradient(var(--violet) var(--pct, 0%), var(--lavender) 0); border: 0; border-radius: 50%; box-shadow: 0 6px 16px rgb(87 74 140 / .3); cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; touch-action: manipulation; transition: transform .1s; }
+.fab-find::before { content: ""; position: absolute; inset: 4px; background: var(--lavender-tint); border-radius: 50%; }
+.fab-find svg { position: relative; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
+.fab-find:active { transform: scale(.92); }

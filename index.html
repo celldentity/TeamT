@@ -68,11 +68,14 @@
     };
     const kst = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10);
     sheet.innerHTML = sheetHtml({ date: kst });   // 내용이 오기 전에도 오늘 날짜는 먼저 보인다
+    function nav() {   // 버튼 잠금·날짜 선택 범위(카드 목록이 늘어나면 다시 맞춘다)
+      $("#calPrev").disabled = at >= cards.length - 1; $("#calNext").disabled = at <= 0;
+      const di = $("#calDate"); di.value = cards[at].date; di.max = cards[0].date; di.min = cards[cards.length - 1].date;
+    }
     function paint() {
       sheet.innerHTML = sheetHtml(cards[at]);
-      $("#calPrev").disabled = at >= cards.length - 1; $("#calNext").disabled = at <= 0;
       const p = dparts(cards[at].date); $("#calPos").textContent = at === 0 ? `오늘 · ${p.m}월 ${p.d}일` : `${p.m}월 ${p.d}일`;
-      const di = $("#calDate"); di.value = cards[at].date; di.max = cards[0].date; di.min = cards[cards.length - 1].date;
+      nav();
     }
     function turn(dir) {   // dir +1 = 지난 장으로, -1 = 다음 장으로
       const to = at + dir; if (to < 0 || to >= cards.length) return;
@@ -93,7 +96,14 @@
       const c = cards[at]; if (!c || !c.quote) return; const p = dparts(c.date), text = `${c.quote}\n— HR 일력 · ${p.m}월 ${p.d}일`;
       try { if (navigator.share) await navigator.share({ title: "HR 일력", text, url: location.origin }); else { await navigator.clipboard.writeText(`${text}\n${location.origin}`); TT.toast("이 장을 복사했어요."); } } catch { /* 공유 창을 닫은 경우 */ }
     });
-    TT.call("/api/today?days=400").then((r) => { cards = [r.today, ...r.past]; at = 0; paint(); }).catch(() => { sheet.innerHTML = sheetHtml({ date: kst, category: "", quote: "" }); });
+    // 모바일 회선을 아끼려고 오늘+지난 7장만 먼저 받아 그리고, 올해 나머지 지난 장은 화면이 뜬 뒤 조용히 이어 받는다
+    TT.call("/api/today?days=8").then((r) => {
+      cards = [r.today, ...r.past]; at = 0; paint();
+      setTimeout(() => TT.call("/api/today?days=400").then((f) => {
+        const cur = cards[at].date, all = [f.today, ...f.past]; if (all.length <= cards.length) return;
+        cards = all; at = Math.max(0, cards.findIndex((c) => c.date === cur)); nav();
+      }).catch(() => {}), 1500);
+    }).catch(() => { sheet.innerHTML = sheetHtml({ date: kst, category: "", quote: "" }); });
     try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = TT.outbox.merge(posts, user).slice(0, 3).map(TT.postCard).join(""); } catch {}
   });
 </script>

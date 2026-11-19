@@ -137,10 +137,12 @@
   const kindChipOf = (k) => `<span class="chip chip--${k}">${KINDS[k][1]}${KINDS[k][0]}</span>`;
   const kindChip = (p) => kindChipOf(kind(p));
   // 오늘의 질문 · 이번 주 토론 · 토론을 정리한 아티클: 글 종류 칩 + 목록 카드 아래의 지목/진척도 줄
+  // «답변 완료» 도장 — 지목된 사람이 제대로 답하면 지목 줄 오른쪽에 찍힌다(목록 카드·글 보기 공용)
+  const STAMP = '<span class="stamp" role="img" aria-label="답변 완료"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>답변 완료</span>';
   const SPECIAL = { daily: "오늘의 질문", weekly: "이번 주 토론", digest: "인살롱 후보" };
   const specialChip = (p) => (p.special ? `<span class="chip chip--${p.special}">${SPECIAL[p.special]}</span>` : "");
   const specialLine = (p) => p.special === "daily" && p.target
-      ? `<p class="sp sp--daily">지목 ${chip(p.target)} · ${p.answered ? "답변 완료" : p.forMe ? "나에게 온 질문 · 답변 기다리는 중" : "답변 기다리는 중"}</p>`
+      ? `<p class="sp sp--daily">지목 ${chip(p.target)}${p.answered ? STAMP : ` · ${p.forMe ? "나에게 온 질문 · 답변 기다리는 중" : "답변 기다리는 중"}`}</p>`
     : p.special === "weekly" && p.progress
       ? `<div class="sp sp--weekly"><span class="sp__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.progress.pct}"><i style="width:${p.progress.pct}%"></i></span><span class="sp__t">${p.progress.stage === "done" ? "정리 완료" : `의논 진행도 ${Math.min(p.progress.done, p.progress.goal)}/${p.progress.goal} · ${p.progress.pct}%`}</span></div>`
     : "";
@@ -380,6 +382,7 @@
     document.getElementById("logoutYes").addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });
   }
   // 로그인 상태가 바뀌면 하단 메뉴 아이콘 갱신
+  TT.stamp = STAMP;   // 글 보기(article.html)도 같은 도장을 쓴다
   TT.setTabUser = (u) => {
     const me = document.querySelector('.tab[href="/me"] .tab__ic'); if (!me) return;
     const save = () => { try { localStorage.setItem("tt_av", JSON.stringify(av)); } catch {} };

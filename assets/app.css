@@ -873,3 +873,8 @@ a.art { text-decoration: none; color: inherit; }
 .fab-find::before { content: ""; position: absolute; inset: 4px; background: var(--lavender-tint); border-radius: 50%; }
 .fab-find svg { position: relative; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; }
 .fab-find:active { transform: scale(.92); }
+
+/* «답변 완료» 도장 — 오늘의 질문에서 지목된 사람이 답하면 지목 줄 오른쪽(글 보기에서는 카드 오른쪽 끝)에 비스듬히 찍힌다 */
+.stamp { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; padding: 1px 8px 1px 5px; font-size: .75rem; font-weight: 800; letter-spacing: .02em; line-height: 1.5; color: var(--pink-ink); white-space: nowrap; vertical-align: middle; background: rgb(255 255 255 / .65); border: 2px solid var(--pink-ink); border-radius: 7px; box-shadow: inset 0 0 0 1px #fff, inset 0 0 0 2px rgb(178 58 114 / .3); transform: rotate(-5deg); }
+.stamp svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.sp-card .stamp { flex: none; margin-left: auto; padding: 3px 10px 3px 7px; font-size: .875rem; }

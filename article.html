@@ -166,7 +166,7 @@
       let h = "";
       if (p.special === "daily" && p.target) {
         const t = TT.who(p.target);
-        h = `<div class="sp-card sp-card--daily"><span class="sp-card__av">${TT.avatar(t)}</span><div class="sp-card__t"><b>오늘 지목된 사람 · ${TT.esc(t.nickname)}</b><p>${p.answered ? "답변이 올라왔어요. 다른 분들도 이어서 이야기해 보세요." : p.forMe ? "오늘의 질문이 나에게 왔어요! 아래에 답변을 남겨 주세요." : "지목된 분의 답변을 기다리고 있어요."}</p></div>${p.forMe && !p.answered ? '<button class="btn btn--sm" type="button" data-act="answer">답변하러 가기</button>' : ""}</div>`;
+        h = `<div class="sp-card sp-card--daily"><span class="sp-card__av">${TT.avatar(t)}</span><div class="sp-card__t"><b>오늘 지목된 사람 · ${TT.esc(t.nickname)}</b><p>${p.answered ? "답변이 올라왔어요. 다른 분들도 이어서 이야기해 보세요." : p.forMe ? "오늘의 질문이 나에게 왔어요! 아래에 답변을 남겨 주세요." : "지목된 분의 답변을 기다리고 있어요."}</p></div>${p.answered ? TT.stamp : ""}${p.forMe && !p.answered ? '<button class="btn btn--sm" type="button" data-act="answer">답변하러 가기</button>' : ""}</div>`;
       } else if (p.special === "weekly" && p.progress) {
         const g = p.progress, msg = g.stage === "done" ? "토론이 끝났어요. T조 AI가 아티클로 정리했어요." : g.stage === "review" ? "T조 AI가 정리하고 질문을 남겼어요. 이어서 의견을 나눠 주세요." : g.pct >= 100 ? "T조 AI가 곧 정리하러 와요(몇 분 걸려요)." : `댓글이 ${g.goal}개 모이면 T조 AI가 정리하고 질문을 던져요.`;
         h = `<div class="sp-card sp-card--weekly"><div class="sp-card__row"><b>의논 진행도</b><span>${Math.min(g.done, g.goal)}/${g.goal} · ${g.pct}%</span></div><span class="sp__bar sp__bar--lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${g.pct}"><i style="width:${g.pct}%"></i></span><p>${msg}</p>${p.ref ? `<a class="btn btn--sm" href="/article?id=${p.ref}">정리된 아티클 보기</a>` : ""}</div>`;

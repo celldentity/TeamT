@@ -46,10 +46,12 @@
   const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
   const s = document.currentScript;
   s.parentElement.classList.toggle("app--gate", GATE);
+  // 발표·회의록 버튼은 «발표자인지» 를 서버에 물어본 뒤에야 알 수 있어서, 페이지를 옮길 때마다 없다가 나타나 깜박였다. 지난번 확인 결과를 이 브라우저에 기억해 두고(tt_pr) 처음부터 그 상태로 그린다. 서버 확인이 끝나면 맞춰 고친다.
+  let pr = false; try { pr = localStorage.getItem("tt_pr") === "1"; } catch {}
   s.insertAdjacentHTML("beforebegin",
     // 상단: 로고 + (로그인한 뒤) 알림·로그아웃. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<div class="top__r"><button class="top__out top__ai" type="button" id="aiTop" aria-label="AI 도우미 열기" aria-haspopup="dialog" aria-expanded="false" title="AI 도우미">${IC.ai}</button><a class="top__out" id="minutesTop" href="/minutes" aria-label="회의록" title="회의록" hidden>${IC.mic}</a><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)" hidden>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
+    (GATE ? "" : `<div class="top__r"><button class="top__out top__ai" type="button" id="aiTop" aria-label="AI 도우미 열기" aria-haspopup="dialog" aria-expanded="false" title="AI 도우미">${IC.ai}</button><a class="top__out" id="minutesTop" href="/minutes" aria-label="회의록" title="회의록"${pr ? "" : " hidden"}>${IC.mic}</a><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)"${pr ? "" : " hidden"}>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
     `</div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
@@ -219,7 +221,7 @@
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;
-    try { user ? localStorage.setItem("tt_in", "1") : localStorage.removeItem("tt_in"); } catch {}
+    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr")); } catch {}
     if (!user && !GATE) { location.replace("/join"); return never; }
     if (user && GATE) { location.replace("/"); return never; }
     const me = document.querySelector('.tab[href="/me"] .tab__ic');
@@ -287,8 +289,11 @@
   // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
   TT.ready.then((u) => {
     const b = document.getElementById("presentTop"), mic = document.getElementById("minutesTop");
-    if (!b || !u || !u.presenter) return;
-    b.hidden = false; if (mic) mic.hidden = false;   // 회의록(마이크)도 같은 5명에게만
+    const on = !!(u && u.presenter);
+    try { on ? localStorage.setItem("tt_pr", "1") : localStorage.removeItem("tt_pr"); } catch {}
+    if (!b) return;
+    b.hidden = !on; if (mic) mic.hidden = !on;   // 회의록(마이크)도 같은 5명에게만
+    if (!on) return;
     b.addEventListener("click", () => {
       if (!matchMedia("(hover: hover) and (pointer: fine)").matches) { location.href = "/present"; return; }
       const w = screen.availWidth, h = screen.availHeight;

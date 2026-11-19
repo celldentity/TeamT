@@ -110,6 +110,18 @@ CREATE = [
       body       TEXT NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     ) CHARACTER SET utf8mb4""",
+    # 시스템 알림(운영자 전용, 예: 도메인 만료 임박). 하루 한 줄 — (user_id, kind, day) 가 유일해 같은 날 두 번 만들어지지 않는다. 알림 페이지·종 숫자에 섞여 보인다.
+    """CREATE TABLE IF NOT EXISTS notices (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      user_id    BIGINT NOT NULL,
+      kind       VARCHAR(20) NOT NULL,
+      day        DATE NOT NULL,
+      title      VARCHAR(100) NOT NULL,
+      body       VARCHAR(300) NOT NULL DEFAULT '',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_notice_day (user_id, kind, day),
+      KEY ix_notice_user (user_id, created_at)
+    ) CHARACTER SET utf8mb4""",
     # 크론 실행 기록: Vercel 이 정말 부르고 있는지 확인용(2주 뒤 자동 정리)
     """CREATE TABLE IF NOT EXISTS cron_runs (
       id     BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,

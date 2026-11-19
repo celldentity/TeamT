@@ -65,6 +65,10 @@
       "schedule": "30 0 * * 1-5"
     },
     {
+      "path": "/api/cron?job=domain",
+      "schedule": "0 0 * * *"
+    },
+    {
       "path": "/api/cron?job=wrap",
       "schedule": "*/5 * * * *"
     }

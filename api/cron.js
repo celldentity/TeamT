@@ -1,5 +1,6 @@
 // 크론 문 — Vercel 크론이 부른다(vercel.json 의 crons). 사람이 직접 부르는 주소가 아니다.
 //   GET /api/cron?job=daily  → 평일 09:30(KST): 이번 주 토론(그 주의 첫 영업일) + 오늘의 질문(지목) 만들기. 주말·공휴일은 건너뜀(api/_holidays.js)
+//   GET /api/cron?job=domain → 매일 09:00(KST): 도메인 만료 30일 전부터 운영자 한 사람에게 하루 한 번 알림(api/_notice.js)
 //   GET /api/cron?job=wrap   → 주간 토론이 100% 면 Claude 가 요약·반문·아티클 정리 (+ 9시 30분 이후 오늘 질문이 없으면 만들기)
 // 인증: CRON_SECRET 환경변수가 있으면 Vercel 이 보내는 Authorization: Bearer 와 맞아야 한다. 없으면 vercel-cron 사용자 에이전트만 받는다.
 // 어느 단계든 같은 날·같은 상태에서 여러 번 불려도 한 번만 일하도록 만들어 뒀다(api/_routine.js).
@@ -29,7 +30,12 @@ module.exports = async (req, res) => {
       await log(out);
       return L.json(res, 200, out);
     }
-    return L.json(res, 400, { error: "job 은 daily 또는 wrap 이에요." });
+    if (job === "domain") {   // 매일 09:00(KST, 주말 포함): 도메인 만료 30일 전부터 만료일까지 운영자에게 하루 한 번 알림(api/_notice.js)
+      const out = await require("./_notice").domainExpiry(db);
+      if (!out.skip) await log(out);
+      return L.json(res, 200, out);
+    }
+    return L.json(res, 400, { error: "job 은 daily, wrap, domain 중 하나예요." });
   } catch (e) {
     console.error("cron", e);
     return L.json(res, 500, { error: "서버에 문제가 생겼습니다." });

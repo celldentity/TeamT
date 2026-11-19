@@ -28,7 +28,9 @@ const args = (uid) => Array(N_ARGS).fill(uid);
 
 async function unread(db, uid) {
   const [r] = await db.query(`SELECT COUNT(*) AS n FROM (${EVENTS}) e WHERE e.created_at > ${SEEN}`, [...args(uid), uid]);
-  return Number(r[0].n);
+  let extra = 0;   // 시스템 알림(notices) — 표가 아직 없는 환경이면 0
+  try { const [n] = await db.query(`SELECT COUNT(*) AS n FROM notices WHERE user_id = ? AND created_at > ${SEEN}`, [uid, uid]); extra = Number(n[0].n); } catch (e) { if (e.errno !== 1146) throw e; }
+  return Number(r[0].n) + extra;
 }
 
 module.exports = { EVENTS, SEEN, args, unread };

@@ -327,6 +327,7 @@
   const seenKey = () => "tt_seen_" + (TT.user ? TT.user.id : "");
   const seenGet = () => { try { return JSON.parse(localStorage.getItem(seenKey()) || "{}") || {}; } catch { return {}; } };
   const seenPut = (v) => { try { localStorage.setItem(seenKey(), JSON.stringify(v)); } catch {} };
+  const etagKey = (t) => String(t || "").replace(/^W\//, "").replace(/"/g, "");
   TT.alerts = { minutes: 0, deck: 0, total: 0, latest: 0, tag: "" };
   TT.icons = IC;   // 마이페이지 카드가 같은 아이콘을 쓴다
   const paintAlerts = () => {
@@ -349,7 +350,8 @@
       ]);
       a.latest = m ? m.latest : 0; a.tag = tag;
       if (m) { if (v.m == null) { v.m = m.latest; } else a.minutes = m.count; }
-      if (tag) { if (v.d == null) v.d = tag; else if (v.d !== tag) a.deck = 1; }
+      // ETag 는 Cloudflare 를 거치면 같은 파일이 "abc"(강) ↔ W/"abc"(약)로 번갈아 내려온다 → 비교 전에 W/ 와 따옴표를 떼서 같은 값으로 본다(안 그러면 «바뀌었다» 알림이 안 지워진다).
+      if (tag) { if (v.d == null) v.d = tag; else if (etagKey(v.d) !== etagKey(tag)) a.deck = 1; }
       seenPut(v); paintAlerts();
     })();
     return TT.alerts;

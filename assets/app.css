@@ -824,7 +824,6 @@ a.art { text-decoration: none; color: inherit; }
 .gx__sum { display: block; margin-top: 4px; font-size: .9375rem; line-height: 1.6; color: var(--ink-soft); }
 .gx__chev { position: absolute; right: 8px; top: 22px; width: 10px; height: 10px; border: solid var(--ink-soft); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform .2s; }
 .gx__item.is-open .gx__chev { transform: rotate(-135deg); top: 26px; }
-.gx__item.is-open { background: linear-gradient(var(--blush), var(--blush)) left / 3px 100% no-repeat; }
 .gx__body { padding: 0 2px 18px; }
 .gx__def { font-size: 1.0625rem; line-height: 1.8; letter-spacing: -.01em; word-break: keep-all; }
 .gx__cmp { margin-top: 16px; }

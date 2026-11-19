@@ -23,6 +23,7 @@
 <div class="app">
 <script src="/assets/shell.js"></script>
 <script src="/assets/media.js"></script>
+<script src="/assets/outbox.js"></script>
 <main id="main">
   <section class="sec" aria-labelledby="w-title">
     <div class="wrap">
@@ -60,7 +61,7 @@
     if (!user) return;
     const $ = (s) => document.querySelector(s), form = $("#form"), id = Number(new URLSearchParams(location.search).get("id")) || 0;
     const len = (s) => [...s.trim()].length;
-    let post = null;
+    let post = null, saving = false;
     $("#writer").innerHTML = "작성자 " + TT.chip(user);
 
     // ── 사진·동영상 ── items: {key, kind, state: prep|up|ok|err, pct, id(서버 파일 번호), preview, msg, item}
@@ -129,16 +130,24 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const err = $("#err"), btn = $("#btn"), label = btn.textContent; err.textContent = "";
-      const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: items.filter((m) => m.state === "ok").map((m) => m.id) };
-      if (busy()) { err.textContent = "사진·동영상을 올리는 중이에요. 끝나면 올려 주세요."; return; }
       if (items.some((m) => m.state === "err")) { err.textContent = "올리지 못한 파일이 있어요. × 로 지우고 다시 올려 주세요."; return; }
-      if (len(d.title) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
-      if (len(d.body) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
-      btn.disabled = true; btn.textContent = "잠시만요…";
-      try {
-        const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts", id ? "PATCH" : "POST", d);
-        location.href = "/article?id=" + r.id;
-      } catch (x) { err.textContent = x.message; btn.disabled = false; btn.textContent = label; }
+      if (len(form.title.value) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
+      if (len(form.body.value) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
+      // 저장: 편지함(outbox)에 넣고 화면은 바로 «저장된 글»로 넘어간다. 실제 저장(DB)은 뒤에서 한다. 사진·동영상이 아직 올라가는 중이면 그게 끝나는 즉시 같은 방식으로 저장한다.
+      const send = () => {
+        const media = items.filter((m) => m.state === "ok");
+        const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: media.map((m) => m.id) };
+        const view = { category: d.category, title: d.title.trim(), body: d.body.replace(/\r\n/g, "\n").trim(), ai: d.ai, media: media.map((m) => ({ id: m.id, kind: m.kind, thumb: !!(m.preview || (m.item && m.item.thumb)) })) };
+        if (id) { TT.outbox.add({ kind: "post-edit", url: "/api/posts?id=" + id, method: "PATCH", body: d, postId: id, view }, { defer: true }); location.href = "/article?id=" + id; }
+        else { const oid = TT.outbox.add({ kind: "post", url: "/api/posts", method: "POST", body: d, view }, { defer: true }); location.href = "/article?p=" + oid; }
+      };
+      if (!busy()) return send();
+      btn.disabled = true; saving = true;
+      const t = setInterval(() => {
+        if (items.some((m) => m.state === "err")) { clearInterval(t); saving = false; btn.disabled = false; btn.textContent = label; err.textContent = "올리지 못한 파일이 있어요. × 로 지우고 다시 올려 주세요."; return; }
+        if (!busy()) { clearInterval(t); send(); return; }
+        const up = items.filter((m) => m.state === "up"); btn.textContent = up.length ? `사진·동영상 올리는 중 ${Math.round(up.reduce((a, m) => a + m.pct, 0) / up.length * 100)}%` : "준비 중…";
+      }, 200);
     });
   });
 </script>

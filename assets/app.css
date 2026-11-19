@@ -631,3 +631,7 @@ a.art { text-decoration: none; color: inherit; }
 .cm-m--v { cursor: default; }
 .cm-m--v video { display: block; width: 100%; max-height: 320px; background: #000; }
 .cmt__media--2 .cm-m--v video { height: 100%; object-fit: contain; }
+
+/* 저장하지 못했을 때만 뜨는 안내(assets/outbox.js) */
+.ob-fail { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0; padding: 12px 14px; font-size: .875rem; line-height: 1.5; color: #a3302a; background: #fdeceb; border: 1px solid #f3c6c2; border-radius: 14px; }
+.ob-fail p { margin: 0; } .ob-fail div { display: flex; flex: none; gap: 6px; }

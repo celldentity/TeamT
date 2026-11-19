@@ -22,6 +22,7 @@
 <body>
 <div class="app">
 <script src="/assets/shell.js"></script>
+<script src="/assets/outbox.js"></script>
 <main id="main">
   <section class="sec" aria-labelledby="art-title">
     <div class="wrap">
@@ -44,7 +45,7 @@
   TT.ready.then(async (user) => {
     if (!user) return;
     const $ = (id) => document.getElementById(id);
-    let posts = [], cats = [], cur = "전체";
+    let posts = [], raw = [], cats = [], cur = "전체";
     // 분류 거르기: 제목 옆 «필터» 버튼 → 누르면 분류 창이 펼쳐지고, 하나를 고르면 «쪼잉» 하고 닫히며 그 분류 글만 다시 보인다.
     // 분류가 골라져 있으면(전체가 아니면) 버튼에 불이 들어오고 고른 분류 이름이 보인다.
     const btn = $("filtBtn"), pop = $("filtPop");
@@ -78,12 +79,13 @@
     const away = (e) => { if (!$("filt").contains(e.target)) close(); };
     const esc = (e) => { if (e.key === "Escape") close(); };
     btn.addEventListener("click", () => (isOpen() ? close() : open()));
+    TT.outbox.on((ev) => { if (ev.type === "done" || ev.type === "drop" || ev.type === "add") { TT.call("/api/posts").then((r) => { raw = r.posts; posts = TT.outbox.merge(raw, user); draw(); }).catch(() => {}); } });
     pop.addEventListener("click", (e) => {
       const o = e.target.closest("[data-c]"); if (!o) return;
       const next = o.dataset.c; o.setAttribute("aria-selected", "true");
       close(true); if (next !== cur) { cur = next; draw(); window.scrollTo({ top: 0 }); }
     });
-    try { const r = await TT.call("/api/posts"); posts = r.posts; cats = r.categories; draw(); }
+    try { const r = await TT.call("/api/posts"); raw = r.posts; cats = r.categories; posts = TT.outbox.merge(raw, user); draw(); }
     catch (e) { $("err").textContent = e.message; }
   });
 </script>

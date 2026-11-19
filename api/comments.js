@@ -38,6 +38,9 @@ module.exports = async (req, res) => {
     const db = L.db(), b = req.method === "DELETE" ? {} : L.readBody(req);
 
     if (req.method === "POST") {
+      // 같은 요청이 두 번 와도(브라우저가 저장을 다시 시도) 댓글은 하나만: 클라이언트 키(cid)로 이미 만든 것이 있으면 그 번호를 돌려준다
+      const cid = typeof b.cid === "string" && /^[a-z0-9]{6,24}$/.test(b.cid) ? b.cid : null;
+      if (cid) { const [dup] = await db.query("SELECT id FROM comments WHERE author_id = ? AND client_id = ?", [me.id, cid]); if (dup[0]) return L.json(res, 200, { id: dup[0].id }); }
       const mids = mediaIds(b) || [], postId = Number(b.postId), text = bodyOf(b, mids.length > 0);
       if (text === null) return L.json(res, 400, { error: "댓글은 1~1000자로 적어 주세요(사진·동영상만 올려도 돼요)." });
       const bad = await checkMedia(db, mids, me.id, 0);
@@ -50,7 +53,9 @@ module.exports = async (req, res) => {
         if (!par[0] || par[0].deleted) return L.json(res, 404, { error: "답글을 달 댓글을 찾을 수 없어요." });
         parentId = par[0].parent_id || par[0].id; // 답글에 답해도 같은 댓글 아래에 모은다(한 단계)
       }
-      const [r] = await db.query("INSERT INTO comments (post_id, parent_id, author_id, body) VALUES (?, ?, ?, ?)", [postId, parentId, me.id, text]);
+      let r;
+      try { [r] = await db.query("INSERT INTO comments (post_id, parent_id, author_id, body, client_id) VALUES (?, ?, ?, ?, ?)", [postId, parentId, me.id, text, cid]); }
+      catch (e) { if (cid && e.code === "ER_DUP_ENTRY") { const [dup] = await db.query("SELECT id FROM comments WHERE author_id = ? AND client_id = ?", [me.id, cid]); if (dup[0]) return L.json(res, 200, { id: dup[0].id }); } throw e; }
       if (mids.length) await setMedia(db, r.insertId, mids);
       // 폰 알림: 내 글에 댓글이 달리면 글쓴이에게, 내 댓글에 답글이 달리면 그 댓글을 쓴 사람에게. 한 사람에게 한 번만, 나 자신은 뺀다(알림 페이지의 규칙과 같다).
       try {

@@ -22,6 +22,7 @@
 <body>
 <div class="app">
 <script src="/assets/shell.js"></script>
+<script src="/assets/outbox.js"></script>
 <main id="main">
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap hero__in">
@@ -63,7 +64,7 @@
 <script>
   TT.ready.then(async (user) => {
     if (!user) return;
-    try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = posts.map(TT.postCard).join(""); } catch {}
+    try { const { posts } = await TT.call("/api/posts?limit=3"); document.getElementById("newArts").innerHTML = TT.outbox.merge(posts, user).slice(0, 3).map(TT.postCard).join(""); } catch {}
   });
 </script>
 </body>

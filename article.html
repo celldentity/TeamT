@@ -23,6 +23,7 @@
 <div class="app">
 <script src="/assets/shell.js"></script>
 <script src="/assets/media.js"></script>
+<script src="/assets/outbox.js"></script>
 <main id="main">
   <section class="sec" aria-labelledby="post-title">
     <div class="wrap">
@@ -47,16 +48,63 @@
 <script>
   TT.ready.then(async (me) => {
     if (!me) return;
-    const $ = (s) => document.querySelector(s), id = Number(new URLSearchParams(location.search).get("id")) || 0;
-    let data = null, replying = 0, editing = 0;
+    const $ = (s) => document.querySelector(s), qs = new URLSearchParams(location.search);
+    let id = Number(qs.get("id")) || 0, pOid = qs.get("p") || "";   // pOid: 방금 쓴 글(아직 저장 중) — 편지함(outbox)의 번호
+    let data = null, base = null, replying = 0, editing = 0;
     $("#cmWho").innerHTML = TT.chip(me);
     const fail = (m) => { $("#post").innerHTML = ""; $("#cmSec").hidden = true; $("#gone").hidden = false; $("#gone").textContent = m; };
 
+    // ── «먼저 보여 주고 뒤에서 저장»(assets/outbox.js): 아직 서버에 가지 못한 글·댓글 변경을 화면에 겹쳐 보여 준다 ──
+    const OB = TT.outbox;
+    const pendingPost = (it) => { const v = it.view; return { id: 0, category: v.category, title: v.title, ai: !!v.ai, author: me, createdAt: new Date(it.at).toISOString(), updatedAt: null, likes: 0, liked: false, comments: 0, mine: true, special: null, target: null, forMe: false, qdate: null, progress: null, ref: null, cover: null, body: v.body, media: v.media || [], pending: true }; };
+    function rebuild() {   // 서버에서 받은 base 위에, 아직 서버에 안 간 변경(post-edit·comment·comment-edit·comment-del)을 겹친다
+      const tmps = [];
+      for (const it of OB.list()) {
+        if (it.kind === "post-edit" && it.postId === id) Object.assign(base.post, { category: it.view.category, title: it.view.title, body: it.view.body, ai: it.view.ai, media: it.view.media, updatedAt: base.post.updatedAt || new Date(it.at).toISOString() });
+        else if (it.kind === "comment-edit") { const c = base.comments.find((x) => x.id === it.commentId); if (c) Object.assign(c, { body: it.view.body, media: it.view.media, updatedAt: c.updatedAt || new Date(it.at).toISOString() }); }
+        else if (it.kind === "comment-del") { const c = base.comments.find((x) => x.id === it.commentId); if (c) c.deleted = true; }
+        else if (it.kind === "comment" && it.postId === id) {
+          const par = it.view.parentId ? base.comments.find((x) => x.id === it.view.parentId) : null;
+          tmps.push({ id: "t" + it.oid, tmp: true, parentId: par ? (par.parentId || par.id) : null, deleted: false, author: me, body: it.view.body, media: it.view.media || [], createdAt: new Date(it.at).toISOString(), updatedAt: null, likes: 0, liked: false, mine: true, byTarget: false });
+        }
+      }
+      data = { ...base, comments: base.comments.concat(tmps) };
+    }
+    const failBox = (it) => {   // 저장하지 못했을 때만 보이는 안내(그 전에는 아무것도 안 보인다)
+      let el = $("#obFail"); if (!el) { el = document.createElement("div"); el.id = "obFail"; el.className = "ob-fail"; el.setAttribute("role", "alert"); $("#post").before(el); }
+      el.innerHTML = `<p><b>저장하지 못했어요.</b> ${TT.esc(it.err || "")}</p><div><button class="btn btn--sm" type="button" data-ob="retry" data-oid="${it.oid}">다시 시도</button><button class="btn btn--ghost btn--sm" type="button" data-ob="drop" data-oid="${it.oid}">버리기</button></div>`;
+    };
     async function load() {
-      try { data = await TT.call("/api/posts?id=" + id); } catch (x) { fail(x.message); return; }
+      if (pOid) {   // 방금 쓴 글: 저장이 이미 끝났으면 진짜 글로, 아직이면 쓴 내용 그대로 «저장된 모습»을 보여 준다
+        const d = OB.doneId(pOid);
+        if (d && !OB.get(pOid)) { id = d; pOid = ""; history.replaceState(null, "", "/article?id=" + id); }
+        else {
+          const it = OB.get(pOid); if (!it) return fail("글을 찾을 수 없어요.");
+          base = data = { categories: [], post: pendingPost(it), comments: [] };
+          drawPost(); $("#cmSec").hidden = true; if (it.state === "fail") failBox(it); return;
+        }
+      }
+      try { base = await TT.call("/api/posts?id=" + id); } catch (x) { fail(x.message); return; }
+      rebuild();
       if (!$("#post").firstElementChild) drawPost();   // 댓글만 바뀐 뒤에는 글(재생 중인 동영상 포함)을 다시 그리지 않는다
       drawBanner(); drawComments(); jump();
     }
+    // 저장이 끝나면 화면을 조용히 진짜 데이터로 바꾼다(쓰던 답글·수정 칸이 열려 있으면 건드리지 않는다)
+    async function quietRefresh() {
+      if (pOid || !base || replying || editing || document.activeElement?.matches?.("textarea")) return;
+      try { base = await TT.call("/api/posts?id=" + id); rebuild(); drawBanner(); drawComments(); } catch { /* 다음에 */ }
+    }
+    OB.on((ev) => {
+      if (ev.type === "done") {
+        if (pOid && ev.item.oid === pOid) { id = ev.result.id; pOid = ""; history.replaceState(null, "", "/article?id=" + id); $("#obFail")?.remove(); $("#post").innerHTML = ""; load(); }
+        else if (!pOid) quietRefresh();
+      } else if (ev.type === "fail") { if (!pOid || ev.item.oid === pOid) failBox(ev.item); }
+    });
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-ob]"); if (!b) return;
+      if (b.dataset.ob === "retry") { OB.retry(b.dataset.oid); $("#obFail")?.remove(); }
+      else { const k = OB.get(b.dataset.oid); OB.drop(b.dataset.oid); $("#obFail")?.remove(); if (k && k.kind === "post") location.href = "/articles"; else if (!pOid) load(); }
+    });
     // 알림에서 들어오면(#c댓글번호) 그 댓글로 스크롤하고 잠깐 강조한다 — 처음 한 번만
     let jumped = false;
     function jump() {
@@ -98,9 +146,9 @@
         <div id="spBanner"></div>
         ${gallery(p.media || [])}
         <div class="post__body">${TT.esc(p.body)}</div>
-        <div class="post__bar">${likeBtn("like", "p", p.id, p.liked, p.likes)}<span class="bar__sp"></span>
-          ${p.mine ? `<a class="btn btn--ghost btn--sm" href="/write?id=${p.id}">수정</a><button class="btn btn--ghost btn--sm" type="button" data-act="del-post">삭제</button>` : ""}</div>`;
-      $("#cmSec").hidden = false; bindGallery();
+        ${p.pending ? "" : `<div class="post__bar">${likeBtn("like", "p", p.id, p.liked, p.likes)}<span class="bar__sp"></span>
+          ${p.mine ? `<a class="btn btn--ghost btn--sm" href="/write?id=${p.id}">수정</a><button class="btn btn--ghost btn--sm" type="button" data-act="del-post">삭제</button>` : ""}</div>`}`;
+      $("#cmSec").hidden = !!p.pending; bindGallery();
     }
 
     // 오늘의 질문(지목된 사람)·이번 주 토론(진척도·AI 정리 단계)·정리된 아티클 안내
@@ -136,6 +184,7 @@
       };
       const A = {
         ids: () => items.filter((it) => it.done).map((it) => it.id),
+        media: () => items.filter((it) => it.done).map((it) => ({ id: it.id, kind: it.kind, thumb: !!(it.preview || it.thumb) })),
         uploading: () => items.some((it) => !it.done),
         reset() { items.length = 0; draw(); },                                                  // 보낸 뒤: 파일은 이제 댓글 것이라 지우지 않는다
         dispose() { items.forEach((it) => { if (it.xhr) it.xhr.abort(); else if (it.done && !it.old) CM.discard(it.id); }); items.length = 0; },   // 쓰다 말았을 때: 새로 올린 파일은 치운다
@@ -187,9 +236,9 @@
         ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
           : `${c.body ? `<p class="cmt__txt">${TT.esc(c.body)}</p>` : ""}${cmedia(c.media)}
-        <div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}${reply ? "" : `<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>`}
-          ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}
-        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기"></textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
+        ${c.tmp ? "" : `<div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>
+          ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}`}
+        ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기">${reply ? TT.esc("@" + a.nickname + " ") : ""}</textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">답글 등록</button></div></form>` : ""}
       </div></div>`;
     }
@@ -213,7 +262,9 @@
       const A = atts.get(f), ids = A ? A.ids() : [];
       if (A && A.uploading()) { $("#cmErr").textContent = "사진·동영상을 올리는 중이에요. 잠시만 기다려 주세요."; return; }
       if (!f.body.value.trim() && !ids.length) { $("#cmErr").textContent = "댓글 내용을 적어 주세요(사진·동영상만 올려도 돼요)."; return; }
-      try { await send("/api/comments", "POST", { postId: id, body: f.body.value, media: ids }); f.body.value = ""; if (A) A.reset(); await load(); } catch (x) { $("#cmErr").textContent = x.message; }
+      // 편지함에 넣고 화면에는 바로 올린다(저장은 뒤에서)
+      OB.add({ kind: "comment", url: "/api/comments", method: "POST", body: { postId: id, body: f.body.value, media: ids }, postId: id, view: { parentId: 0, body: f.body.value.trim(), media: A ? A.media() : [] } });
+      f.body.value = ""; if (A) A.reset(); rebuild(); drawComments();
     });
 
     attach($("#cmForm"));
@@ -247,11 +298,11 @@
         if (act === "like") {   // 하트는 누르는 순간 화면에 먼저 반영하고(숫자만 바꾼다 — 쓰던 답글·수정 내용이 사라지지 않게), 저장은 뒤에서 조용히 한다
           like(b, cid);
         } else if (act === "answer") { const ta = $("#cmForm textarea"); ta.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => ta.focus(), 400);
-        } else if (act === "reply") { disposeAtts(); replying = replying === cid ? 0 : cid; editing = 0; drawComments(); }
+        } else if (act === "reply") { disposeAtts(); replying = replying === cid ? 0 : cid; editing = 0; drawComments(); setTimeout(() => { const ta = document.querySelector(`form[data-act="send-reply"] textarea`); if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }, 0); }
         else if (act === "edit") { disposeAtts(); editing = cid; replying = 0; drawComments(); }
         else if (act === "cancel") { disposeAtts(); replying = 0; editing = 0; drawComments(); }
-        else if (act === "del") { if (confirm("이 댓글을 지울까요? 되돌릴 수 없어요.")) { await send("/api/comments?id=" + cid, "DELETE", {}); await load(); } }
-        else if (act === "del-post") { if (confirm("이 글을 지울까요? 댓글과 좋아요도 함께 지워지고 되돌릴 수 없어요.")) { await send("/api/posts?id=" + id, "DELETE", {}); location.href = "/articles"; } }
+        else if (act === "del") { if (confirm("이 댓글을 지울까요? 되돌릴 수 없어요.")) { OB.add({ kind: "comment-del", url: "/api/comments?id=" + cid, method: "DELETE", commentId: cid, postId: id }); rebuild(); drawComments(); } }
+        else if (act === "del-post") { if (confirm("이 글을 지울까요? 댓글과 좋아요도 함께 지워지고 되돌릴 수 없어요.")) { OB.add({ kind: "post-del", url: "/api/posts?id=" + id, method: "DELETE", postId: id }, { defer: true }); location.href = "/articles"; } }
       } catch (x) { alert(x.message); }
     });
     document.addEventListener("submit", async (e) => {
@@ -260,14 +311,13 @@
       const A = atts.get(f), ids = A ? A.ids() : [];
       if (A && A.uploading()) { showErr(f, "사진·동영상을 올리는 중이에요. 잠시만 기다려 주세요."); return; }
       if (!textOf(f).trim() && !ids.length) { showErr(f, "내용을 적어 주세요(사진·동영상만 올려도 돼요)."); return; }
-      try {
-        if (act === "save-edit") await send("/api/comments?id=" + cid, "PATCH", { body: textOf(f), media: ids });
-        else await send("/api/comments", "POST", { postId: id, parentId: cid, body: textOf(f), media: ids });
-        if (A) A.reset(); replying = 0; editing = 0; await load();
-      } catch (x) { showErr(f, x.message); }
+      const view = { body: textOf(f).trim(), media: A ? A.media() : [] };
+      if (act === "save-edit") OB.add({ kind: "comment-edit", url: "/api/comments?id=" + cid, method: "PATCH", body: { body: textOf(f), media: ids }, commentId: cid, postId: id, view });
+      else OB.add({ kind: "comment", url: "/api/comments", method: "POST", body: { postId: id, parentId: cid, body: textOf(f), media: ids }, postId: id, view: { ...view, parentId: cid } });
+      if (A) A.reset(); replying = 0; editing = 0; rebuild(); drawComments();
     });
 
-    if (!id) return fail("글을 찾을 수 없어요.");
+    if (!id && !pOid) return fail("글을 찾을 수 없어요.");
     load();
   });
 </script>

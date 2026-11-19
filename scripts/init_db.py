@@ -155,7 +155,12 @@ ALTER = [
     "ALTER TABLE posts ADD COLUMN ai_try_at TIMESTAMP NULL",           # weekly: AI 호출을 마지막으로 시도한 시각(실패해도 30분은 다시 안 부른다)
     "ALTER TABLE posts ADD COLUMN ref_post_id BIGINT NULL",            # weekly ↔ digest 서로 가리킴
     "ALTER TABLE posts ADD UNIQUE KEY uq_posts_kind_date (kind, qdate)",
-    "ALTER TABLE comments MODIFY author_id BIGINT NULL",               # NULL = T조 AI 가 단 댓글
+    "ALTER TABLE comments MODIFY author_id BIGINT NULL",
+    # 저장 요청 중복 방지(2026-11-19): 브라우저가 «먼저 보여 주고 뒤에서 저장»(assets/outbox.js)하다가 같은 요청을 다시 보내도 글·댓글이 하나만 생기게 하는 클라이언트 키
+    "ALTER TABLE posts ADD COLUMN client_id VARCHAR(24) NULL",
+    "ALTER TABLE posts ADD UNIQUE KEY uq_posts_client (author_id, client_id)",
+    "ALTER TABLE comments ADD COLUMN client_id VARCHAR(24) NULL",
+    "ALTER TABLE comments ADD UNIQUE KEY uq_comments_client (author_id, client_id)",               # NULL = T조 AI 가 단 댓글
 ]
 
 db = pymysql.connect(host=os.environ["TIDB_HOST"], port=int(os.environ["TIDB_PORT"]), user=os.environ["TIDB_USER"],

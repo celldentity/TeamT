@@ -130,7 +130,7 @@
   // 아티클 카드(목록·홈 공용): 왼쪽에 분류·글 종류·제목·미리보기, 오른쪽에 대표 사진·동영상 썸네일(있을 때만), 아래 줄에 글쓴이·시각·좋아요·댓글
   const PLAY = '<span class="th__play"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></i></span>';
   const thumb = (c) => (!c ? "" : `<span class="th${c.thumb ? "" : " th--none"}">${c.thumb ? `<img src="/api/media?id=${c.id}&v=thumb" alt="" loading="lazy" decoding="async">` : ""}${c.kind === "video" ? PLAY : ""}${c.n > 1 ? `<span class="th__n" aria-label="파일 ${c.n}개">+${c.n - 1}</span>` : ""}</span>`);
-  const postCard = (p) => `<li><a class="art art--${kind(p)}${p.cover ? " art--img" : ""}" href="/article?id=${p.id}">
+  const postCard = (p) => `<li><a class="art art--${kind(p)}${p.cover ? " art--img" : ""}" href="${p.href || "/article?id=" + p.id}">
     <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${specialChip(p)}${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>${specialLine(p)}</div>${thumb(p.cover)}
@@ -290,6 +290,8 @@
     async refresh() { if (!pushOK() || Notification.permission !== "granted") return; try { if (sessionStorage.getItem("tt_push_ref")) return; sessionStorage.setItem("tt_push_ref", "1"); } catch {} await subscribe(false).catch(() => {}); },
   };
   TT.ready.then((u) => { if (u && !GATE) { TT.push.refresh(); } });
+  // 저장 중이던 글·댓글이 남아 있으면(저장 도중에 페이지를 옮기거나 앱을 닫았을 때) 어느 페이지에서든 이어서 보낸다(assets/outbox.js)
+  TT.ready.then((u) => { if (!u || GATE || TT.outbox) return; try { if (JSON.parse(localStorage.getItem("tt_ob_" + u.id) || "[]").length) { const el = document.createElement("script"); el.src = "/assets/outbox.js"; document.head.append(el); } } catch {} });
   // 로더 내리기(2026-11-19 요청: 화면이 다 그려졌다는 신호를 받아서 내린다). 아래가 전부 끝나야 내려간다:
   //  ① 로그인 확인(TT.ready) + 화면 뼈대(DOM)  ② 진행 중인 서버 호출이 없음(busy)  ③ 페이지가 TT.ready.then(...) 에 건 핸들러가 끝남(pend) — 목록을 받아 그리는 async 핸들러가 끝나야 «그림이 완성된 것» 이다
   //  ④ 그 뒤 실제 화면 갱신(두 프레임)이 지나감. 그 사이에 새 호출·핸들러가 시작되면 다시 기다린다. 4초 같은 시간제한으로 먼저 내리지 않는다(15초 안전장치만).

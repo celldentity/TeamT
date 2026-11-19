@@ -91,11 +91,16 @@ module.exports = async (req, res) => {
     if (!L.isJson(req)) return L.json(res, 415, { error: "JSON 으로 요청해 주세요." });
 
     if (req.method === "POST") {
-      const f = fields(L.readBody(req));
+      const raw = L.readBody(req), f = fields(raw);
       if (f.error) return L.json(res, 400, { error: f.error });
+      // 같은 요청이 두 번 와도(브라우저가 저장을 다시 시도) 글은 하나만: 클라이언트 키(cid)로 이미 만든 글이 있으면 그 번호를 돌려준다
+      const cid = typeof raw.cid === "string" && /^[a-z0-9]{6,24}$/.test(raw.cid) ? raw.cid : null;
+      if (cid) { const [dup] = await db.query("SELECT id FROM posts WHERE author_id = ? AND client_id = ?", [me.id, cid]); if (dup[0]) return L.json(res, 200, { id: dup[0].id }); }
       const bad = await checkMedia(db, f.media || [], me.id, 0);
       if (bad) return L.json(res, 400, { error: bad });
-      const [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body) VALUES (?, ?, ?, ?, ?)", [me.id, f.ai, f.category, f.title, f.body]);
+      let r;
+      try { [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, client_id) VALUES (?, ?, ?, ?, ?, ?)", [me.id, f.ai, f.category, f.title, f.body, cid]); }
+      catch (e) { if (cid && e.code === "ER_DUP_ENTRY") { const [dup] = await db.query("SELECT id FROM posts WHERE author_id = ? AND client_id = ?", [me.id, cid]); if (dup[0]) return L.json(res, 200, { id: dup[0].id }); } throw e; }
       if (f.media && f.media.length) await setMedia(db, r.insertId, f.media);
       // 새 글 폰 알림: 알림을 켠 다른 팀원 모두에게. 실패해도 글쓰기는 성공으로 돌려준다.
       await require("./_push").notify(null, () => ({ title: "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }), [me.id]).catch((e) => console.error("push post", e));

@@ -26,6 +26,9 @@ module.exports = async (req, res) => {
       // 5분마다 도는 이 작업이 «오늘 아침 질문이 아직 없으면 만들기»도 맡는다(아침 크론이 빠져도 늦게라도 올라오도록). 한국 시각 9시 30분 이후에만.
       const k = R.kstNow(), out = {};
       if (k.getUTCHours() * 60 + k.getUTCMinutes() >= 9 * 60 + 30) { out.weekly = await R.makeWeekly(db); out.daily = await R.makeDaily(db); }
+      // 일력 카드는 «그날 첫 방문자가 만들 때까지 기다리게» 두지 않는다 — 오늘 것과 내일 것을 미리 만들어 둔다(없을 때만 만들고, 있으면 SELECT 한 번뿐).
+      // 예전엔 자정 뒤 첫 방문자가 Claude 가 문장을 쓰는 몇 초~십수 초를 로딩 화면에서 기다렸다.
+      try { const I = require("./_ilryeok"); out.card = { today: (await I.ensure(db, I.kstDate())).source, tomorrow: (await I.ensure(db, I.kstDate(new Date(Date.now() + 864e5)))).source }; } catch (e) { out.card = "실패"; console.error("cron card", e.message); }
       out.wrap = await R.wrap(db);
       await log(out);
       return L.json(res, 200, out);

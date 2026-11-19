@@ -93,6 +93,7 @@
     try {
       const { meetings } = await TT.call("/api/minutes");
       if (!meetings.length) { $("#empty").hidden = false; return; }
+      TT.seen.minutes(Math.max(...meetings.map((x) => x.id)));   // 마이페이지의 «새 회의록» 숫자를 지운다
       m = await TT.call("/api/minutes?id=" + meetings[0].id);
     } catch (x) { if (/403|볼 수/.test(x.message)) { location.replace("/"); return; } $("#err").textContent = x.message; return; }
     const S = m.summary, spk = Object.fromEntries(S.speakers.map((p) => [p.key, p]));

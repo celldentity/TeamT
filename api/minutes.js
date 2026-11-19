@@ -10,6 +10,14 @@ module.exports = async (req, res) => {
     if (!me.presenter) return L.json(res, 403, { error: "이 페이지를 볼 수 있는 사람이 아니에요." });
     if (req.method !== "GET") return L.json(res, 405, { error: "허용되지 않는 요청입니다." });
     const db = L.db();
+    // 마이페이지 «새 소식» 숫자: ?count=1&after=N → 번호가 N 보다 큰 새 회의록 수와 가장 큰 번호. after 가 없으면 숫자는 0(처음 쓰는 기기는 지금까지의 것을 «본 것» 으로 시작).
+    if (req.query.count) {
+      const [[r]] = await db.query("SELECT COALESCE(MAX(id), 0) AS latest FROM meetings");
+      const after = Number(req.query.after);
+      if (!Number.isInteger(after) || after < 0) return L.json(res, 200, { count: 0, latest: Number(r.latest) });
+      const [[c]] = await db.query("SELECT COUNT(*) AS n FROM meetings WHERE id > ?", [after]);
+      return L.json(res, 200, { count: Number(c.n), latest: Number(r.latest) });
+    }
     if (!req.query.id) {
       const [rows] = await db.query("SELECT id, title, held_at, duration_s FROM meetings ORDER BY held_at DESC");
       return L.json(res, 200, { meetings: rows.map((r) => ({ id: r.id, title: r.title, heldAt: r.held_at, durationS: r.duration_s })) });

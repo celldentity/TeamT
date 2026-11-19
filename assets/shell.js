@@ -50,23 +50,24 @@
     bell: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg>',
     ai: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4.5 11.8 9l4.5 1.8L11.8 12.6 10 17.1 8.2 12.6 3.7 10.8 8.2 9zM18 3.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7zM17.5 14.5l.8 2.1 2.1.8-2.1.8-.8 2.1-.8-2.1-2.1-.8 2.1-.8z"/></svg>',
     lib: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect class="f" x="3.5" y="5" width="17" height="14" rx="2.2"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg>',
+    book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15.5H6.5A1.5 1.5 0 0 0 5 20z"/><path d="M5 20a1.5 1.5 0 0 0 1.5 1.5H19V18.5M9.5 8h5.5M9.5 11.5h4"/></svg>',
     mic: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M9 21h6"/></svg>',
     present: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 4.5h17M5 4.5v10.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4.5M12 16v4M8.5 20.5h7M9.5 11l2-2.2 1.6 1.6 2.4-2.9"/></svg>',
   };
-  const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/library", "자료실", IC.lib], ["/team", "T조 소개", IC.team], ["/me", "마이페이지", IC.me]];
+  const TABS = [["/", "홈", IC.home], ["/articles", "아티클", IC.doc], ["/library", "자료실", IC.lib], ["/glossary", "HR 사전", IC.book], ["/me", "마이페이지", IC.me]];
   const s = document.currentScript;
   s.parentElement.classList.toggle("app--gate", GATE);
-  // 발표·회의록 버튼은 «발표자인지» 를 서버에 물어본 뒤에야 알 수 있어서, 페이지를 옮길 때마다 없다가 나타나 깜박였다. 지난번 확인 결과를 이 브라우저에 기억해 두고(tt_pr) 처음부터 그 상태로 그린다. 서버 확인이 끝나면 맞춰 고친다.
-  let pr = false; try { pr = localStorage.getItem("tt_pr") === "1"; } catch {}
+  // 마이페이지 하단 메뉴의 새 소식 숫자(회의록·발표 자료 — 발표자에게만). 숫자는 서버 확인이 끝나야 알 수 있어서, 지난번 값을 기억해 두고(tt_al) 처음부터 그려 깜박임을 없앤다. 서버 확인이 끝나면 맞춰 고친다.
+  let al = 0; try { al = Number(localStorage.getItem("tt_al")) || 0; } catch {}
   s.insertAdjacentHTML("beforebegin",
-    // 상단: 로고 + (로그인한 뒤) 알림·로그아웃. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다.
+    // 상단: 로고 + (로그인한 뒤) AI 도우미·알림. 페이지 메뉴는 하단바에 있어서 중복으로 두지 않는다. 회의록·발표·로그아웃은 마이페이지 안 «바로가기» 카드로 옮겼다.
     `<header class="top" id="top"><div class="wrap top__in"><a class="logo" href="/" aria-label="HR T | 니핑 홈">HR T<i>|</i>니핑</a>` +
-    (GATE ? "" : `<div class="top__r"><button class="top__out top__ai" type="button" id="aiTop" aria-label="AI 도우미 열기" aria-haspopup="dialog" aria-expanded="false" title="AI 도우미">${IC.ai}</button><a class="top__out" id="minutesTop" href="/minutes" aria-label="회의록" title="회의록"${pr ? "" : " hidden"}>${IC.mic}</a><button class="top__out" type="button" id="presentTop" aria-label="발표 시작" title="발표 시작 (전체화면)"${pr ? "" : " hidden"}>${IC.present}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a><button class="top__out" type="button" id="logoutTop" aria-label="로그아웃" title="로그아웃">${IC.out}</button></div>`) +
+    (GATE ? "" : `<div class="top__r"><button class="top__out top__ai" type="button" id="aiTop" aria-label="AI 도우미 열기" aria-haspopup="dialog" aria-expanded="false" title="AI 도우미">${IC.ai}</button><a class="bell" href="/notifications" aria-label="알림">${IC.bell}<b class="bell__n" id="bellN" hidden></b></a></div>`) +
     `</div></header>`);
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
-  const tabPath = /^\/(article|write)$/.test(path) ? "/articles" : path; // 글 보기·글쓰기도 «아티클» 메뉴로 친다
-  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}><span class="tab__ic">${ic}</span>${l}</a>`;
+  const tabPath = /^\/(article|write)$/.test(path) ? "/articles" : path === "/team" ? "/me" : path; // 글 보기·글쓰기도 «아티클», T조 소개는 마이페이지 안에서 여니 «마이페이지» 로 친다
+  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}${p === "/me" && al ? ` aria-label="${l}, 새 소식 ${al}개"` : ""}><span class="tab__ic">${ic}</span>${l}${p === "/me" ? `<b class="tab__n" id="meN"${al ? "" : " hidden"}>${al > 99 ? "99+" : al || ""}</b>` : ""}</a>`;
   s.insertAdjacentHTML("afterend", GATE
     ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
     : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
@@ -240,7 +241,7 @@
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;
-    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr")); } catch {}
+    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr"), localStorage.removeItem("tt_al")); } catch {}
     if (!user && !GATE) { location.replace("/join"); return never; }
     if (user && GATE) { location.replace("/"); return never; }
     const me = document.querySelector('.tab[href="/me"] .tab__ic');
@@ -313,29 +314,58 @@
   // 페이지 스크립트가 TT.ready.then(핸들러) 로 건 핸들러가 끝났는지 센다(async 핸들러는 반환된 약속이 끝날 때까지). 이 줄 뒤에 거는 핸들러만 센다.
   const readyThen = TT.ready.then.bind(TT.ready);
   TT.ready.then = (ok, bad) => readyThen(typeof ok === "function" ? (v) => { pend++; let r; try { r = ok(v); } catch (e) { pend--; throw e; } return Promise.resolve(r).finally(() => { pend--; }); } : ok, bad);
-  // 발표 버튼: 현재 가입한 5명(users.presenter)에게만 보인다(기기 상관없이). 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
-  // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
-  TT.ready.then((u) => {
-    const b = document.getElementById("presentTop"), mic = document.getElementById("minutesTop");
-    const on = !!(u && u.presenter);
-    try { on ? localStorage.setItem("tt_pr", "1") : localStorage.removeItem("tt_pr"); } catch {}
-    if (!b) return;
-    b.hidden = !on; if (mic) mic.hidden = !on;   // 회의록(마이크)도 같은 5명에게만
-    if (!on) return;
-    b.addEventListener("click", () => {
-      if (!matchMedia("(hover: hover) and (pointer: fine)").matches) { location.href = "/present"; return; }
-      const w = screen.availWidth, h = screen.availHeight;
-      const win = window.open("/present", "tt-present", `popup=yes,left=${screen.availLeft || 0},top=${screen.availTop || 0},width=${w},height=${h}`);
-      if (win) win.focus(); else location.href = "/present";   // 팝업이 막혔으면 이 탭에서 연다
-    });
+  // ── 마이페이지 «바로가기» 카드(회의록·발표·로그아웃)가 쓰는 것들 ──
+  // 회의록·발표 자료는 발표자(users.presenter, 현재 5명)에게만 보인다.
+  // 새 소식 = ① 회의록: 마지막으로 본 회의 번호보다 큰 번호가 생김(새 회의록 추가)  ② 발표 자료: /assets/deck.js 가 마지막으로 본 때와 달라짐(ETag — 슬라이드를 고치면 저절로 바뀐다).
+  // «본 것» 은 이 기기·이 계정(localStorage tt_seen_<id>)에 둔다. 처음 쓰는 기기는 이미 있는 것을 전부 본 것으로 깔고 시작한다(첫날 알림이 쏟아지지 않게).
+  // 서버 확인은 call() 대신 fetch 를 쓴다 — 로더가 이 확인을 기다리며 오래 떠 있지 않게.
+  const seenKey = () => "tt_seen_" + (TT.user ? TT.user.id : "");
+  const seenGet = () => { try { return JSON.parse(localStorage.getItem(seenKey()) || "{}") || {}; } catch { return {}; } };
+  const seenPut = (v) => { try { localStorage.setItem(seenKey(), JSON.stringify(v)); } catch {} };
+  TT.alerts = { minutes: 0, deck: 0, total: 0, latest: 0, tag: "" };
+  TT.icons = IC;   // 마이페이지 카드가 같은 아이콘을 쓴다
+  const paintAlerts = () => {
+    const a = TT.alerts; a.total = a.minutes + a.deck;
+    const b = document.getElementById("meN"); if (b) { b.hidden = !a.total; b.textContent = a.total > 99 ? "99+" : a.total || ""; b.closest(".tab")?.setAttribute("aria-label", a.total ? `마이페이지, 새 소식 ${a.total}개` : "마이페이지"); }
+    try { a.total ? localStorage.setItem("tt_al", String(a.total)) : localStorage.removeItem("tt_al"); } catch {}
+    document.dispatchEvent(new CustomEvent("tt:alerts", { detail: a }));
+  };
+  TT.seen = {
+    minutes(latest) { const v = seenGet(); v.m = Math.max(Number(latest) || 0, v.m || 0); seenPut(v); TT.alerts.minutes = 0; paintAlerts(); },
+    deck() { const v = seenGet(); if (TT.alerts.tag) v.d = TT.alerts.tag; seenPut(v); TT.alerts.deck = 0; paintAlerts(); },
+  };
+  TT.alertsReady = TT.ready.then((u) => {
+    if (!u || !u.presenter) { paintAlerts(); return TT.alerts; }   // 발표자가 아니면 지난번에 기억한 숫자도 지운다
+    (async () => {
+      const v = seenGet(), a = TT.alerts;
+      const [m, tag] = await Promise.all([
+        fetch("/api/minutes?count=1" + (v.m == null ? "" : "&after=" + v.m), { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch("/assets/deck.js", { method: "HEAD", cache: "no-cache" }).then((r) => r.headers.get("etag") || r.headers.get("last-modified") || "").catch(() => ""),
+      ]);
+      a.latest = m ? m.latest : 0; a.tag = tag;
+      if (m) { if (v.m == null) { v.m = m.latest; } else a.minutes = m.count; }
+      if (tag) { if (v.d == null) v.d = tag; else if (v.d !== tag) a.deck = 1; }
+      seenPut(v); paintAlerts();
+    })();
+    return TT.alerts;
   });
-  if (!GATE) {   // 로그아웃: 아이콘을 누르면 가운데 창에서 한 번 더 묻는다
+  // 발표 시작: 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
+  // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.
+  TT.present = () => {
+    TT.seen.deck();
+    if (!matchMedia("(hover: hover) and (pointer: fine)").matches) { location.href = "/present"; return; }
+    const w = screen.availWidth, h = screen.availHeight;
+    const win = window.open("/present", "tt-present", `popup=yes,left=${screen.availLeft || 0},top=${screen.availTop || 0},width=${w},height=${h}`);
+    if (win) win.focus(); else location.href = "/present";   // 팝업이 막혔으면 이 탭에서 연다
+  };
+  if (!GATE) {   // 로그아웃: 마이페이지 카드를 누르면(TT.askLogout) 가운데 창에서 한 번 더 묻는다
     document.body.insertAdjacentHTML("beforeend", `<div class="dlg" id="logoutDlg" role="alertdialog" aria-modal="true" aria-labelledby="logoutT" hidden><div class="dlg__card">
       <h2 class="dlg__t" id="logoutT">로그아웃 하시겠습니까?</h2><p class="dlg__p">다시 들어오려면 이메일과 비밀번호가 필요해요.</p>
       <div class="dlg__btns"><button class="btn btn--ghost" type="button" id="logoutNo">취소</button><button class="btn" type="button" id="logoutYes">로그아웃</button></div></div></div>`);
-    const dlg = document.getElementById("logoutDlg"), closeDlg = () => { dlg.hidden = true; document.removeEventListener("keydown", onEsc); document.getElementById("logoutTop")?.focus(); };
+    let opener = null;
+    const dlg = document.getElementById("logoutDlg"), closeDlg = () => { dlg.hidden = true; document.removeEventListener("keydown", onEsc); opener?.focus?.(); };
     const onEsc = (e) => { if (e.key === "Escape") closeDlg(); };
-    document.getElementById("logoutTop")?.addEventListener("click", () => { dlg.hidden = false; document.addEventListener("keydown", onEsc); document.getElementById("logoutNo").focus(); });
+    TT.askLogout = () => { opener = document.activeElement; dlg.hidden = false; document.addEventListener("keydown", onEsc); document.getElementById("logoutNo").focus(); };
     document.getElementById("logoutNo").addEventListener("click", closeDlg);
     dlg.addEventListener("click", (e) => { if (e.target === dlg) closeDlg(); });
     document.getElementById("logoutYes").addEventListener("click", async (e) => { e.currentTarget.disabled = true; try { await call("/api/auth?a=logout", "POST", {}); } catch {} location.href = "/join"; });

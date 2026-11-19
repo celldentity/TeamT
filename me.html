@@ -44,6 +44,9 @@
         <p class="msg msg--err" id="coverMsg" role="alert"></p>
       </div>
 
+      <!-- 바로가기: T조 소개·회의록·발표(발표자 5명에게만)·로그아웃. 상단바에서 옮겨 왔고, 새 소식이 있으면 카드 오른쪽 위에 개수가 뜬다(하단 «마이페이지» 에도 합계) -->
+      <nav class="tiles" id="tiles" aria-label="바로가기"></nav>
+
       <!-- 포인트: 올해 점수(해가 바뀌면 0 에서 다시 시작)·누적·올해 순위·받는 방법·최근 적립. 규칙 숫자는 서버(api/_points.js)가 내려준다 -->
       <section class="pt" id="ptBox" aria-label="포인트" hidden>
         <!-- 평소엔 점수만 보이고, 누르면 순위표·최근 적립·받는 방법이 드롭다운으로 펼쳐진다(처음부터 다 펼쳐 두지 않는다) -->
@@ -114,6 +117,21 @@
       $("#me-lead").textContent = u.nickname + "님, 반가워요.";
     }
     render(user);
+
+    // 바로가기 카드 — 회의록·발표는 발표자에게만, 로그아웃은 모두. 새 소식 숫자는 shell.js(TT.alerts)가 계산하고 바뀔 때마다 여기서 다시 그린다.
+    const tilesEl = $("#tiles"), IC = TT.icons;
+    const tile = (id, ic, label, hint, n, tag = "button", href = "") =>
+      `<${tag} class="tile" id="${id}" ${tag === "a" ? `href="${href}"` : 'type="button"'}${n ? ` aria-label="${label}, 새 소식 ${n}개"` : ""}><span class="tile__ic">${ic}</span><b class="tile__t">${label}</b><span class="tile__h">${hint}</span>${n ? `<i class="tile__n" aria-hidden="true">${n > 99 ? "99+" : n}</i>` : ""}</${tag}>`;
+    function drawTiles() {
+      const a = TT.alerts;
+      tilesEl.innerHTML =
+        tile("tTeam", IC.team, "T조 소개", "팀원 만나보기", 0, "a", "/team") +
+        (user.presenter ? tile("tMin", IC.mic, "회의록", a.minutes ? `새 회의록 ${a.minutes}개` : "회의 요약·전사", a.minutes, "a", "/minutes") + tile("tPre", IC.present, "발표", a.deck ? "발표 자료가 바뀌었어요" : "전체화면 발표", a.deck) : "") +
+        tile("tOut", IC.out, "로그아웃", "이 기기에서 나가기", 0);
+    }
+    tilesEl.addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (!t) return; if (t.id === "tPre") TT.present(); else if (t.id === "tOut") TT.askLogout(); });
+    drawTiles();
+    document.addEventListener("tt:alerts", drawTiles);
 
     // 포인트 카드 — 서버에서 받아 그린다(실패하면 카드는 그냥 숨겨 둔다)
     TT.call("/api/points").then((d) => {

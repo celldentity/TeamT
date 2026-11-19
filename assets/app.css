@@ -21,7 +21,7 @@
   --danger: #c0262d;
   --font: "Malgun Gothic", "맑은 고딕", "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: clamp(16px, 5vw, 21.5px);
-  --app-w: 430px;           /* HSMnT 사원포털과 같은 430px 모바일 틀 */
+  --app-w: 430px;           /* 모바일 틀 폭 */
   --tabbar-h: calc(52px + env(safe-area-inset-bottom));
   --top-h: calc(57px + env(safe-area-inset-top));   /* 상단바 높이(고정이라 본문을 이만큼 내려 둔다) */
 }
@@ -779,3 +779,50 @@ a.art { text-decoration: none; color: inherit; }
 }
 .leaves--off .lf { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .leaves { display: none; } }
+
+/* 마이페이지 «바로가기» 카드(회의록·발표·로그아웃) — 둥근 카드, 아이콘 원, 오른쪽 위에 새 소식 개수. 하단 «마이페이지» 탭에도 같은 숫자의 합계가 붙는다. */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.tile { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 124px; padding: 16px 8px 14px; font: inherit; color: var(--ink); text-align: center; text-decoration: none; background: #fff; border: 1px solid var(--line); border-radius: 20px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .15s, transform .1s; }
+.tile:hover { background: var(--hover); }
+.tile:active { transform: scale(.97); }
+.tile__ic { display: grid; place-items: center; width: 44px; height: 44px; background: var(--pink); border-radius: 50%; }
+.tile__ic svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.tile__t { font-size: 1rem; font-weight: 800; line-height: 1.3; letter-spacing: -.02em; }
+.tile__h { font-size: .8125rem; line-height: 1.4; color: var(--ink-soft); }
+.tile__n { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; font-size: .75rem; font-style: normal; font-weight: 800; line-height: 22px; text-align: center; color: #fff; background: var(--pink-ink); border-radius: 99px; }
+.tab__n { position: absolute; top: 3px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; font-size: .625rem; font-weight: 800; line-height: 17px; text-align: center; color: #fff; background: var(--pink-ink); border-radius: 99px; box-shadow: 0 0 0 2px rgb(249 245 255); }
+.tab__n[hidden] { display: none; }
+
+/* HR 용어 사전(.gx) — 접어 두고 누르면 펼친다. 글자는 크게, 줄 간격은 넉넉하게(읽기 편한 것이 먼저). */
+.gx__bar { position: sticky; top: var(--top-h); z-index: 6; margin: 14px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) 8px; background: var(--paper); }
+.gx__bar input { width: 100%; min-height: 48px; padding: 0 16px; font: inherit; font-size: 1rem; color: var(--ink); background: var(--field); border: 1.5px solid transparent; border-radius: 14px; outline: none; }
+.gx__bar input:focus { background: #fff; border-color: var(--pink-deep); }
+.gx__cats { display: flex; gap: 6px; margin-top: 10px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
+.gx__cats::-webkit-scrollbar { display: none; }
+.gx__cat { flex: none; min-height: 36px; padding: 0 14px; font: inherit; font-size: .875rem; font-weight: 700; color: var(--ink-soft); background: #fff; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; }
+.gx__cat[aria-pressed="true"] { color: var(--ink); background: var(--pink); border-color: var(--pink); }
+.gx__list { margin-top: 8px; border-top: 1px solid var(--line); }
+.gx__item { border-bottom: 1px solid var(--line); }
+.gx__head { position: relative; display: block; width: 100%; padding: 16px 40px 16px 2px; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gx__top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.gx__name { font-size: 1.1875rem; font-weight: 800; line-height: 1.35; letter-spacing: -.02em; }
+.gx__tag { font-style: normal; font-size: .75rem; font-weight: 700; padding: 2px 8px; color: var(--ink-soft); background: var(--lavender-tint); border-radius: 99px; }
+.gx__sum { display: block; margin-top: 4px; font-size: .9375rem; line-height: 1.6; color: var(--ink-soft); }
+.gx__chev { position: absolute; right: 8px; top: 22px; width: 10px; height: 10px; border: solid var(--ink-soft); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform .2s; }
+.gx__item.is-open .gx__chev { transform: rotate(-135deg); top: 26px; }
+.gx__item.is-open { background: linear-gradient(var(--blush), var(--blush)) left / 3px 100% no-repeat; }
+.gx__body { padding: 0 2px 18px; }
+.gx__def { font-size: 1.0625rem; line-height: 1.8; letter-spacing: -.01em; word-break: keep-all; }
+.gx__cmp { margin-top: 16px; }
+.gx__cmp h3 { margin-bottom: 6px; font-size: .8125rem; font-weight: 800; color: var(--ink-soft); }
+.gx__cmp button { display: block; width: 100%; margin-top: 6px; padding: 12px 14px; font: inherit; text-align: left; background: var(--lavender-tint); border: 0; border-radius: 14px; cursor: pointer; }
+.gx__cmp b { display: block; font-size: .9375rem; }
+.gx__cmp span { display: block; margin-top: 2px; font-size: .875rem; line-height: 1.55; color: var(--ink-soft); }
+.gx__d { margin-top: 12px; border: 1px solid var(--line); border-radius: 14px; }
+.gx__d summary { padding: 12px 14px; font-size: .9375rem; font-weight: 700; cursor: pointer; }
+.gx__d ul, .gx__d dl { padding: 0 14px 12px; }
+.gx__d li, .gx__d dl > div { padding: 8px 0; font-size: .9375rem; line-height: 1.6; border-top: 1px solid var(--line); }
+.gx__d a { font-weight: 700; color: var(--pink-ink); text-underline-offset: 3px; }
+.gx__d small { display: block; font-size: .8125rem; color: var(--ink-soft); }
+.gx__d dd b { margin-right: 4px; font-size: 1.0625rem; }
+.gx__old { font-style: normal; font-size: .75rem; font-weight: 800; padding: 1px 7px; color: #fff; background: var(--pink-ink); border-radius: 99px; }

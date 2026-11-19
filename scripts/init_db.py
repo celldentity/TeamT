@@ -174,6 +174,62 @@ CREATE = [
       KEY ix_points_year (yr, user_id),
       KEY ix_points_comment (comment_id)
     ) CHARACTER SET utf8mb4""",
+    # HR 용어 사전(2026-11-19): 법령 확인을 통과한 용어(status VERIFIED)만 화면에 나간다. 내용은 scripts/load_glossary.js 가 terms.json 에서 넣는다(원문 아닌 우리 문장).
+    # alias_norm = 검색용 정규화(api/_gl.js norm) — 전체에서 유일해야 한다(같은 별칭이 두 용어를 가리키면 적재가 멈춘다).
+    """CREATE TABLE IF NOT EXISTS gl_term (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      slug       VARCHAR(80) NOT NULL,
+      name       VARCHAR(80) NOT NULL,
+      abbr       VARCHAR(30) NULL,
+      en         VARCHAR(100) NULL,
+      category   VARCHAR(20) NOT NULL,
+      summary    VARCHAR(200) NOT NULL,
+      body       TEXT NOT NULL,
+      needs_law  TINYINT NOT NULL DEFAULT 0,
+      status     VARCHAR(10) NOT NULL DEFAULT 'DRAFT',   -- DRAFT | VERIFIED | REJECTED
+      check_note VARCHAR(500) NOT NULL DEFAULT '',        -- 탈락·보류 사유, 확인 메모(화면에 안 나감)
+      checked_on DATE NULL,                               -- 법령을 마지막으로 확인한 날
+      version    VARCHAR(10) NOT NULL DEFAULT '',
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_gl_slug (slug),
+      KEY ix_gl_status (status, category)
+    ) CHARACTER SET utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS gl_alias (
+      term_id    BIGINT NOT NULL,
+      alias      VARCHAR(80) NOT NULL,
+      alias_norm VARCHAR(80) NOT NULL,
+      PRIMARY KEY (term_id, alias_norm),
+      UNIQUE KEY uq_gl_alias (alias_norm)
+    ) CHARACTER SET utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS gl_link (
+      term_id  BIGINT NOT NULL,
+      other_id BIGINT NOT NULL,
+      diff     VARCHAR(200) NOT NULL,                    -- «헷갈리는 짝» 의 한 문장 차이
+      PRIMARY KEY (term_id, other_id)
+    ) CHARACTER SET utf8mb4""",
+    """CREATE TABLE IF NOT EXISTS gl_law (
+      id          BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      term_id     BIGINT NOT NULL,
+      seq         SMALLINT NOT NULL,
+      law_name    VARCHAR(80) NOT NULL,
+      article     VARCHAR(80) NOT NULL,
+      url         VARCHAR(600) NOT NULL,
+      effective   VARCHAR(20) NOT NULL DEFAULT '',        -- 시행일
+      verified_on DATE NULL,
+      KEY ix_gl_law_term (term_id)
+    ) CHARACTER SET utf8mb4""",
+    # 변하는 숫자(보험료율·한도·일수)는 정의 문장이 아니라 여기 — 기간(valid_from~valid_to)과 근거 법령(law_seq)이 같이 간다.
+    """CREATE TABLE IF NOT EXISTS gl_figure (
+      id         BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      term_id    BIGINT NOT NULL,
+      label      VARCHAR(80) NOT NULL,
+      value      VARCHAR(60) NOT NULL,
+      unit       VARCHAR(20) NOT NULL DEFAULT '',
+      valid_from DATE NOT NULL,
+      valid_to   DATE NULL,
+      law_seq    SMALLINT NULL,
+      KEY ix_gl_fig_term (term_id)
+    ) CHARACTER SET utf8mb4""",
 ]
 # 이미 만들어진 users 표에 새 칸 덧붙이기(있으면 1060 오류라 건너뜀)
 ALTER = [

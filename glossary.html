@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HR 용어 사전 — HR T | 니핑 프로젝트</title>
+<meta name="description" content="헷갈리는 HR 용어를 법령 확인을 거쳐 쉬운 말로 정리한 사전.">
+<meta name="theme-color" content="#fff6fa">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon-v3.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HR T 니핑">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" href="/assets/icons/icon-v3-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+<div class="app">
+<script src="/assets/shell.js"></script>
+<main id="main">
+  <section class="sec" aria-labelledby="gx-title">
+    <div class="wrap">
+      <h1 class="sec__title" id="gx-title">HR 용어 사전 <small id="count"></small></h1>
+      <p class="sec__lead">헷갈리는 용어를 쉬운 말로 풀었어요.</p>
+      <!-- 검색창·분류 칩은 스크롤해도 상단바 아래에 붙어 있다 -->
+      <div class="gx__bar">
+        <label class="sr" for="q">용어 검색</label>
+        <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="용어나 약어로 찾기 (예: 통상임금, JD)">
+        <div class="gx__cats" id="cats" role="group" aria-label="분류"></div>
+      </div>
+      <ul class="gx__list" id="list"></ul>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+  </section>
+</main>
+</div>
+<script>
+  TT.ready.then(async (user) => {
+    if (!user) return;
+    const $ = (s) => document.querySelector(s), esc = TT.esc;
+    // api/_gl.js 의 norm() 과 같은 규칙(검색용 정규화)
+    const norm = (s) => String(s ?? "").normalize("NFKC").toLowerCase().replace(/[\s·\-/&().,]/g, "");
+    let terms = [], cats = [], cat = "", q = "", openSlug = "";
+
+    try { const d = await TT.call("/api/glossary"); terms = d.terms; cats = d.categories.filter((c) => terms.some((t) => t.category === c)); }
+    catch (x) { const e = $("#empty"); e.hidden = false; e.textContent = x.message; return; }
+    $("#count").textContent = terms.length ? terms.length + "개" : "";
+
+    // 검색: 이름·약어·별칭이 같으면 1순위, 앞부분이 같으면 2순위, 이름·별칭 안에 들어 있으면 3순위, 요약·본문에 있으면 4순위
+    for (const t of terms) { t._keys = [t.name, t.abbr, t.en, ...t.aliases].filter(Boolean).map(norm); t._text = norm(t.summary + t.body); }
+    const score = (t, k) => (t._keys.includes(k) ? 1 : t._keys.some((x) => x.startsWith(k)) ? 2 : t._keys.some((x) => x.includes(k)) ? 3 : t._text.includes(k) ? 4 : 0);
+
+    const monthsAgo = (d) => { if (!d) return 0; const a = new Date(d), n = new Date(); return (n.getFullYear() - a.getFullYear()) * 12 + n.getMonth() - a.getMonth(); };
+    const kd = (d) => { const t = new Date(d); return `${t.getMonth() + 1}월 ${t.getDate()}일`; };
+
+    function body(t) {
+      const cmp = t.confusable.length ? `<div class="gx__cmp"><h3>헷갈리는 짝</h3><ul>${t.confusable.map((c) => `<li><button type="button" data-go="${esc(c.slug)}"><b>${esc(c.name)}</b><span>${esc(c.diff)}</span></button></li>`).join("")}</ul></div>` : "";
+      const fig = t.figures.length ? `<details class="gx__d"><summary>기준 숫자</summary><dl>${t.figures.map((f) => `<div><dt>${esc(f.label)}</dt><dd><b>${esc(f.value)}</b>${esc(f.unit)}<small>${kd(f.validFrom)}부터${f.validTo ? " " + kd(f.validTo) + "까지" : ""}</small></dd></div>`).join("")}</dl></details>` : "";
+      const old = monthsAgo(t.checkedOn) >= 3 ? ` <em class="gx__old">${monthsAgo(t.checkedOn)}개월 전</em>` : "";
+      const law = t.law.length ? `<details class="gx__d"><summary>근거 법령${t.checkedOn ? ` · ${kd(t.checkedOn)} 확인` : ""}${old}</summary><ul>${t.law.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.name)} ${esc(l.article)}</a>${l.effective ? `<small>${esc(l.effective)} 시행</small>` : ""}</li>`).join("")}</ul></details>` : "";
+      return `<p class="gx__def">${esc(t.body)}</p>${cmp}${fig}${law}`;
+    }
+    function row(t) {
+      const open = t.slug === openSlug, tag = [t.abbr, t.en].filter(Boolean).filter((v) => v !== t.name).slice(0, 2);
+      return `<li class="gx__item${open ? " is-open" : ""}" id="t-${esc(t.slug)}"><button class="gx__head" type="button" data-t="${esc(t.slug)}" aria-expanded="${open}" aria-controls="b-${esc(t.slug)}">
+        <span class="gx__top"><span class="gx__name">${esc(t.name)}</span>${tag.map((v) => `<em class="gx__tag">${esc(v)}</em>`).join("")}</span>
+        <span class="gx__sum">${esc(t.summary)}</span><i class="gx__chev" aria-hidden="true"></i></button>
+        <div class="gx__body" id="b-${esc(t.slug)}"${open ? "" : " hidden"}>${open ? body(t) : ""}</div></li>`;
+    }
+    function draw() {
+      const k = norm(q);
+      let rows = terms.filter((t) => !cat || t.category === cat);
+      if (k) rows = rows.map((t) => [score(t, k), t]).filter(([s]) => s).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name, "ko")).map(([, t]) => t);
+      $("#cats").innerHTML = ["", ...cats].map((c) => `<button type="button" class="gx__cat" data-c="${esc(c)}" aria-pressed="${c === cat}">${c || "전체"}</button>`).join("");
+      $("#list").innerHTML = rows.map(row).join("");
+      const e = $("#empty");
+      e.hidden = !!rows.length;
+      e.innerHTML = terms.length ? `찾는 용어가 없어요.<br>다른 말로 검색하거나 분류를 바꿔 보세요.` : `아직 올라온 용어가 없어요.`;
+    }
+    draw();
+
+    // 용어를 열고(검색·분류는 풀어서 보이게) 그 자리로 부드럽게 이동. 딥링크 /glossary?t=<slug>·«헷갈리는 짝» 이 쓴다.
+    function openTerm(slug, scroll) {
+      const t = terms.find((x) => x.slug === slug); if (!t) return;
+      if (!(!cat || t.category === cat) || (q && !score(t, norm(q)))) { cat = ""; q = ""; $("#q").value = ""; }
+      openSlug = slug; draw();
+      if (scroll) document.getElementById("t-" + slug)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
+    $("#list").addEventListener("click", (e) => {
+      const go = e.target.closest("[data-go]"); if (go) return openTerm(go.dataset.go, true);
+      const h = e.target.closest("[data-t]"); if (!h) return;
+      openSlug = openSlug === h.dataset.t ? "" : h.dataset.t; draw();
+      if (openSlug) document.getElementById("t-" + openSlug)?.scrollIntoView({ block: "nearest" });
+    });
+    $("#cats").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) { cat = b.dataset.c; draw(); } });
+    $("#q").addEventListener("input", (e) => { q = e.target.value; draw(); });
+    const want = new URLSearchParams(location.search).get("t");
+    if (want) openTerm(want, true);
+  });
+</script>
+</body>
+</html>

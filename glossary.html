@@ -31,7 +31,7 @@
       <div class="gx__bar">
         <label class="sr" for="q">용어 검색</label>
         <input id="q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="용어나 약어로 찾기 (예: 통상임금, JD)">
-        <div class="gx__cats" id="cats" role="group" aria-label="분류"></div>
+        <div class="gx__pick"><span id="catL" class="sr">분류</span><select id="cat" data-label="catL"></select></div>
       </div>
       <ul class="gx__list" id="list"></ul>
       <div class="empty" id="empty" hidden></div>
@@ -76,7 +76,6 @@
       const k = norm(q);
       let rows = terms.filter((t) => !cat || t.category === cat);
       if (k) rows = rows.map((t) => [score(t, k), t]).filter(([s]) => s).sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name, "ko")).map(([, t]) => t);
-      $("#cats").innerHTML = ["", ...cats].map((c) => `<button type="button" class="gx__cat" data-c="${esc(c)}" aria-pressed="${c === cat}">${c || "전체"}</button>`).join("");
       $("#list").innerHTML = rows.map(row).join("");
       const e = $("#empty");
       e.hidden = !!rows.length;
@@ -87,7 +86,7 @@
     // 용어를 열고(검색·분류는 풀어서 보이게) 그 자리로 부드럽게 이동. 딥링크 /glossary?t=<slug>·«헷갈리는 짝» 이 쓴다.
     function openTerm(slug, scroll) {
       const t = terms.find((x) => x.slug === slug); if (!t) return;
-      if (!(!cat || t.category === cat) || (q && !score(t, norm(q)))) { cat = ""; q = ""; $("#q").value = ""; }
+      if (!(!cat || t.category === cat) || (q && !score(t, norm(q)))) { cat = ""; q = ""; $("#q").value = ""; catEl.value = ""; catSel.sync(); }
       openSlug = slug; draw();
       if (scroll) document.getElementById("t-" + slug)?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     }
@@ -97,7 +96,11 @@
       openSlug = openSlug === h.dataset.t ? "" : h.dataset.t; draw();
       if (openSlug) document.getElementById("t-" + openSlug)?.scrollIntoView({ block: "nearest" });
     });
-    $("#cats").addEventListener("click", (e) => { const b = e.target.closest("[data-c]"); if (b) { cat = b.dataset.c; draw(); } });
+    // 분류는 드롭다운(공용 TT.select)으로 고른다. 용어 수를 같이 보여 준다.
+    const catEl = $("#cat");
+    catEl.innerHTML = [`<option value="">전체 분류 (${terms.length})</option>`, ...cats.map((c) => `<option value="${esc(c)}">${esc(c)} (${terms.filter((t) => t.category === c).length})</option>`)].join("");
+    const catSel = TT.select(catEl);
+    catEl.addEventListener("change", () => { cat = catEl.value; draw(); });
     $("#q").addEventListener("input", (e) => { q = e.target.value; draw(); });
     const want = new URLSearchParams(location.search).get("t");
     if (want) openTerm(want, true);

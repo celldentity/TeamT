@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>마이페이지 — HR T | 니핑 프로젝트</title>
-<meta name="description" content="내 프로필과 초대장.">
+<meta name="description" content="내 프로필·알림·초대장.">
 <meta name="theme-color" content="#fff6fa">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -61,36 +61,49 @@
         </div></div>
       </section>
 
-      <form class="form me-sec" id="profForm" novalidate>
-        <label class="field">닉네임
-          <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
-        </label>
-        <label class="field">한 줄 소개 <small>T조 소개 페이지에 보여요 (60자까지)</small>
-          <input name="bio" id="bioInput" type="text" maxlength="60" autocomplete="off">
-        </label>
-        <p class="msg" id="profMsg" role="status"></p>
-        <button class="btn btn--block" type="submit" id="profBtn">저장</button>
-      </form>
-
-      <section class="set" id="pushBox" aria-labelledby="push-title" hidden>
-        <div class="set__row">
-          <span class="set__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></span>
-          <div class="set__t"><h2 id="push-title">폰 알림</h2><p id="pushState">알림을 준비하고 있어요…</p></div>
-          <button class="sw" type="button" id="pushSw" role="switch" aria-checked="false" aria-labelledby="push-title" hidden><span class="sw__k"></span></button>
-        </div>
-        <ul class="set__chips" aria-label="알려 주는 것"><li>새 글</li><li>내 글의 댓글</li><li>내 댓글의 답글</li><li>좋아요</li></ul>
-        <p class="set__note" id="pushLead"></p>
-        <p class="msg msg--err" id="pushMsg" role="alert"></p>
-      </section>
-
-      <h2 class="sec__h3">초대장</h2>
-      <p class="sec__lead" id="inv-lead" style="margin-top:6px">초대장으로만 새 팀원이 들어올 수 있어요.</p>
-      <button class="btn btn--block" type="button" id="invNew" style="margin-top:14px">초대장 만들기</button>
-      <p class="msg" id="invMsg" role="status" style="margin-top:8px"></p>
-      <ul class="invs" id="invs"></ul>
     </div>
   </section>
 </main>
+</div>
+<!-- 바로가기 카드에서 여는 창: 평소엔 숨겨 두고 누르면 아래에서 올라온다 -->
+<div class="sh" id="sh-prof" role="dialog" aria-modal="true" aria-labelledby="sh-prof-t" hidden>
+  <div class="sh__box">
+    <div class="sh__head"><h2 class="sh__t" id="sh-prof-t">정보 변경</h2><button class="sh__x" type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <form class="form" id="profForm" novalidate>
+    <label class="field">닉네임
+      <input name="nickname" id="nickInput" type="text" autocomplete="nickname" maxlength="20" required>
+    </label>
+    <label class="field">한 줄 소개 <small>T조 소개 페이지에 보여요 (60자까지)</small>
+      <input name="bio" id="bioInput" type="text" maxlength="60" autocomplete="off">
+    </label>
+    <p class="msg" id="profMsg" role="status"></p>
+    <button class="btn btn--block" type="submit" id="profBtn">저장</button>
+  </form>
+  </div>
+</div>
+<div class="sh" id="sh-push" role="dialog" aria-modal="true" aria-labelledby="sh-push-t" hidden>
+  <div class="sh__box">
+    <div class="sh__head"><h2 class="sh__t" id="sh-push-t">폰 알림</h2><button class="sh__x" type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <section class="set" id="pushBox" aria-labelledby="push-title" hidden>
+    <div class="set__row">
+      <span class="set__ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4"/></svg></span>
+      <div class="set__t"><h2 id="push-title">폰 알림</h2><p id="pushState">알림을 준비하고 있어요…</p></div>
+      <button class="sw" type="button" id="pushSw" role="switch" aria-checked="false" aria-labelledby="push-title" hidden><span class="sw__k"></span></button>
+    </div>
+    <ul class="set__chips" aria-label="알려 주는 것"><li>새 글</li><li>내 글의 댓글</li><li>내 댓글의 답글</li><li>좋아요</li></ul>
+    <p class="set__note" id="pushLead"></p>
+    <p class="msg msg--err" id="pushMsg" role="alert"></p>
+  </section>
+  </div>
+</div>
+<div class="sh" id="sh-inv" role="dialog" aria-modal="true" aria-labelledby="sh-inv-t" hidden>
+  <div class="sh__box">
+    <div class="sh__head"><h2 class="sh__t" id="sh-inv-t">초대장</h2><button class="sh__x" type="button" data-x aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <p class="sec__lead" id="inv-lead">초대장으로만 새 팀원이 들어올 수 있어요.</p>
+  <button class="btn btn--block" type="button" id="invNew" style="margin-top:14px">초대장 만들기</button>
+  <p class="msg" id="invMsg" role="status" style="margin-top:8px"></p>
+  <ul class="invs" id="invs"></ul>
+  </div>
 </div>
 <div class="crop" id="crop" role="dialog" aria-modal="true" aria-labelledby="cropTitle" hidden>
   <div class="crop__sheet">
@@ -120,16 +133,27 @@
 
     // 바로가기 카드 — 회의록·발표는 발표자에게만, 로그아웃은 모두. 새 소식 숫자는 shell.js(TT.alerts)가 계산하고 바뀔 때마다 여기서 다시 그린다.
     const tilesEl = $("#tiles"), IC = TT.icons;
-    const tile = (id, ic, label, hint, n, tag = "button", href = "") =>
-      `<${tag} class="tile" id="${id}" ${tag === "a" ? `href="${href}"` : 'type="button"'}${n ? ` aria-label="${label}, 새 소식 ${n}개"` : ""}><span class="tile__ic">${ic}</span><b class="tile__t">${label}</b><span class="tile__h">${hint}</span>${n ? `<i class="tile__n" aria-hidden="true">${n > 99 ? "99+" : n}</i>` : ""}</${tag}>`;
+    const tile = (id, ic, label, hint, n, tag = "button", href = "", cls = "") =>
+      `<${tag} class="tile${cls ? " " + cls : ""}" id="${id}" ${tag === "a" ? `href="${href}"` : 'type="button"'}${n ? ` aria-label="${label}, 새 소식 ${n}개"` : ""}><span class="tile__ic">${ic}</span><b class="tile__t">${label}</b><span class="tile__h">${hint}</span>${n ? `<i class="tile__n" aria-hidden="true">${n > 99 ? "99+" : n}</i>` : ""}</${tag}>`;
+    // 알림은 이 기기에서 아직 안 켠 사람에게만 카드가 계속 흔들린다(TT.pushOn: null = 아직 모름, true/false). 로그아웃은 중요해서 맨 마지막 줄에 넓게 둔다.
     function drawTiles() {
-      const a = TT.alerts;
+      const a = TT.alerts, off = TT.pushOn === false;
       tilesEl.innerHTML =
         tile("tTeam", IC.team, "T조 소개", "팀원 만나보기", 0, "a", "/team") +
+        tile("tPush", IC.bell, "알림", off ? "꺼져 있어요 · 눌러서 켜기" : TT.pushOn ? "켜져 있어요" : "폰 알림 설정", 0, "button", "", off ? "tile--shake" : "") +
+        tile("tInv", IC.mail, "초대장", "새 팀원 초대하기", 0) +
+        tile("tProf", IC.edit, "정보 변경", "닉네임·한 줄 소개", 0) +
         (user.presenter ? tile("tMin", IC.mic, "회의록", a.minutes ? `새 회의록 ${a.minutes}개` : "회의 요약·전사", a.minutes, "a", "/minutes") + tile("tPre", IC.present, "발표", a.deck ? "발표 자료가 바뀌었어요" : "전체화면 발표", a.deck) : "") +
-        tile("tOut", IC.out, "로그아웃", "이 기기에서 나가기", 0);
+        tile("tOut", IC.out, "로그아웃", "이 기기에서 나가기", 0, "button", "", "tile--out");
     }
-    tilesEl.addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (!t) return; if (t.id === "tPre") TT.present(); else if (t.id === "tOut") TT.askLogout(); });
+    // 창(정보 변경·알림·초대장): 누르면 아래에서 올라오고, 바깥·✕·Esc 로 닫는다
+    let shEl = null, shFrom = null;
+    const onSh = (e) => { if (e.key === "Escape") shClose(); };
+    function shOpen(id) { shFrom = document.activeElement; shEl = $("#" + id); shEl.hidden = false; document.body.style.overflow = "hidden"; document.addEventListener("keydown", onSh); shEl.querySelector(".sh__x").focus(); }
+    function shClose() { if (!shEl) return; shEl.hidden = true; shEl = null; document.body.style.overflow = ""; document.removeEventListener("keydown", onSh); shFrom?.focus?.(); }
+    document.querySelectorAll(".sh").forEach((el) => el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) shClose(); }));
+    const SHEET = { tPush: "sh-push", tInv: "sh-inv", tProf: "sh-prof" };
+    tilesEl.addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (!t) return; if (t.id === "tPre") TT.present(); else if (t.id === "tOut") TT.askLogout(); else if (SHEET[t.id]) shOpen(SHEET[t.id]); });
     drawTiles();
     document.addEventListener("tt:alerts", drawTiles);
 
@@ -230,7 +254,9 @@
       const ua = navigator.userAgent, ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
       box.hidden = false;
+      const known = (on) => { TT.pushOn = on; drawTiles(); };
       if (!TT.push.supported()) {
+        known(false);
         state.textContent = "이 기기에서는 켤 수 없어요";
         lead.textContent = ios && !standalone ? "아이폰은 Safari에서 이 사이트를 홈 화면에 추가한 뒤, 추가된 앱을 열어서 켤 수 있어요."
           : /KAKAOTALK/i.test(ua) ? "카카오톡 안 브라우저에서는 켤 수 없어요. 안드로이드는 Chrome, 아이폰은 Safari로 열어 홈 화면에 추가한 뒤 켜 주세요."
@@ -239,8 +265,8 @@
       }
       async function draw() {
         const st = await TT.push.state();
-        if (st === "unsupported") { state.textContent = "준비하지 못했어요"; lead.textContent = "페이지를 새로고침하거나 잠시 뒤 다시 열어 주세요."; return; }
-        const on = st === "on";
+        if (st === "unsupported") { known(false); state.textContent = "준비하지 못했어요"; lead.textContent = "페이지를 새로고침하거나 잠시 뒤 다시 열어 주세요."; return; }
+        const on = st === "on"; known(on);
         state.textContent = st === "denied" ? "차단됨" : on ? "켜짐 — 이 기기로 알림이 와요" : "꺼짐";
         lead.textContent = st === "denied" ? "알림이 차단돼 있어요. 폰(또는 브라우저) 설정에서 이 사이트의 알림을 허용한 뒤 다시 열어 주세요."
           : on ? "앱을 열어 두지 않아도 받고, 홈 화면 아이콘 위에 안 읽은 알림 수가 떠요."

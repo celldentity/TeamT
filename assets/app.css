@@ -797,10 +797,7 @@ a.art { text-decoration: none; color: inherit; }
 .gx__bar { position: sticky; top: var(--top-h); z-index: 6; margin: 14px calc(-1 * var(--gutter)) 0; padding: 10px var(--gutter) 8px; background: var(--paper); }
 .gx__bar input { width: 100%; min-height: 48px; padding: 0 16px; font: inherit; font-size: 1rem; color: var(--ink); background: var(--field); border: 1.5px solid transparent; border-radius: 14px; outline: none; }
 .gx__bar input:focus { background: #fff; border-color: var(--pink-deep); }
-.gx__cats { display: flex; gap: 6px; margin-top: 10px; padding-bottom: 2px; overflow-x: auto; scrollbar-width: none; }
-.gx__cats::-webkit-scrollbar { display: none; }
-.gx__cat { flex: none; min-height: 36px; padding: 0 14px; font: inherit; font-size: .875rem; font-weight: 700; color: var(--ink-soft); background: #fff; border: 1px solid var(--line); border-radius: 99px; cursor: pointer; }
-.gx__cat[aria-pressed="true"] { color: var(--ink); background: var(--pink); border-color: var(--pink); }
+.gx__pick { margin-top: 10px; }
 .gx__list { margin-top: 8px; border-top: 1px solid var(--line); }
 .gx__item { border-bottom: 1px solid var(--line); }
 .gx__head { position: relative; display: block; width: 100%; padding: 16px 40px 16px 2px; font: inherit; color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -826,3 +823,21 @@ a.art { text-decoration: none; color: inherit; }
 .gx__d small { display: block; font-size: .8125rem; color: var(--ink-soft); }
 .gx__d dd b { margin-right: 4px; font-size: 1.0625rem; }
 .gx__old { font-style: normal; font-size: .75rem; font-weight: 800; padding: 1px 7px; color: #fff; background: var(--pink-ink); border-radius: 99px; }
+
+/* 바로가기 카드에서 여는 창(.sh) — 아래에서 올라오는 시트. 로그아웃 카드는 맨 아래 한 줄로 넓게. 알림을 안 켠 사람의 카드는 계속 흔들린다. */
+.sh { position: fixed; inset: 0; z-index: 55; display: flex; align-items: flex-end; justify-content: center; background: rgb(23 23 25 / .55); }
+.sh[hidden] { display: none; }
+.sh__box { width: min(100%, var(--app-w)); max-height: 88dvh; padding: 0 20px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; overscroll-behavior: contain; background: #fff; border-radius: 24px 24px 0 0; animation: sh-up .28s cubic-bezier(.2, .8, .2, 1); }
+.sh__head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; min-height: 60px; margin-bottom: 4px; background: #fff; }
+.sh__t { font-size: 1.1875rem; font-weight: 800; letter-spacing: -.03em; }
+.sh__x { display: grid; place-items: center; width: 44px; height: 44px; margin-right: -10px; padding: 0; color: var(--ink-soft); background: transparent; border: 0; border-radius: 50%; cursor: pointer; }
+.sh__x svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.sh .set { margin-top: 4px; }
+@keyframes sh-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.tile--out { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; gap: 4px 12px; min-height: 76px; padding: 14px 16px; }
+.tile--out .tile__ic { width: 40px; height: 40px; }
+.tile--out .tile__h { flex-basis: 100%; margin-top: -2px; }
+.tile--shake { transform-origin: 50% 40%; animation: tile-shake 2.8s ease-in-out infinite; }
+.tile--shake .tile__h { font-weight: 700; color: var(--pink-ink); }
+@keyframes tile-shake { 0%, 24%, 100% { transform: none; } 3% { transform: rotate(-3.2deg); } 7% { transform: rotate(3.2deg); } 11% { transform: rotate(-2.4deg); } 15% { transform: rotate(2.4deg); } 19% { transform: rotate(-1.2deg); } 22% { transform: rotate(.8deg); } }
+@media (prefers-reduced-motion: reduce) { .sh__box, .tile--shake { animation: none; } }

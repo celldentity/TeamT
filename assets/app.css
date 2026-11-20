@@ -878,3 +878,8 @@ a.art { text-decoration: none; color: inherit; }
 .stamp { display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; padding: 1px 8px 1px 5px; font-size: .75rem; font-weight: 800; letter-spacing: .02em; line-height: 1.5; color: var(--pink-ink); white-space: nowrap; vertical-align: middle; background: rgb(255 255 255 / .65); border: 2px solid var(--pink-ink); border-radius: 7px; box-shadow: inset 0 0 0 1px #fff, inset 0 0 0 2px rgb(178 58 114 / .3); transform: rotate(-5deg); }
 .stamp svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
 .sp-card .stamp { flex: none; margin-left: auto; padding: 3px 10px 3px 7px; font-size: .875rem; }
+
+/* 댓글 폼이 보일 때 글쓰기 버튼을 슬쩍 숨긴다(저장 버튼과 겹침 방지) */
+.fab { transition: opacity .15s, transform .15s; }
+.fab.fab--off { opacity: 0; transform: scale(.7); pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .fab { transition: none; } }

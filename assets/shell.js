@@ -81,6 +81,21 @@
   // 아티클 목록·글 보기에서는 하단바 바로 위 오른쪽에 둥근 분홍 «글쓰기» 버튼을 띄운다
   if (/^\/(articles|article)$/.test(path)) document.body.insertAdjacentHTML("beforeend",
     '<a class="fab" href="/write" aria-label="글쓰기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17zM13.5 7.5l3 3"/></svg></a>');
+  // 댓글·답글·수정 폼이 화면(하단바 위)에 보이는 동안은 글쓰기 버튼을 숨긴다 — 오른쪽 아래 «저장»·«취소» 버튼과 겹쳐 눌리지 않게(2026-11-20 팀원 의견).
+  const fabEl = document.querySelector(".fab");
+  if (fabEl) {
+    let fq = 0;
+    const fabSync = () => {
+      fq = 0;
+      const lim = (window.visualViewport ? visualViewport.height : innerHeight) - (document.querySelector(".tabbar")?.offsetHeight || 0);
+      fabEl.classList.toggle("fab--off", [...document.querySelectorAll(".cmt-form")].some((f) => { const r = f.getBoundingClientRect(); return r.bottom > 0 && r.top < lim; }));
+    };
+    const fabQueue = () => { if (!fq) fq = requestAnimationFrame(fabSync); };
+    addEventListener("scroll", fabQueue, { passive: true }); addEventListener("resize", fabQueue);
+    window.visualViewport?.addEventListener("resize", fabQueue);
+    new MutationObserver(fabQueue).observe(document.body, { childList: true, subtree: true });
+    fabQueue();
+  }
 
   // 스크롤 진행 표시: 헤더 아래 경계선이 왼쪽에서 오른쪽으로 차오른다
   const top = document.getElementById("top");

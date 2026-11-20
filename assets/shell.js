@@ -109,8 +109,8 @@
   const initial = (u) => [...u.nickname][0] || "T";
   const avatar = (u) => (u.photoUrl ? `<img src="${esc(u.photoUrl)}" alt="">` : esc(initial(u)));
 
-  // 글쓴이(author 가 null 이면 T조 AI), 몇 분 전/며칠 전, 하트 아이콘
-  const who = (a) => a || { nickname: "T조 AI", photoUrl: null };
+  // 글쓴이(author 가 null 이면 AI 캐릭터 «미드핑»), 몇 분 전/며칠 전, 하트 아이콘
+  const who = (a) => a || { nickname: "미드핑", photoUrl: "/assets/miding.jpg" };
   const ago = (d) => {
     const s = (Date.now() - new Date(d)) / 1000;
     if (s < 60) return "방금"; if (s < 3600) return `${Math.floor(s / 60)}분 전`; if (s < 86400) return `${Math.floor(s / 3600)}시간 전`; if (s < 7 * 86400) return `${Math.floor(s / 86400)}일 전`;

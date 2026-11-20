@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
     if (L.len(title) < 2 || L.len(title) > 80) return L.json(res, 400, { error: "제목은 2~80자로 적어 주세요." });
     if (L.len(body) < 10 || L.len(body) > 5000) return L.json(res, 400, { error: "내용은 10~5000자로 적어 주세요." });
     const [r] = await L.db().query("INSERT INTO posts (author_id, ai, category, title, body) VALUES (NULL, 1, ?, ?, ?)", [category, title, body]);
-    const push = await require("./_push").notify(null, () => ({ title: "T조 AI가 새 글을 썼어요", body: title, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }))
+    const push = await require("./_push").notify(null, () => ({ title: "미드핑이 새 글을 썼어요", icon: "/assets/miding.jpg", body: title, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }))
       .catch((e) => { console.error("push ai post", e); return null; });
     return L.json(res, 201, { id: r.insertId, push });
   } catch (e) {

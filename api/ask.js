@@ -45,7 +45,7 @@ async function search(db, { query, kind, limit }) {
   const snip = (text, lo) => { const i = Math.max(0, Math.min(...toks.map((t) => lo.indexOf(t)).filter((x) => x >= 0).concat([0]))); return cut(String(text).slice(Math.max(0, i - 60), i + 140).replace(/\s+/g, " "), 200); };
   const out = [...byId.values()].filter((p) => hit.get(p.id).score > 0).sort((a, b) => hit.get(b.id).score - hit.get(a.id).score || b.id - a.id).slice(0, limit).map((p) => {
     const h = hit.get(p.id), inBody = toks.some((t) => String(p.body).toLowerCase().includes(t));
-    return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "T조 AI", date: ymd(p.created_at), comments: Number(p.cn), snippet: inBody ? snip(p.body, String(p.body).toLowerCase()) : undefined, commentSnippet: h.cm ? snip(h.cm, h.cm.toLowerCase()) : undefined };
+    return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "미드핑", date: ymd(p.created_at), comments: Number(p.cn), snippet: inBody ? snip(p.body, String(p.body).toLowerCase()) : undefined, commentSnippet: h.cm ? snip(h.cm, h.cm.toLowerCase()) : undefined };
   });
   return out.length ? { count: out.length, results: out } : { count: 0, note: "일치하는 글이 없어요. 다른 단어로 다시 검색해 보세요." };
 }
@@ -53,7 +53,7 @@ async function search(db, { query, kind, limit }) {
 async function recent(db, { kind, limit }) {
   limit = Math.min(30, Math.max(1, Number(limit) || 10));
   const [ps] = await db.query(`SELECT p.id, p.title, p.category, p.kind, LEFT(p.body, 160) AS ex, p.created_at, u.nickname, (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0) AS cn FROM posts p LEFT JOIN users u ON u.id = p.author_id${kind ? " WHERE p.kind = ?" : ""} ORDER BY p.id DESC LIMIT ?`, kind ? [kind, limit] : [limit]);
-  return { count: ps.length, results: ps.map((p) => ({ id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "T조 AI", date: ymd(p.created_at), comments: Number(p.cn), excerpt: cut(p.ex.replace(/\s+/g, " "), 140) })) };
+  return { count: ps.length, results: ps.map((p) => ({ id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "미드핑", date: ymd(p.created_at), comments: Number(p.cn), excerpt: cut(p.ex.replace(/\s+/g, " "), 140) })) };
 }
 
 async function read(db, { id }) {
@@ -61,8 +61,8 @@ async function read(db, { id }) {
   const [[p]] = await db.query("SELECT p.id, p.title, p.category, p.kind, p.body, p.goal, p.stage, p.created_at, u.nickname, t.nickname AS target FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id WHERE p.id = ?", [id]);
   if (!p) return { error: "그런 글이 없어요(지워졌을 수 있어요)." };
   const [cs] = await db.query("SELECT c.id, c.parent_id, c.body, c.created_at, u.nickname FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? AND c.deleted = 0 ORDER BY c.created_at, c.id LIMIT 80", [id]);
-  return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "T조 AI", date: ymd(p.created_at), ...(p.target ? { 지목된사람: p.target } : {}), ...(p.kind === "weekly" ? { 진행단계: p.stage, 목표댓글수: p.goal } : {}),
-    body: cut(p.body, 6000), commentCount: cs.length, comments: cs.map((c) => ({ id: c.id, ...(c.parent_id ? { replyTo: c.parent_id } : {}), author: c.nickname || "T조 AI", date: ymd(c.created_at), text: cut(c.body, 700) })) };
+  return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "미드핑", date: ymd(p.created_at), ...(p.target ? { 지목된사람: p.target } : {}), ...(p.kind === "weekly" ? { 진행단계: p.stage, 목표댓글수: p.goal } : {}),
+    body: cut(p.body, 6000), commentCount: cs.length, comments: cs.map((c) => ({ id: c.id, ...(c.parent_id ? { replyTo: c.parent_id } : {}), author: c.nickname || "미드핑", date: ymd(c.created_at), text: cut(c.body, 700) })) };
 }
 
 async function members(db) {

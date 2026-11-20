@@ -168,14 +168,14 @@
         const t = TT.who(p.target);
         h = `<div class="sp-card sp-card--daily"><span class="sp-card__av">${TT.avatar(t)}</span><div class="sp-card__t"><b>오늘 지목된 사람 · ${TT.esc(t.nickname)}</b><p>${p.answered ? "답변이 올라왔어요. 다른 분들도 이어서 이야기해 보세요." : p.forMe ? "오늘의 질문이 나에게 왔어요! 아래에 답변을 남겨 주세요." : "지목된 분의 답변을 기다리고 있어요."}</p></div>${p.answered ? TT.stamp : ""}${p.forMe && !p.answered ? '<button class="btn btn--sm" type="button" data-act="answer">답변하러 가기</button>' : ""}</div>`;
       } else if (p.special === "weekly" && p.progress) {
-        const g = p.progress, msg = g.stage === "done" ? "토론이 끝났어요. T조 AI가 아티클로 정리했어요." : g.stage === "review" ? "T조 AI가 정리하고 질문을 남겼어요. 이어서 의견을 나눠 주세요." : g.pct >= 100 ? "T조 AI가 곧 정리하러 와요(몇 분 걸려요)." : `댓글이 ${g.goal}개 모이면 T조 AI가 정리하고 질문을 던져요.`;
+        const g = p.progress, msg = g.stage === "done" ? "토론이 끝났어요. 미드핑이 아티클로 정리했어요." : g.stage === "review" ? "미드핑이 정리하고 질문을 남겼어요. 이어서 의견을 나눠 주세요." : g.pct >= 100 ? "미드핑이 곧 정리하러 와요(몇 분 걸려요)." : `댓글이 ${g.goal}개 모이면 미드핑이 정리하고 질문을 던져요.`;
         h = `<div class="sp-card sp-card--weekly"><div class="sp-card__row"><b>의논 진행도</b><span>${Math.min(g.done, g.goal)}/${g.goal} · ${g.pct}%</span></div><span class="sp__bar sp__bar--lg" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${g.pct}"><i style="width:${g.pct}%"></i></span><p>${msg}</p>${p.ref ? `<a class="btn btn--sm" href="/article?id=${p.ref}">정리된 아티클 보기</a>` : ""}</div>`;
       } else if (p.special === "digest") {
-        h = `<div class="sp-card sp-card--digest"><div class="sp-card__t"><b>이번 주 토론을 T조 AI가 정리한 글이에요</b><p>인살롱에 올려도 좋은지 읽어 보고 고칠 곳은 댓글로 알려 주세요.</p></div>${p.ref ? `<a class="btn btn--ghost btn--sm" href="/article?id=${p.ref}">토론 보러 가기</a>` : ""}</div>`;
+        h = `<div class="sp-card sp-card--digest"><div class="sp-card__t"><b>이번 주 토론을 미드핑이 정리한 글이에요</b><p>인살롱에 올려도 좋은지 읽어 보고 고칠 곳은 댓글로 알려 주세요.</p></div>${p.ref ? `<a class="btn btn--ghost btn--sm" href="/article?id=${p.ref}">토론 보러 가기</a>` : ""}</div>`;
       }
       box.innerHTML = h;
       const ta = $("#cmForm textarea");
-      if (ta) ta.placeholder = p.special === "weekly" ? `의견을 남겨 주세요 (댓글 ${p.progress ? p.progress.goal : 10}개가 모이면 T조 AI가 정리해요)` : p.special === "daily" && p.forMe && !p.answered ? "지목받은 질문에 답해 보세요" : "댓글을 남겨 보세요 (1000자까지)";
+      if (ta) ta.placeholder = p.special === "weekly" ? `의견을 남겨 주세요 (댓글 ${p.progress ? p.progress.goal : 10}개가 모이면 미드핑이 정리해요)` : p.special === "daily" && p.forMe && !p.answered ? "지목받은 질문에 답해 보세요" : "댓글을 남겨 보세요 (1000자까지)";
     }
 
     // ── 댓글 사진·동영상 첨부: 사진 4개까지·동영상 1개(100MB 이하). 파일은 서버를 거치지 않고 R2 로 바로 올라간다(assets/media.js).

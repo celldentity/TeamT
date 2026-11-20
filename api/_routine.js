@@ -76,7 +76,7 @@ async function makeDaily(db, now = new Date()) {
     id = r.insertId;
   } catch (e) { if (e.code === "ER_DUP_ENTRY") return { skipped: "이미 있음" }; throw e; }   // 동시에 두 번 불려도 한 번만
   const img = await Img.attachFor(db, id, q, "daily");   // 질문에 맞는 일러스트(없으면 같은 분류의 다른 그림, 그래도 없으면 그림 없이)
-  const push = await Push.notify([who.id], () => ({ title: "오늘의 질문이 도착했어요", body: q.title, url: `/article?id=${id}`, tag: `daily-${date}`, badge: "auto" })).catch((e) => ({ error: e.message }));
+  const push = await Push.notify([who.id], () => ({ title: "미드핑이 오늘의 질문을 보냈어요", icon: "/assets/miding.jpg", body: q.title, url: `/article?id=${id}`, tag: `daily-${date}`, badge: "auto" })).catch((e) => ({ error: e.message }));
   return { id, date, target: who.nickname, from: q.from, type: q.type, title: q.title, img, push, ...(H.covered(date) ? {} : { note: "공휴일 정보 없음(주말만 쉼)" }) };
 }
 
@@ -92,7 +92,7 @@ async function makeWeekly(db, now = new Date()) {
     id = r.insertId;
   } catch (e) { if (e.code === "ER_DUP_ENTRY") return { skipped: "이미 있음" }; throw e; }
   const img = await Img.attachFor(db, id, q, "weekly");
-  const push = await Push.notify(null, () => ({ title: "이번 주 토론 주제가 올라왔어요", body: q.title, url: `/article?id=${id}`, tag: `weekly-${mon}`, badge: "auto" })).catch((e) => ({ error: e.message }));
+  const push = await Push.notify(null, () => ({ title: "미드핑이 이번 주 토론 주제를 가져왔어요", icon: "/assets/miding.jpg", body: q.title, url: `/article?id=${id}`, tag: `weekly-${mon}`, badge: "auto" })).catch((e) => ({ error: e.message }));
   return { id, week: mon, from: q.from, title: q.title, img, push };
 }
 
@@ -103,9 +103,9 @@ const humanCount = async (db, postId, since) => {
 };
 async function thread(db, postId) {
   const [cs] = await db.query("SELECT c.body, u.nickname FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? AND c.deleted = 0 ORDER BY c.created_at, c.id", [postId]);
-  return cs.map((c) => `[${c.nickname || "T조 AI"}] ${String(c.body).replace(/\s+/g, " ")}`).join("\n").slice(-14000);
+  return cs.map((c) => `[${c.nickname || "미드핑"}] ${String(c.body).replace(/\s+/g, " ")}`).join("\n").slice(-14000);
 }
-const SYS = "당신은 HR 스터디 모임 «T조»의 AI 진행자입니다. 팀원들이 주제에 대해 댓글로 나눈 이야기를 읽고 돕습니다. 팀원의 의견을 왜곡하거나 지어내지 말고, 닉네임은 그대로 쓰세요. 마크다운 기호(#, *, -, 번호 목록 기호)를 쓰지 말고 일반 문장으로 쓰세요. 반드시 JSON 한 개만 출력하세요.";
+const SYS = "당신은 HR 스터디 모임 «T조»의 AI 진행자 «미드핑»입니다(라벤더색 몸에 축구공을 안은 귀여운 마스코트). 스스로를 가리킬 때는 «미드핑»이라고 부르세요. 팀원들이 주제에 대해 댓글로 나눈 이야기를 읽고 돕습니다. 팀원의 의견을 왜곡하거나 지어내지 말고, 닉네임은 그대로 쓰세요. 마크다운 기호(#, *, -, 번호 목록 기호)를 쓰지 말고 일반 문장으로 쓰세요. 반드시 JSON 한 개만 출력하세요.";
 
 async function aiComment(db, postId, body) {
   const [r] = await db.query("INSERT INTO comments (post_id, parent_id, author_id, body) VALUES (?, NULL, NULL, ?)", [postId, String(body).slice(0, 3900)]);
@@ -126,7 +126,7 @@ async function wrapOne(db, post) {
     if (!out.summary || !qs.length) throw new Error("요약 형식이 올바르지 않아요.");
     const cid = await aiComment(db, post.id, `댓글이 ${post.goal}개 모여서 지금까지의 이야기를 정리해 볼게요.\n\n${String(out.summary).trim()}\n\n더 이야기해 보면 좋을 질문이에요.\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}`);
     await db.query("UPDATE posts SET stage = 'review', ai_round = 1, ai_at = NOW() WHERE id = ?", [post.id]);
-    const push = await Push.notify(null, () => ({ title: "T조 AI가 토론을 정리하고 질문을 남겼어요", body: post.title, url: `/article?id=${post.id}#c${cid}`, tag: `wrap-${post.id}-1`, badge: "auto" })).catch(() => null);
+    const push = await Push.notify(null, () => ({ title: "미드핑이 토론을 정리하고 질문을 남겼어요", icon: "/assets/miding.jpg", body: post.title, url: `/article?id=${post.id}#c${cid}`, tag: `wrap-${post.id}-1`, badge: "auto" })).catch(() => null);
     return { id: post.id, step: "summary", push };
   }
 
@@ -150,7 +150,7 @@ async function wrapOne(db, post) {
         ? `\n\n포인트도 드렸어요. 댓글을 남긴 분께 참여 +${R.JOIN}${pts.top.length ? `, 의미 있는 댓글을 가장 많이 남긴 ${pts.top.join("·")}님께 +${R.TOP}` : ""}${pts.key.length ? `, 대화의 흐름과 결론에 핵심 역할을 한 분께 가산점 +${R.KEY}` : ""}.${pts.key.length ? "\n" + pts.key.map((k) => `· ${k.nickname}님 — ${k.reason || "핵심 역할"}`).join("\n") : ""}`
         : "";
       const cid = await aiComment(db, post.id, `이야기가 충분히 모여서 아티클로 정리했어요. 인살롱에 올려도 좋은지 한 번씩 읽어 보고 고칠 곳이 있으면 알려 주세요.\n\n정리된 글: «${title}»${ptsNote}`);
-      const push = await Push.notify(null, () => ({ title: "토론이 아티클로 정리됐어요", body: title, url: `/article?id=${r.insertId}`, tag: `digest-${post.id}`, badge: "auto" })).catch(() => null);
+      const push = await Push.notify(null, () => ({ title: "미드핑이 토론을 아티클로 정리했어요", icon: "/assets/miding.jpg", body: title, url: `/article?id=${r.insertId}`, tag: `digest-${post.id}`, badge: "auto" })).catch(() => null);
       if (pts) await Push.notify(Object.keys(pts.gave).map(Number), (uid) => ({ title: `토론 포인트 +${pts.gave[uid].pts}점이 들어왔어요`, body: pts.gave[uid].parts.join(" · "), url: "/me", tag: `pts-${post.id}`, badge: "auto" })).catch(() => null);
       return { id: post.id, step: "digest", digest: r.insertId, push, cid, points: pts && Object.fromEntries(Object.entries(pts.gave).map(([u, v]) => [u, v.pts])) };
     }
@@ -158,7 +158,7 @@ async function wrapOne(db, post) {
     if (!qs.length) throw new Error("반문이 비어 있어요.");
     const cid = await aiComment(db, post.id, `이야기를 이어서 보니 아직 정리하기엔 조금 부족해요. 아래 질문도 같이 생각해 볼까요?\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}`);
     await db.query("UPDATE posts SET ai_round = ai_round + 1, ai_at = NOW() WHERE id = ?", [post.id]);
-    const push = await Push.notify(null, () => ({ title: "T조 AI가 질문을 더 남겼어요", body: post.title, url: `/article?id=${post.id}#c${cid}`, tag: `wrap-${post.id}-${post.ai_round + 1}`, badge: "auto" })).catch(() => null);
+    const push = await Push.notify(null, () => ({ title: "미드핑이 질문을 더 남겼어요", icon: "/assets/miding.jpg", body: post.title, url: `/article?id=${post.id}#c${cid}`, tag: `wrap-${post.id}-${post.ai_round + 1}`, badge: "auto" })).catch(() => null);
     return { id: post.id, step: "followup", push };
   }
   return { id: post.id, skipped: "처리할 단계 아님" };

@@ -4,6 +4,7 @@
 //   POST /api/notifications {read:true} → 지금까지 확인함으로 표시
 // 종류: post = 새 글 · comment = 내 글에 달린 댓글 · reply = 내 댓글에 달린 답글 · like_post = 내 글 좋아요 · like_comment = 내 댓글 좋아요 (정의는 _notif.js)
 const L = require("./_lib");
+const AI = require("./_persona");
 
 const N = require("./_notif");
 const { EVENTS, SEEN } = N;
@@ -35,7 +36,7 @@ module.exports = async (req, res) => {
       unread,
       items: [...sys, ...rows.map((r) => ({
         kind: r.kind, refId: r.ref_id, postId: r.post_id, postTitle: r.title, snippet: r.snippet, createdAt: r.created_at, isNew: !!Number(r.is_new),
-        actor: r.actor_id ? { id: r.actor_id, nickname: r.nickname, photoUrl: L.photoUrl({ id: r.actor_id, photo_v: r.photo_v }) } : { id: 0, nickname: "T조 AI", photoUrl: null },   // 글쓴이 없음 = T조 AI
+        actor: r.actor_id ? { id: r.actor_id, nickname: r.nickname, photoUrl: L.photoUrl({ id: r.actor_id, photo_v: r.photo_v }) } : { id: 0, nickname: AI.AI_NAME, photoUrl: AI.AI_PHOTO, ai: true },   // 글쓴이 없음 = AI 캐릭터 «미드핑»
       }))].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 50),
     });
   } catch (e) {

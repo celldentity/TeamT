@@ -9,7 +9,7 @@ self.addEventListener("push", (e) => {
   e.waitUntil((async () => {
     await self.registration.showNotification(d.title || "HR T | 니핑", {
       body: d.body || "", tag: d.tag, data: { url: d.url || "/" },
-      icon: "/assets/icons/icon-v3-192.png",
+      icon: d.icon || "/assets/icons/icon-v3-192.png",   // 미드핑이 보낸 알림은 미드핑 얼굴로
     });
     if (typeof d.badge === "number" && self.navigator) {
       try { if (d.badge > 0 && self.navigator.setAppBadge) await self.navigator.setAppBadge(d.badge); else if (self.navigator.clearAppBadge) await self.navigator.clearAppBadge(); } catch {}

@@ -48,7 +48,7 @@
     if (!user) return;
     const $ = (s) => document.querySelector(s);
     const text = (n) => {
-      const a = n.actor.id ? `<b>${TT.esc(n.actor.nickname)}</b>님이` : `<b>T조 AI</b>가`, t = `내 글 «${TT.esc(n.postTitle)}»`;
+      const a = n.actor.id ? `<b>${TT.esc(n.actor.nickname)}</b>님이` : `<b>${TT.esc(n.actor.nickname)}</b>이`, t = `내 글 «${TT.esc(n.postTitle)}»`;
       if (n.kind === "post") return `${a} 새 글을 올렸어요`;
       return n.kind === "comment" ? `${a} ${t}에 댓글을 남겼어요`
         : n.kind === "reply" ? `${a} 내 댓글에 답글을 남겼어요`

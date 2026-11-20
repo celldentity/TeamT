@@ -331,7 +331,7 @@
   const seenPut = (v) => { try { localStorage.setItem(seenKey(), JSON.stringify(v)); } catch {} };
   // 발표 자료가 «바뀌었는지» 는 서버·CDN 이 주는 헤더(ETag·수정시각 — Cloudflare 가 강/약으로 번갈아 주고 배포 때마다 바뀜)가 아니라 슬라이드 내용으로 본다:
   // 주석 줄·공백을 빼고 해시해서, 파일을 다시 저장하거나 서식·주석만 고치거나 배포가 다시 돼도 같은 값이다. 글자(제목·항목)가 실제로 바뀔 때만 달라진다.
-  const deckKey = (src) => { const t = String(src).replace(/^\s*\/\/.*$/gm, "").replace(/\s+/g, ""); let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return "h:" + h.toString(36); };
+  const deckKey = (src) => { const m = /window\.DECK_REV\s*=\s*(\d+)/.exec(String(src)); return m ? "r:" + m[1] : ""; };   // deck.js 의 판 번호(DECK_REV) — 글자가 아니라 «번호가 올라갔을 때만» 알린다
   TT.alerts = { minutes: 0, deck: 0, total: 0, latest: 0, tag: "" };
   TT.icons = IC;   // 마이페이지 카드가 같은 아이콘을 쓴다
   const paintAlerts = () => {
@@ -354,8 +354,8 @@
       ]);
       a.latest = m ? m.latest : 0; a.tag = tag;
       if (m) { if (v.m == null) { v.m = m.latest; } else a.minutes = m.count; }
-      // 옛 방식(ETag·수정시각)으로 기억해 둔 값이거나 처음이면 조용히 지금 것으로 바꾼다(알림 없이). 이후엔 슬라이드 «내용»이 달라졌을 때만 알린다.
-      if (tag) { if (v.d == null || !String(v.d).startsWith("h:")) v.d = tag; else if (v.d !== tag) a.deck = 1; }
+      // 옛 방식(ETag·수정시각·글자 지문)으로 기억해 둔 값이거나 처음이면 조용히 지금 것으로 바꾼다(알림 없이). 이후엔 판 번호가 올라갔을 때만 알린다.
+      if (tag) { if (v.d == null || !String(v.d).startsWith("r:")) v.d = tag; else if (v.d !== tag) a.deck = 1; }
       seenPut(v); paintAlerts();
     })();
     return TT.alerts;

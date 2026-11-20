@@ -163,8 +163,16 @@
     document.querySelectorAll(".sh").forEach((el) => el.addEventListener("click", (e) => { if (e.target === el || e.target.closest("[data-x]")) shClose(); }));
     const SHEET = { tPush: "sh-push", tInv: "sh-inv", tProf: "sh-prof" };
     tilesEl.addEventListener("click", (e) => { const t = e.target.closest(".tile"); if (!t) return; if (t.id === "tPre") TT.present(); else if (t.id === "tOut") TT.askLogout(); else if (SHEET[t.id]) shOpen(SHEET[t.id]); });
-    drawTiles();
-    document.addEventListener("tt:alerts", drawTiles);
+    // 발표 카드의 «새 소식»은 눌러서 열어 보지 않아도, 카드가 화면에 2.5초쯤 보였으면 본 것으로 친다(예전엔 발표를 열어야만 사라져서 계속 남아 있었다).
+    let deckWatch = null, deckT = 0;
+    function watchDeck() {
+      deckWatch?.disconnect(); clearTimeout(deckT);
+      const el = $("#tPre"); if (!el || !TT.alerts.deck || !("IntersectionObserver" in window)) return;
+      deckWatch = new IntersectionObserver((es) => { clearTimeout(deckT); if (es[0].isIntersecting) deckT = setTimeout(() => TT.seen.deck(), 2500); }, { threshold: 0.6 });
+      deckWatch.observe(el);
+    }
+    drawTiles(); watchDeck();
+    document.addEventListener("tt:alerts", () => { drawTiles(); watchDeck(); });
 
     // 포인트 카드 — 서버에서 받아 그린다(실패하면 카드는 그냥 숨겨 둔다)
     TT.call("/api/points").then((d) => {

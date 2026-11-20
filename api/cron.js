@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
     if (!ok) return L.json(res, 401, { error: "허용되지 않은 요청이에요." });
     const job = req.query.job, db = L.db();
     // 부를 때마다 한 줄 남긴다(Vercel 이 정말 부르는지 확인용). 요약만, 2주가 지난 기록은 지운다.
-    const log = async (out) => { try { await db.query("INSERT INTO cron_runs (job, note) VALUES (?, ?)", [String(job).slice(0, 10), JSON.stringify(out, (k, v) => (k === "push" ? undefined : v)).slice(0, 290)]); await db.query("DELETE FROM cron_runs WHERE ran_at < DATE_SUB(NOW(), INTERVAL 14 DAY)"); } catch (e) { console.error("cron log", e.message); } };
+    const log = async (out) => { try { await db.query("INSERT INTO cron_runs (job, note) VALUES (?, ?)", [String(job).slice(0, 10), JSON.stringify(out, (k, v) => (k === "title" ? undefined : k === "push" ? (v && v.users !== undefined ? `알림 ${v.sent}건 보냄/${v.users}명${v.failed ? ` 실패${v.failed}` : ""}` : v && v.error ? `알림 오류: ${v.error}` : undefined) : v)).slice(0, 290)]); await db.query("DELETE FROM cron_runs WHERE ran_at < DATE_SUB(NOW(), INTERVAL 14 DAY)"); } catch (e) { console.error("cron log", e.message); } };
     if (job === "daily") {
       const k = R.kstNow(), out = {};
       out.weekly = await R.makeWeekly(db);   // 그 주의 첫 영업일이 아니면 알아서 건너뛴다

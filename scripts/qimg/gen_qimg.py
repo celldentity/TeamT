@@ -1,18 +1,18 @@
-"""질문 일러스트 생성 — 로컬 FLUX(ComfyUI, D:\\Coding\\Worker\\flux_gen.py)로 질문마다 한 장.
+"""질문 일러스트 생성 — 로컬 FLUX(ComfyUI, 환경변수 QIMG_WORKER_DIR 폴더의 flux_gen.py)로 질문마다 한 장.
   python scripts/qimg/gen_qimg.py [--only d0001,d0002] [--redo d0003] [--limit N]
 입력: scripts/qimg/scenes.json  {id: "영어 장면 묘사"}   (질문 본문은 api/_qbank.json — scripts/qimg/merge_qbank.js 가 둘을 같이 만든다)
-출력: D:\\Coding\\.cache\\teamt-qimg\\<id>.jpg (768x576) · <id>.t.jpg (320 정사각 썸네일) · progress.jsonl (id·시드·초)
+출력: 환경변수 QIMG_DIR 폴더(없으면 저장소 안 .cache/teamt-qimg)의 <id>.jpg (768x576) · <id>.t.jpg (320 정사각 썸네일) · progress.jsonl (id·시드·초)
 이어하기: 이미 <id>.jpg 가 있으면 건너뛴다. 이상한 그림은 --redo <id> (다른 시드로 다시 뽑는다).
 """
-import argparse, hashlib, io, json, sys, time
+import argparse, hashlib, io, json, os, sys, time
 from pathlib import Path
 
-sys.path.insert(0, r"D:\Coding\Worker")
+sys.path.insert(0, os.environ["QIMG_WORKER_DIR"])  # flux_gen.py 가 있는 폴더(이 PC 전용)
 from flux_gen import gen  # noqa: E402
 from PIL import Image, ImageStat  # noqa: E402
 
 HERE = Path(__file__).parent
-OUT = Path(r"D:\Coding\.cache\teamt-qimg")
+OUT = Path(os.environ.get("QIMG_DIR") or HERE.parent.parent / ".cache" / "teamt-qimg")
 STYLE = ("cute kawaii anime-style flat illustration, soft pastel pink and lavender palette, thick soft outlines, "
          "round chubby characters with tiny dot eyes and pink cheeks, clean simple pastel background, centered composition "
          "with the characters and props filling the frame, no text, no letters, no numbers, no logo, no watermark. ")

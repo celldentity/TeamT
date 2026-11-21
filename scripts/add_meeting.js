@@ -1,5 +1,5 @@
 // 회의록을 DB(meetings)에 넣는다. 같은 시작 시각의 회의록이 이미 있으면 덮어쓴다.
-// 실행: node scripts/add_meeting.js "D:\Coding\.config\teamt-minutes\2026-11-18_조모임.json"
+// 실행: node scripts/add_meeting.js <회의록 JSON 파일 경로>   (JSON 은 저장소 밖에 둔다)
 // JSON 모양: {title, heldAt(ISO, UTC), durationS, summary:{…}, transcript:[{s,e,sp,t}]}  — 회의 내용은 저장소가 아니라 DB 에만 둔다.
 const fs = require("fs"), path = require("path");
 const root = path.resolve(__dirname, "..");

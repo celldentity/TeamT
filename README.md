@@ -84,3 +84,5 @@ node scripts/dev.js      # http://127.0.0.1:8791
 3. 관리자가 검토해 병합하면 운영 사이트(https://tnieping.com)에 반영됩니다.
 
 AI 도구를 쓸 때의 규칙은 [AGENTS.md](AGENTS.md) 에 있습니다.
+
+<!-- 시험 PR: 협업 흐름 확인용, 병합하지 않고 닫습니다 -->

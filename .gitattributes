@@ -1,0 +1,9 @@
+# 줄바꿈을 LF 로 통일한다 — 윈도우(CRLF)·맥(LF) 팀원이 섞여도 «파일 전체가 바뀐 것처럼» 보이는 PR 이 생기지 않게.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.mp4 binary
+*.woff2 binary

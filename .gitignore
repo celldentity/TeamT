@@ -6,8 +6,13 @@ node_modules/
 __pycache__/
 .vercel/
 
-# 작업 메모(계정·인프라 정보 포함) — 로컬에만 둔다
-CLAUDE.md
+# 작업 메모(계정·인프라 정보 포함) — 로컬에만 둔다. 공개용 CLAUDE.md(@AGENTS.md 한 줄)는 올린다.
+CLAUDE.local.md
 
 # HR 용어 사전 작업 자료(두 사이트 원문 수집본 등 — 저작물이라 올리지 않는다)
 secret/
+# 용어 사전을 만드는 이 PC 전용 스크립트 — 공개 전 검토가 끝날 때까지 올리지 않는다
+scripts/crawl_hr_glossary.py
+scripts/build_hr_glossary_seed.py
+scripts/build_content.py
+scripts/build_terms.py

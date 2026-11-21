@@ -7,7 +7,7 @@ set -u
 cd "$(git rev-parse --show-toplevel)"
 
 # 1) 애초에 올라오면 안 되는 파일
-bad=$(git diff --cached --name-only --diff-filter=AM | grep -E '(^|/)(\.env|CLAUDE\.md)$|\.(bundle|pem|key)$' || true)
+bad=$(git diff --cached --name-only --diff-filter=AM | grep -E '(^|/)(\.env|CLAUDE\.local\.md)$|\.(bundle|pem|key)$' || true)
 [ -n "$bad" ] && { echo "✋ 올리면 안 되는 파일: $bad"; echo "   git restore --staged <파일>"; exit 1; }
 
 # 2) 추가된 줄의 내용
@@ -25,7 +25,7 @@ EOF
 fail=0
 for f in $(git diff --cached --name-only --diff-filter=AM); do
   case "$f" in package-lock.json|*.png|*.jpg|*.ico) continue;; esac
-  hit=$(git diff --cached -U0 -- "$f" | grep -E '^\+[^+]' | grep -iEf "$P" | cut -c1-110 || true)
+  hit=$(git diff --cached -U0 -- "$f" | grep -E '^\+[^+]' | cut -c2- | grep -iEf "$P" | cut -c1-110 || true)
   [ -n "$hit" ] && { echo "✋ $f"; echo "$hit" | sed 's/^/   /'; fail=1; }
 done
 [ $fail -eq 1 ] && { echo; echo "위 줄에 비밀값·개인정보로 보이는 것이 있어 커밋을 멈췄어요. 고치거나, 괜찮다면 --no-verify."; exit 1; }

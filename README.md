@@ -6,7 +6,7 @@
 팀원들이 글을 쓰고, 사진·동영상을 붙이고, 댓글과 하트로 서로 반응하는 **모바일 전용 아티클 사이트**입니다.
 (12월 최종발표 주제와 이어지는 «T조 자동 아티클 생성 & 업로드» 아이디어에서 출발했습니다.)
 
-**https://t-niping.vercel.app**
+**https://tnieping.com**
 
 ## 무엇을 할 수 있나
 
@@ -67,10 +67,20 @@ scripts/    DB 만들기, 초대장 발급, 로컬 서버, 연결 점검
 ## 로컬에서 돌려 보기
 
 ```bash
+git config core.hooksPath .githooks   # 커밋 전 비밀값 검사 켜기 (clone 한 뒤 한 번)
 npm install
-cp .env.example .env     # 값은 직접 채운다 (.env 는 커밋 금지)
+cp .env.example .env     # 값은 관리자가 전달한 «테스트 환경» 값으로 채운다 (.env 는 커밋 금지)
 node scripts/dev.js      # http://127.0.0.1:8791
 ```
 
-`.env` 는 실제 TiDB·R2 에 붙으므로 시험으로 만든 계정은 끝나고 지워 주세요.
-첫 사람은 `python scripts/make_invite.py` 로 운영자 초대장을 만들어 들어옵니다.
+`.env` 는 **테스트 DB·테스트 버킷**에만 붙어야 합니다(`APP_ENV=test`, 없으면 서버가 실행을 거부합니다).
+운영 값은 팀원에게 전달하지 않습니다. 테스트 DB 에서는 글을 쓰고 지워도 운영에 영향이 없습니다.
+테스트 DB 의 표 만들기 `python scripts/init_db.py`, 첫 가입용 초대장 `python scripts/make_invite.py`.
+
+## 함께 만들기
+
+1. 새 브랜치를 만든다 → 고친다 → PR 을 올린다. `main` 에 직접 푸시하지 않습니다.
+2. PR 에 달리는 Vercel 미리보기 주소(테스트 DB 에 연결)를 폰으로 열어 테스트 계정으로 확인한다.
+3. 관리자가 검토해 병합하면 운영 사이트(https://tnieping.com)에 반영됩니다.
+
+AI 도구를 쓸 때의 규칙은 [AGENTS.md](AGENTS.md) 에 있습니다.

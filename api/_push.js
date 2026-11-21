@@ -13,7 +13,7 @@ function vapid() {
     const ecdh = crypto.createECDH("prime256v1");
     try { ecdh.setPrivateKey(priv); } catch { continue; } // 곡선 범위를 벗어나는 드문 값은 건너뜀
     keys = { publicKey: ecdh.getPublicKey().toString("base64url"), privateKey: priv.toString("base64url") };
-    webpush.setVapidDetails("https://t-niping.vercel.app", keys.publicKey, keys.privateKey);
+    webpush.setVapidDetails("https://tnieping.com", keys.publicKey, keys.privateKey);
     return keys;
   }
 }

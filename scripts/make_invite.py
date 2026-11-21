@@ -1,6 +1,6 @@
 """운영자(첫 사람용) 초대장을 만든다 — 아무도 가입하지 않은 상태에서 첫 팀원을 들이는 방법.
 실행: D:\\Coding\\.venv\\Scripts\\python.exe scripts/make_invite.py [개수=1] [유효일=7]
-링크의 도메인은 t-niping.vercel.app. 만든 초대장은 created_by=NULL(운영자)로 남는다."""
+링크의 도메인은 tnieping.com. 만든 초대장은 created_by=NULL(운영자)로 남는다."""
 import os
 import secrets
 import sys
@@ -25,5 +25,5 @@ with db.cursor() as cur:
     for _ in range(n):
         code = "".join(secrets.choice(ALPHA) for _ in range(12))
         cur.execute("INSERT INTO invites (code, created_by, expires_at) VALUES (%s, NULL, DATE_ADD(NOW(), INTERVAL %s DAY))", (code, days))
-        print(f"https://t-niping.vercel.app/join?code={code}   ({days}일 안에, 한 번만)")
+        print(f"https://tnieping.com/join?code={code}   ({days}일 안에, 한 번만)")
 db.commit()

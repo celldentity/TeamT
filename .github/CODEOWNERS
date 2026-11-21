@@ -1,0 +1,19 @@
+# 이 경로를 바꾸는 PR 은 관리자 승인이 필요하다.
+# main 보호 규칙에서 «코드 소유자 검토 필수»를 켜야 효력이 생긴다.
+/api/ @celldentity
+/scripts/ @celldentity
+/vercel.json @celldentity
+/sw.js @celldentity
+/assets/shell.js @celldentity
+/assets/outbox.js @celldentity
+/assets/media.js @celldentity
+/assets/ai.js @celldentity
+/assets/deck.js @celldentity
+/package.json @celldentity
+/package-lock.json @celldentity
+/.github/ @celldentity
+/.githooks/ @celldentity
+/.gitattributes @celldentity
+/.gitignore @celldentity
+/AGENTS.md @celldentity
+/CLAUDE.md @celldentity

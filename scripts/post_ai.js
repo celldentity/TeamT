@@ -7,5 +7,5 @@ const token = crypto.createHmac("sha256", process.env.SESSION_SECRET).update("ai
 const [cat, title, body] = process.argv.slice(2);
 if (cat === "--token") { console.log(token); process.exit(0); }
 if (!cat || !title || !body) { console.error('쓰는 법: node scripts/post_ai.js <분류> "<제목>" "<본문>"'); process.exit(1); }
-fetch((process.env.SITE || "https://t-niping.vercel.app") + "/api/ai-post", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ category: cat, title, body }) })
+fetch((process.env.SITE || "https://tnieping.com") + "/api/ai-post", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ category: cat, title, body }) })
   .then(async (r) => { console.log(r.status, await r.text()); });

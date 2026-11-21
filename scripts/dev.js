@@ -3,6 +3,12 @@
 const http = require("http"), fs = require("fs"), path = require("path");
 const root = path.resolve(__dirname, "..");
 for (const l of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n/)) { const i = l.indexOf("="); if (i > 0 && !l.trim().startsWith("#")) process.env[l.slice(0, i).trim()] ??= l.slice(i + 1).trim(); }
+// 안전장치: 이 서버는 .env 의 DB·R2 에 그대로 붙는다. 팀원용 테스트 .env 에는 APP_ENV=test 가 있다.
+// 관리자가 운영 값으로 일부러 돌릴 때만 --prod.
+if (process.env.APP_ENV !== "test" && !process.argv.includes("--prod")) {
+  console.error("멈춤: .env 에 APP_ENV=test 가 없습니다. 운영 DB 에 붙을 수 있어 실행하지 않습니다.\n테스트 환경 값은 관리자에게 받으세요. (관리자가 운영 값으로 돌릴 때만: node scripts/dev.js --prod)");
+  process.exit(1);
+}
 const TYPES = { ".webmanifest": "application/manifest+json", ".png": "image/png", ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml" };
 http.createServer(async (req, res) => {
   const u = new URL(req.url, "http://x");

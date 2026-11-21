@@ -1,5 +1,5 @@
 // 회의록의 «참석자 C/D/E» 같은 발언자 이름을 정한다.
-// 실행: node scripts/set_speakers.js <회의록 번호> C=이름 D=이름 E=이름      (이름을 비우려면 C=)
+// 실행: node scripts/set_speakers.js <회의록 번호> C=이름1 D=이름2 E=이름3      (이름을 비우려면 C=)
 const fs = require("fs"), path = require("path");
 const root = path.resolve(__dirname, "..");
 for (const l of fs.readFileSync(path.join(root, ".env"), "utf8").split(/\r?\n/)) { const i = l.indexOf("="); if (i > 0 && !l.trim().startsWith("#")) process.env[l.slice(0, i).trim()] ??= l.slice(i + 1).trim(); }

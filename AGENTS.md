@@ -13,7 +13,7 @@
 ## 어디까지 고쳐도 되나
 
 - **자유롭게**: `*.html`(페이지), `assets/app.css` 의 해당 부분, 새 이미지·아이콘.
-- **관리자 확인 필요**(`.github/CODEOWNERS` 가 승인을 요구한다): `api/`, `scripts/`, `vercel.json`, `sw.js`, `assets/shell.js`·`outbox.js`·`media.js`·`ai.js`·`deck.js`, `package*.json`, `.github/`, `.githooks/`. 로그인·초대장·DB·푸시·저장 흐름이 여기 있다.
+- **모든 PR 은 관리자 승인 후에만 합쳐진다**(`main` 보호 + `.github/CODEOWNERS`). 그중 아래 경로는 로그인·초대장·DB·푸시·저장 흐름이 걸려 있으니 **고치기 전에 관리자와 먼저 이야기한다**: `api/`, `scripts/`, `vercel.json`, `sw.js`, `assets/shell.js`·`outbox.js`·`media.js`·`ai.js`·`deck.js`, `package*.json`, `.github/`, `.githooks/`.
 - 여럿이 같이 작업하므로 **담당 파일이 겹치지 않게** 나눈다. 공통 스타일(`assets/app.css`)은 충돌이 잦으니 PR 을 작게 자주 낸다.
 
 ## 확인하는 법

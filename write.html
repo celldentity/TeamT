@@ -40,21 +40,21 @@
       <h1 class="sec__title" id="w-title">글쓰기</h1>
       <form class="form" id="form" novalidate>
         <div class="writer" id="writer"></div>
-        <div class="field"><span id="catL">분류</span>
+        <div class="field" id="fCat"><span id="catL">분류</span>
           <select name="category" id="cat" data-label="catL" required></select>
         </div>
-        <label class="field">제목
+        <label class="field" id="fTitle">제목
           <input name="title" type="text" maxlength="80" placeholder="2~80자" autocomplete="off" required>
         </label>
-        <label class="field">내용
+        <label class="field"><span id="bodyL">내용</span>
           <textarea class="ta" name="body" rows="12" maxlength="5000" placeholder="10~5000자. 줄바꿈은 그대로 보여요." required></textarea>
         </label>
-        <div class="field"><span id="mediaL">사진·동영상 <small>사진은 자동으로 줄여요 · 동영상은 300MB까지 · 최대 10개</small></span>
+        <div class="field"><span id="mediaL">사진·동영상 <small id="mediaS">사진은 자동으로 줄여요 · 동영상은 300MB까지 · 최대 10개</small></span>
           <div class="mg" id="mg" aria-labelledby="mediaL"></div>
           <label class="mg__add" id="mgAdd"><input type="file" id="pick" accept="image/*,video/*" multiple> <span>＋ 사진·동영상 추가</span></label>
           <p class="note mg__hint" id="mgHint" hidden>첫 번째 파일이 목록의 대표 썸네일이 돼요.</p>
         </div>
-        <label class="check"><input type="checkbox" name="ai"> AI의 도움을 받아 썼어요</label>
+        <label class="check" id="fAi"><input type="checkbox" name="ai"> AI의 도움을 받아 썼어요</label>
         <div class="actions">
           <p class="msg msg--err" id="err" role="alert"></p>
           <button class="btn btn--block" type="submit" id="btn">올리기</button>
@@ -70,8 +70,21 @@
     if (!user) return;
     const $ = (s) => document.querySelector(s), form = $("#form"), id = Number(new URLSearchParams(location.search).get("id")) || 0;
     const len = (s) => [...s.trim()].length;
-    let post = null, saving = false;
+    let post = null, saving = false, feed = new URLSearchParams(location.search).has("feed");   // 피드 글쓰기(?feed=1) 또는 피드 글 수정
     $("#writer").innerHTML = "작성자 " + TT.chip(user);
+    // 한도: 글은 10개(동영상 3개·300MB), 피드는 10개(동영상 2개·개당 100MB) — 서버(api/_media.js)와 같은 값
+    const lim = () => (feed ? { files: TT.media.F_MAX_FILES, videos: TT.media.F_MAX_VIDEOS, video: TT.media.F_MAX_VIDEO } : { files: TT.media.MAX_FILES, videos: TT.media.MAX_VIDEOS, video: undefined });
+    function applyFeed() {   // 피드 글: 분류·제목·AI 표시가 없고 내용은 2000자까지(사진만 올려도 된다)
+      feed = true;
+      for (const s of ["#fCat", "#fTitle", "#fAi"]) $(s).hidden = true;
+      $("#w-title").textContent = id ? "피드 수정" : "피드 쓰기";
+      $("#bodyL").textContent = "내용";
+      form.body.rows = 6; form.body.maxLength = 2000; form.body.required = false; form.body.placeholder = "오늘 어떤 일이 있었나요? (2000자까지, 사진·동영상만 올려도 돼요)";
+      $("#mediaS").textContent = "사진은 자동으로 줄여요 · 동영상은 2개까지, 개당 100MB까지 · 최대 10개";
+      $("#mgHint").textContent = "올린 순서대로 넘겨 볼 수 있어요.";
+      $("#backLink").href = "/articles#feed"; $("#backLink").textContent = "← 피드";
+      drawMedia();
+    }
 
     // ── 사진·동영상 ── items: {key, kind, state: prep|up|ok|err, pct, id(서버 파일 번호), preview, msg, item}
     const PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg>';
@@ -81,25 +94,25 @@
       $("#mg").innerHTML = items.map((m, i) => `<div class="mg__it mg__it--${m.state}" data-k="${m.key}">
         ${m.preview ? `<img src="${m.preview}" alt="">` : `<span class="mg__ph">${m.kind === "video" ? PLAY : ""}</span>`}
         ${m.kind === "video" ? `<span class="mg__play">${PLAY}</span>` : ""}
-        ${i === 0 ? '<span class="mg__cover">대표</span>' : m.state === "ok" ? `<button class="mg__first" type="button" data-act="first" aria-label="대표로 지정">대표로</button>` : ""}
+        ${i === 0 ? `<span class="mg__cover">${feed ? "첫 장" : "대표"}</span>` : m.state === "ok" ? `<button class="mg__first" type="button" data-act="first" aria-label="${feed ? "맨 앞으로" : "대표로 지정"}">${feed ? "맨 앞으로" : "대표로"}</button>` : ""}
         <button class="mg__x" type="button" data-act="del" aria-label="${m.state === "err" ? "지우기" : "빼기"}">×</button>
         ${m.state === "prep" ? '<span class="mg__st">준비 중…</span>' : ""}
         ${m.state === "up" ? `<span class="mg__st"><b>${Math.round(m.pct * 100)}%</b><i style="width:${Math.round(m.pct * 100)}%"></i></span>` : ""}
         ${m.state === "err" ? `<span class="mg__st mg__st--err">${TT.esc(m.msg || "올리지 못했어요")}</span>` : ""}</div>`).join("");
       $("#mgHint").hidden = items.length < 2;
-      $("#mgAdd").hidden = items.length >= TT.media.MAX_FILES;
+      $("#mgAdd").hidden = items.length >= lim().files;
     }
     async function addFiles(files) {
       const err = $("#err"); err.textContent = "";
       for (const f of files) {
-        if (items.length >= TT.media.MAX_FILES) { err.textContent = `사진·동영상은 ${TT.media.MAX_FILES}개까지 붙일 수 있어요.`; break; }
+        if (items.length >= lim().files) { err.textContent = `사진·동영상은 ${lim().files}개까지 붙일 수 있어요.`; break; }
         const c = TT.media.classify(f);
-        if (c && c.kind === "video" && items.filter((m) => m.kind === "video").length >= TT.media.MAX_VIDEOS) { err.textContent = `동영상은 ${TT.media.MAX_VIDEOS}개까지 붙일 수 있어요.`; continue; }
+        if (c && c.kind === "video" && items.filter((m) => m.kind === "video").length >= lim().videos) { err.textContent = `동영상은 ${lim().videos}개까지 붙일 수 있어요.`; continue; }
         const m = { key: ++seq, kind: c ? c.kind : "image", state: "prep", pct: 0, id: 0, preview: "", msg: "", item: null };
         items.push(m); drawMedia();
         try {
-          m.item = await TT.media.prepare(f); m.kind = m.item.kind; m.preview = m.item.preview; m.state = "up"; drawMedia();
-          const r = await TT.media.upload(m.item, (x) => { m.pct = x; if (!m.t || Date.now() - m.t > 120) { m.t = Date.now(); drawMedia(); } });
+          m.item = await TT.media.prepare(f, { maxVideo: lim().video }); m.kind = m.item.kind; m.preview = m.item.preview; m.state = "up"; drawMedia();
+          const r = await TT.media.upload(m.item, (x) => { m.pct = x; if (!m.t || Date.now() - m.t > 120) { m.t = Date.now(); drawMedia(); } }, feed ? "feed" : undefined);
           m.id = r.id; m.state = "ok"; m.pct = 1;
           if (!items.includes(m)) TT.media.discard(m.id);          // 올리는 도중에 뺀 파일
         } catch (x) {
@@ -123,16 +136,21 @@
     });
     addEventListener("beforeunload", (e) => { if (busy()) { e.preventDefault(); e.returnValue = ""; } });
     try {
-      const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts?limit=1");
-      $("#cat").innerHTML = r.categories.map((c) => `<option>${TT.esc(c)}</option>`).join("");
-      TT.select($("#cat"));
-      post = r.post || null;
+      if (feed && !id) applyFeed();   // 새 피드 글: 서버에서 받아 올 것이 없다
+      else {
+        const r = await TT.call(id ? "/api/posts?id=" + id : "/api/posts?limit=1");
+        $("#cat").innerHTML = r.categories.map((c) => `<option>${TT.esc(c)}</option>`).join("");
+        TT.select($("#cat"));
+        post = r.post || null;
+        if (post && post.special === "feed") applyFeed();
+      }
     } catch (x) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = x.message; return; }
     if (id) {
       if (!post.mine) { form.hidden = true; $("#gone").hidden = false; $("#gone").textContent = "내가 쓴 글만 고칠 수 있어요."; return; }
-      $("#w-title").textContent = "글 수정"; $("#btn").textContent = "저장";
+      $("#w-title").textContent = feed ? "피드 수정" : "글 수정"; $("#btn").textContent = "저장";
       $("#backLink").href = "/article?id=" + id; $("#backLink").textContent = "← 글로 돌아가기";
-      form.category.value = post.category; $("#cat")._sel.sync(); form.title.value = post.title; form.body.value = post.body; form.ai.checked = post.ai;
+      if (!feed) { form.category.value = post.category; $("#cat")._sel.sync(); form.title.value = post.title; form.ai.checked = post.ai; }
+      form.body.value = post.body;
       for (const x of post.media || []) items.push({ key: ++seq, kind: x.kind, state: "ok", pct: 1, id: x.id, existing: true, preview: x.thumb ? `/api/media?id=${x.id}&v=thumb` : (x.kind === "image" ? `/api/media?id=${x.id}&v=full` : ""), msg: "", item: null });
       drawMedia();
     }
@@ -140,15 +158,19 @@
       e.preventDefault();
       const err = $("#err"), btn = $("#btn"), label = btn.textContent; err.textContent = "";
       if (items.some((m) => m.state === "err")) { err.textContent = "올리지 못한 파일이 있어요. × 로 지우고 다시 올려 주세요."; return; }
-      if (len(form.title.value) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
-      if (len(form.body.value) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
+      if (feed) { if (!len(form.body.value) && !items.length) { err.textContent = "내용을 적거나 사진·동영상을 올려 주세요."; return; } }
+      else {
+        if (len(form.title.value) < 2) { err.textContent = "제목을 2자 이상 적어 주세요."; return; }
+        if (len(form.body.value) < 10) { err.textContent = "내용을 10자 이상 적어 주세요."; return; }
+      }
       // 저장: 편지함(outbox)에 넣고 화면은 바로 «저장된 글»로 넘어간다. 실제 저장(DB)은 뒤에서 한다. 사진·동영상이 아직 올라가는 중이면 그게 끝나는 즉시 같은 방식으로 저장한다.
       const send = () => {
         const media = items.filter((m) => m.state === "ok");
-        const d = { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: media.map((m) => m.id) };
-        const view = { category: d.category, title: d.title.trim(), body: d.body.replace(/\r\n/g, "\n").trim(), ai: d.ai, media: media.map((m) => ({ id: m.id, kind: m.kind, thumb: !!(m.preview || (m.item && m.item.thumb)) })) };
+        const d = feed ? { kind: "feed", body: form.body.value, media: media.map((m) => m.id) } : { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: media.map((m) => m.id) };
+        const body = d.body.replace(/\r\n/g, "\n").trim();
+        const view = { ...(feed ? { feed: true, category: "피드", title: ([...body.split("\n").find((x) => x.trim()) || ""].slice(0, 40).join("") || "사진"), ai: false } : { category: d.category, title: d.title.trim(), ai: d.ai }), body, media: media.map((m) => ({ id: m.id, kind: m.kind, thumb: !!(m.preview || (m.item && m.item.thumb)) })) };
         if (id) { TT.outbox.add({ kind: "post-edit", url: "/api/posts?id=" + id, method: "PATCH", body: d, postId: id, view }, { defer: true }); location.href = "/article?id=" + id; }
-        else { const oid = TT.outbox.add({ kind: "post", url: "/api/posts", method: "POST", body: d, view }, { defer: true }); location.href = "/article?p=" + oid; }
+        else { const oid = TT.outbox.add({ kind: "post", url: "/api/posts", method: "POST", body: d, view }, { defer: true }); location.href = feed ? "/articles#feed" : "/article?p=" + oid; }
       };
       if (!busy()) return send();
       btn.disabled = true; saving = true;

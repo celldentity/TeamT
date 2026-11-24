@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
       if (kind === "image" && mime !== M.IMAGE_MIME) return L.json(res, 400, { error: "사진은 JPG 로 바꿔 올려져요. 다른 사진으로 해 보세요." });
       if (kind === "video" && !M.VIDEO_MIME.has(mime)) return L.json(res, 400, { error: "동영상은 MP4·MOV·WEBM 만 올릴 수 있어요." });
       if (kind === "image" && size > M.MAX_IMAGE) return L.json(res, 400, { error: "사진 용량이 너무 커요." });
-      const forComment = b.scope === "comment";   // 댓글에 붙일 파일은 동영상 한도가 100MB
-      if (kind === "video" && size > (forComment ? M.C_MAX_VIDEO : M.MAX_VIDEO)) return L.json(res, 400, { error: forComment ? "댓글에는 동영상을 100MB 까지 올릴 수 있어요." : "동영상은 300MB 까지 올릴 수 있어요." });
+      const cap = b.scope === "comment" ? M.C_MAX_VIDEO : b.scope === "feed" ? M.F_MAX_VIDEO : M.MAX_VIDEO;   // 댓글·피드에 붙일 파일은 동영상 한도가 100MB
+      if (kind === "video" && size > cap) return L.json(res, 400, { error: `${b.scope === "comment" ? "댓글" : b.scope === "feed" ? "피드" : "글"}에는 동영상을 ${Math.round(cap / 1048576)}MB 까지 올릴 수 있어요.` });
       if (thumbSize > M.MAX_THUMB) return L.json(res, 400, { error: "썸네일이 너무 커요." });
 
       // 글에 안 붙은 채 하루 넘게 남은 내 파일은 이때 정리한다(글쓰기를 중간에 그만둔 경우)

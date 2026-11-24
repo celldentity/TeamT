@@ -887,3 +887,34 @@ a.art { text-decoration: none; color: inherit; }
 .fab { transition: opacity .15s, transform .15s; }
 .fab.fab--off { opacity: 0; transform: scale(.7); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .fab { transition: none; } }
+
+/* ── 피드(아티클 안의 «피드» 탭, 2026-11-24): 팀원이 일상·정보·사진을 올리는 곳. 사진·동영상 10개까지 캐러셀(assets/feed.js) ── */
+.seg { display: flex; gap: 4px; margin-top: 14px; padding: 4px; background: var(--lavender-tint); border-radius: 99px; }
+.seg button { flex: 1; min-height: 40px; border: 0; border-radius: 99px; background: transparent; font: inherit; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
+.seg button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--lavender-deep); }
+.fds { display: grid; gap: 14px; margin-top: 16px; }
+.fd { padding: 14px 14px 4px; background: #fff; border: 1.5px solid var(--pink); border-radius: 20px; }
+.fd__top { display: flex; align-items: center; gap: 10px; }
+.fd__car { position: relative; margin-top: 12px; }
+.fd .gal { margin-top: 0; }
+.fd .gal__it { aspect-ratio: 1 / 1; }
+.fd .gal__it img { object-fit: cover; }
+.fd .gal__it--v video { object-fit: contain; }
+.fd__n { position: absolute; top: 10px; right: 10px; padding: 2px 9px; font-size: .75rem; font-weight: 700; color: #fff; background: rgb(23 23 25 / .62); border-radius: 99px; pointer-events: none; }
+.fd__dots { display: flex; justify-content: center; gap: 5px; margin-top: 8px; }
+.fd__dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--field); }
+.fd__dots i.on { background: var(--pink-ink); }
+.fd__nav { display: none; position: absolute; top: calc(50% - 26px); width: 32px; height: 32px; place-items: center; padding: 0 0 3px; border: 0; border-radius: 50%; background: rgb(255 255 255 / .85); font-size: 1.25rem; line-height: 1; color: var(--ink); cursor: pointer; }
+.fd__nav--p { left: 8px; } .fd__nav--n { right: 8px; }
+@media (hover: hover) { .fd__car:hover .fd__nav { display: grid; } }
+.fd__txt { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+.fd__txt.is-open { display: block; }
+.fd__more { display: block; padding: 4px 0; border: 0; background: none; font: inherit; font-size: .875rem; color: var(--ink-soft); cursor: pointer; }
+.fd__bar { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+.fd__act { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px 0 4px; border: 0; background: none; font: inherit; font-size: .875rem; color: var(--ink-soft); text-decoration: none; cursor: pointer; }
+.fd__act svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.fd__act.is-on { color: var(--pink-ink); }
+.fd__act.is-on svg { fill: var(--pink-deep); stroke: var(--pink-deep); }
+.fd__saving { min-height: 44px; display: inline-flex; align-items: center; font-size: .8125rem; color: var(--ph); }
+.fd-more { display: block; width: 100%; margin-top: 14px; }
+.chip--feed { color: var(--violet); background: #fff; border-color: var(--violet); }

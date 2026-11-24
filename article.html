@@ -146,11 +146,14 @@
     document.addEventListener("click", (e) => { const b = e.target.closest(".cmt__media [data-big]"); if (b) openBig(b); });   // 댓글에 붙은 사진도 크게 보기
     function drawPost() {
       const p = data.post, a = TT.who(p.author);
-      document.title = p.title + " — HR T | 니핑 프로젝트";
+      const feed = p.special === "feed";
+      document.title = (feed ? "피드" : p.title) + " — HR T | 니핑 프로젝트";
+      if (feed) { const b = $(".back"); b.href = "/articles#feed"; b.textContent = "← 피드"; }
       $("#post").className = "post post--" + TT.kind(p) + (p.special === "weekly" ? " post--weekly" : "");
       $("#post").innerHTML = `
-        <div class="art__meta"><span class="chip">${TT.esc(p.category)}</span>${TT.specialChip(p)}${TT.kindChip(p)}</div>
-        <h1 class="post__title" id="post-title">${TT.esc(p.title)}</h1>
+        ${feed ? `<div class="art__meta">${TT.specialChip(p)}</div><h1 class="post__title" id="post-title" hidden>피드</h1>`
+          : `<div class="art__meta"><span class="chip">${TT.esc(p.category)}</span>${TT.specialChip(p)}${TT.kindChip(p)}</div>
+        <h1 class="post__title" id="post-title">${TT.esc(p.title)}</h1>`}
         <div class="by"><span class="by__av">${TT.avatar(a)}</span><div><p class="by__name">${TT.esc(a.nickname)}</p><p class="by__time">${TT.when(p.createdAt)}${p.updatedAt ? " · 수정됨" : ""}</p></div></div>
         <div id="spBanner"></div>
         ${gallery(p.media || [])}

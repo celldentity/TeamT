@@ -10,6 +10,8 @@ const MAX_THUMB = 1024 * 1024;          // 목록 썸네일(JPEG)
 const MAX_FILES = 10, MAX_VIDEOS = 3;   // 글 하나에 붙일 수 있는 파일 수
 const C_MAX_VIDEO = 100 * 1024 * 1024;  // 댓글에는 동영상 한 개 최대 100MB
 const C_MAX_FILES = 4, C_MAX_VIDEOS = 1; // 댓글 하나에 붙일 수 있는 파일 수
+const F_MAX_VIDEO = 100 * 1024 * 1024;  // 피드: 동영상 한 개 최대 100MB
+const F_MAX_FILES = 10, F_MAX_VIDEOS = 2; // 피드 글 하나: 사진·동영상 합쳐 10개, 동영상은 그중 2개까지
 const VIDEO_MIME = new Set(["video/mp4", "video/quicktime", "video/webm"]);
 const IMAGE_MIME = "image/jpeg";
 const PUT_SECONDS = 7200, GET_SECONDS = 3600;
@@ -29,4 +31,4 @@ async function removeFiles(ids) {
 }
 const shape = (m) => ({ id: m.id, kind: m.kind, w: m.w, h: m.h, thumb: !!m.has_thumb });
 
-module.exports = { C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, key, putUrl, getUrl, head, removeFiles, shape };
+module.exports = { F_MAX_VIDEO, F_MAX_FILES, F_MAX_VIDEOS, C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, key, putUrl, getUrl, head, removeFiles, shape };

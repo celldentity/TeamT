@@ -81,7 +81,7 @@
     });
   }
 
-  async function upload(item, onProgress, scope) {   // scope: "comment" 면 서버가 댓글 한도(동영상 100MB)로 받는다
+  async function upload(item, onProgress, scope) {   // scope: "comment"·"feed" 면 서버가 동영상 100MB 한도로 받는다
     const total = item.main.size + (item.thumb ? item.thumb.size : 0);
     const r = await TT.call("/api/media?a=init", "POST", { kind: item.kind, mime: item.mime, size: item.main.size, w: item.w, h: item.h, thumbSize: item.thumb ? item.thumb.size : 0, scope });
     item.id = r.id; let done = 0;
@@ -94,5 +94,5 @@
   // 올리다 말고 뺀 파일은 서버에서도 치운다(실패해도 조용히 — 하루 뒤 서버가 알아서 정리한다)
   const discard = (id) => TT.call("/api/media?a=remove", "POST", { id }).catch(() => {});
 
-  window.TT.media = { prepare, upload, discard, classify, MAX_FILES: 10, MAX_VIDEOS: 3, C_MAX_VIDEO: 100 * 1024 * 1024, C_MAX_FILES: 4, C_MAX_VIDEOS: 1 };
+  window.TT.media = { prepare, upload, discard, classify, MAX_FILES: 10, MAX_VIDEOS: 3, C_MAX_VIDEO: 100 * 1024 * 1024, C_MAX_FILES: 4, C_MAX_VIDEOS: 1, F_MAX_VIDEO: 100 * 1024 * 1024, F_MAX_FILES: 10, F_MAX_VIDEOS: 2 };   // F_: 피드(api/_media.js 와 같은 한도)
 })();

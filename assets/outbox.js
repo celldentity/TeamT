@@ -84,12 +84,23 @@
         if (it.kind === "post-del") out = out.filter((p) => p.id !== it.postId);
         else if (it.kind === "post-edit") out = out.map((p) => (p.id === it.postId ? { ...p, category: it.view.category, title: it.view.title, excerpt: it.view.body.slice(0, 160), ai: it.view.ai, cover: coverOf(it.view.media) || null } : p));
       }
-      const mine = read().filter((x) => x.kind === "post" && x.state !== "fail").map((it) => ({
+      const mine = read().filter((x) => x.kind === "post" && x.state !== "fail" && !(x.view && x.view.feed)).map((it) => ({
         id: 0, href: "/article?p=" + it.oid, category: it.view.category, title: it.view.title, excerpt: it.view.body.slice(0, 160), ai: !!it.view.ai, author: me,
         createdAt: new Date(it.at).toISOString(), updatedAt: null, likes: 0, liked: false, comments: 0, mine: true, special: null, target: null, forMe: false, progress: null, ref: null, cover: coverOf(it.view.media) || null,
       }));
       return mine.reverse().concat(out);
     },
+  };
+  api.mergeFeed = (posts, me) => {   // 피드 탭: 저장 중인 새 피드 글은 맨 위에, 고친 글은 고친 모습으로, 지운 글은 뺀다
+    let out = posts.slice();
+    for (const it of read()) {
+      if (it.kind === "post-del") out = out.filter((p) => p.id !== it.postId);
+      else if (it.kind === "post-edit" && it.view && it.view.feed) out = out.map((p) => (p.id === it.postId ? { ...p, body: it.view.body, media: it.view.media || [], updatedAt: p.updatedAt || new Date(it.at).toISOString() } : p));
+    }
+    const mine = read().filter((x) => x.kind === "post" && x.state !== "fail" && x.view && x.view.feed).map((it) => ({
+      id: 0, pending: true, author: me, body: it.view.body, media: it.view.media || [], createdAt: new Date(it.at).toISOString(), updatedAt: null, likes: 0, liked: false, comments: 0, mine: true, special: "feed",
+    }));
+    return mine.reverse().concat(out);
   };
   const coverOf = (ms) => (ms && ms.length ? { id: ms[0].id, kind: ms[0].kind, thumb: !!ms[0].thumb, n: ms.length } : null);
 

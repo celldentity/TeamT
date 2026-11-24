@@ -154,7 +154,7 @@
   // 오늘의 질문 · 이번 주 토론 · 토론을 정리한 아티클: 글 종류 칩 + 목록 카드 아래의 지목/진척도 줄
   // «답변 완료» 도장 — 지목된 사람이 제대로 답하면 지목 줄 오른쪽에 찍힌다(목록 카드·글 보기 공용)
   const STAMP = '<span class="stamp" role="img" aria-label="답변 완료"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>답변 완료</span>';
-  const SPECIAL = { daily: "오늘의 질문", weekly: "이번 주 토론", digest: "인살롱 후보" };
+  const SPECIAL = { daily: "오늘의 질문", weekly: "이번 주 토론", digest: "인살롱 후보", feed: "피드" };
   const specialChip = (p) => (p.special ? `<span class="chip chip--${p.special}">${SPECIAL[p.special]}</span>` : "");
   const specialLine = (p) => p.special === "daily" && p.target
       ? `<p class="sp sp--daily">지목 ${chip(p.target)}${p.answered ? STAMP : ` · ${p.forMe ? "나에게 온 질문 · 답변 기다리는 중" : "답변 기다리는 중"}`}</p>`

@@ -2,7 +2,7 @@
 //   GET    /api/posts[?limit=N]  → 목록(최신순, 기본 100)
 //   GET    /api/posts?id=N       → 글 한 편 + 댓글 전체(답글은 parentId 로 이어짐)
 //   GET    /api/posts?feed=1[&before=ID][&limit=N] → 피드(최신순, 사진·동영상 전체 포함). 기본 목록에는 피드가 섞이지 않는다
-//   POST   /api/posts {kind:"feed",body,media?:[id…]}            → 새 피드 글(제목·분류 없음, 사진·동영상 합쳐 10개·동영상 2개·한 개 100MB)
+//   POST   /api/posts {kind:"feed",body,media?:[id…]}            → 새 피드 글(제목·분류 없음, 사진·동영상 합쳐 10개·동영상 2개·한 개 100MB, 새 글 알림은 없음)
 //   POST   /api/posts {category,title,body,ai?,media?:[id…]}      → 새 글(사진·동영상은 /api/media 로 먼저 올린 id, 순서대로 붙고 첫째가 대표)
 //   PATCH  /api/posts?id=N {category,title,body,ai?,media?:[id…]} → 글 수정(쓴 사람만, media 를 주면 그 목록으로 바꾼다)
 //   DELETE /api/posts?id=N                           → 글 삭제(쓴 사람만, 댓글·좋아요도 함께)
@@ -125,8 +125,8 @@ module.exports = async (req, res) => {
       try { [r] = await db.query("INSERT INTO posts (author_id, ai, category, title, body, kind, client_id) VALUES (?, ?, ?, ?, ?, ?, ?)", [me.id, f.ai, f.category, f.title, f.body, f.feed ? "feed" : "post", cid]); }
       catch (e) { if (cid && e.code === "ER_DUP_ENTRY") { const [dup] = await db.query("SELECT id FROM posts WHERE author_id = ? AND client_id = ?", [me.id, cid]); if (dup[0]) return L.json(res, 200, { id: dup[0].id }); } throw e; }
       if (f.media && f.media.length) await setMedia(db, r.insertId, f.media);
-      // 새 글 폰 알림: 알림을 켠 다른 팀원 모두에게. 실패해도 글쓰기는 성공으로 돌려준다.
-      await require("./_push").notify(null, () => ({ title: f.feed ? "새 피드가 올라왔어요" : "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }), [me.id]).catch((e) => console.error("push post", e));
+      // 새 글 폰 알림: 알림을 켠 다른 팀원 모두에게. 실패해도 글쓰기는 성공으로 돌려준다. 피드 글은 아무에게도 알리지 않는다(내 피드에 댓글·좋아요가 달릴 때만 내게 알림 — comments.js·likes.js).
+      if (!f.feed) await require("./_push").notify(null, () => ({ title: "새 글이 올라왔어요", body: `${me.nickname}: ${f.title}`, url: `/article?id=${r.insertId}`, tag: `post-${r.insertId}`, badge: "auto" }), [me.id]).catch((e) => console.error("push post", e));
       return L.json(res, 201, { id: r.insertId });
     }
 

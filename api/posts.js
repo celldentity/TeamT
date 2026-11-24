@@ -1,7 +1,7 @@
 // 아티클(글) API — 로그인한 사람만.
 //   GET    /api/posts[?limit=N]  → 목록(최신순, 기본 100)
 //   GET    /api/posts?id=N       → 글 한 편 + 댓글 전체(답글은 parentId 로 이어짐)
-//   GET    /api/posts?feed=1[&before=ID][&limit=N] → 피드(최신순, 사진·동영상 전체 포함). 기본 목록에는 피드가 섞이지 않는다
+//   GET    /api/posts?feed=1[&before=ID][&limit=N] → {more,total,posts} 피드(최신순, 사진·동영상 전체 포함, total=피드 글 전체 수). 기본 목록에는 피드가 섞이지 않는다
 //   POST   /api/posts {kind:"feed",body,media?:[id…]}            → 새 피드 글(제목·분류 없음, 사진·동영상 합쳐 10개·동영상 2개·한 개 100MB, 새 글 알림은 없음)
 //   POST   /api/posts {category,title,body,ai?,media?:[id…]}      → 새 글(사진·동영상은 /api/media 로 먼저 올린 id, 순서대로 붙고 첫째가 대표)
 //   PATCH  /api/posts?id=N {category,title,body,ai?,media?:[id…]} → 글 수정(쓴 사람만, media 를 주면 그 목록으로 바꾼다)
@@ -85,7 +85,8 @@ module.exports = async (req, res) => {
         const [rows] = await db.query(`${SELECT}, p.body FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id WHERE p.kind = 'feed'${before ? " AND p.id < ?" : ""} ORDER BY p.id DESC LIMIT ?`, before ? [me.id, before, limit + 1] : [me.id, limit + 1]);
         const more = rows.length > limit, page = rows.slice(0, limit);
         const [ms] = page.length ? await db.query("SELECT post_id, id, kind, w, h, has_thumb FROM post_media WHERE post_id IN (?) AND status = 1 ORDER BY post_id, pos, id", [page.map((r) => r.id)]) : [[]];
-        return L.json(res, 200, { more, posts: page.map((r) => ({ ...shape(r, me), body: r.body, media: ms.filter((m) => m.post_id === r.id).map(M.shape) })) });
+        const [[{ total }]] = await db.query("SELECT COUNT(*) AS total FROM posts WHERE kind = 'feed'");   // 제목 옆 «피드 N»
+        return L.json(res, 200, { more, total: Number(total), posts: page.map((r) => ({ ...shape(r, me), body: r.body, media: ms.filter((m) => m.post_id === r.id).map(M.shape) })) });
       }
       if (!req.query.id) {
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 100));

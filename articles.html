@@ -64,7 +64,7 @@
   TT.ready.then(async (user) => {
     if (!user) return;
     const $ = (id) => document.getElementById(id);
-    let posts = [], raw = [], cats = [], cur = "전체";
+    let posts = [], raw = [], cats = [], cur = "전체", artCount = 0;
     // 분류 거르기: 제목 옆 «필터» 버튼 → 누르면 분류 창이 펼쳐지고, 하나를 고르면 «쪼잉» 하고 닫히며 그 분류 글만 다시 보인다.
     // 분류가 골라져 있으면(전체가 아니면) 버튼에 불이 들어오고 고른 분류 이름이 보인다.
     const btn = $("filtBtn"), pop = $("filtPop");
@@ -72,7 +72,7 @@
     function draw() {
       const list = cur === "전체" ? posts : posts.filter((p) => p.category === cur);
       $("arts").innerHTML = list.map(TT.postCard).join("");
-      $("count").textContent = list.length;
+      artCount = list.length; paintCount();
       $("empty").hidden = list.length > 0;
       $("empty").textContent = posts.length ? "이 분류에는 아직 글이 없어요." : "아직 글이 없어요. 첫 글을 써 보세요.";
       const on = cur !== "전체";
@@ -99,10 +99,13 @@
     const esc = (e) => { if (e.key === "Escape") close(); };
     btn.addEventListener("click", () => (isOpen() ? close() : open()));
     // ── 피드 탭: 주소 끝 #feed 로 기억한다. 처음 열 때 받아 오고, 저장이 끝나면 다시 받는다.
-    let tab = location.hash === "#feed" ? "feed" : "art", feedRaw = [], feedMore = false, feedLoaded = false;
+    let tab = location.hash === "#feed" ? "feed" : "art", feedRaw = [], feedMore = false, feedLoaded = false, feedTotal = 0, feedDelta = 0;
     const fab = document.querySelector(".fab");
+    // 제목 옆 숫자: 아티클 탭은 지금 보이는 글 수, 피드 탭은 피드 글 전체 수(서버 total + 아직 저장 중인 새 글·지운 글만큼)
+    function paintCount() { $("count").textContent = tab === "feed" ? (feedLoaded ? Math.max(0, feedTotal + feedDelta) : "") : artCount; }
     function drawFeed() {
       const list = TT.outbox.mergeFeed(feedRaw, user);
+      feedDelta = list.length - feedRaw.length; paintCount();
       $("feeds").innerHTML = list.map(TT.feed.card).join("");
       TT.feed.clamp($("feeds"));
       $("feedEmpty").hidden = list.length > 0; $("feedEmpty").textContent = "아직 피드가 없어요. 오늘의 일상이나 사진을 첫 번째로 올려 보세요.";
@@ -111,13 +114,13 @@
     async function loadFeed(append) {
       const last = append && feedRaw.length ? feedRaw[feedRaw.length - 1].id : 0;
       const r = await TT.call("/api/posts?feed=1" + (last ? "&before=" + last : ""));
-      feedRaw = append ? feedRaw.concat(r.posts) : r.posts; feedMore = r.more; feedLoaded = true; drawFeed();
+      feedRaw = append ? feedRaw.concat(r.posts) : r.posts; feedMore = r.more; feedTotal = r.total; feedLoaded = true; drawFeed();
     }
     function setTab(t) {
       tab = t;
       $("tabArt").setAttribute("aria-selected", t === "art"); $("tabFeed").setAttribute("aria-selected", t === "feed");
-      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").classList.toggle("is-ghost", t !== "art"); $("count").hidden = t !== "art";
-      // (필터 버튼은 숨기지 않고 투명하게: 버튼 높이만큼 제목 줄이 유지돼 탭을 눌러도 아래가 흔들리지 않는다. 글 수 숫자는 아티클 탭에서만 보인다)
+      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").classList.toggle("is-ghost", t !== "art"); paintCount();
+      // (필터 버튼은 숨기지 않고 투명하게: 버튼 높이만큼 제목 줄이 유지돼 탭을 눌러도 아래가 흔들리지 않는다)
       $("ttl").textContent = t === "feed" ? "피드" : "아티클";
       if (fab) { fab.href = t === "feed" ? "/write?feed=1" : "/write"; fab.setAttribute("aria-label", t === "feed" ? "피드 쓰기" : "글쓰기"); }
       history.replaceState(null, "", t === "feed" ? "#feed" : location.pathname + location.search);

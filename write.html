@@ -151,7 +151,7 @@
       $("#backLink").href = "/article?id=" + id; $("#backLink").textContent = "← 글로 돌아가기";
       if (!feed) { form.category.value = post.category; $("#cat")._sel.sync(); form.title.value = post.title; form.ai.checked = post.ai; }
       form.body.value = post.body;
-      for (const x of post.media || []) items.push({ key: ++seq, kind: x.kind, state: "ok", pct: 1, id: x.id, existing: true, preview: x.thumb ? `/api/media?id=${x.id}&v=thumb` : (x.kind === "image" ? `/api/media?id=${x.id}&v=full` : ""), msg: "", item: null });
+      for (const x of post.media || []) items.push({ key: ++seq, kind: x.kind, state: "ok", pct: 1, id: x.id, w: x.w, h: x.h, existing: true, preview: x.thumb ? `/api/media?id=${x.id}&v=thumb` : (x.kind === "image" ? `/api/media?id=${x.id}&v=full` : ""), msg: "", item: null });
       drawMedia();
     }
     form.addEventListener("submit", async (e) => {
@@ -168,7 +168,7 @@
         const media = items.filter((m) => m.state === "ok");
         const d = feed ? { kind: "feed", body: form.body.value, media: media.map((m) => m.id) } : { category: form.category.value, title: form.title.value, body: form.body.value, ai: form.ai.checked, media: media.map((m) => m.id) };
         const body = d.body.replace(/\r\n/g, "\n").trim();
-        const view = { ...(feed ? { feed: true, category: "피드", title: ([...body.split("\n").find((x) => x.trim()) || ""].slice(0, 40).join("") || "사진"), ai: false } : { category: d.category, title: d.title.trim(), ai: d.ai }), body, media: media.map((m) => ({ id: m.id, kind: m.kind, thumb: !!(m.preview || (m.item && m.item.thumb)) })) };
+        const view = { ...(feed ? { feed: true, category: "피드", title: ([...body.split("\n").find((x) => x.trim()) || ""].slice(0, 40).join("") || "사진"), ai: false } : { category: d.category, title: d.title.trim(), ai: d.ai }), body, media: media.map((m) => ({ id: m.id, kind: m.kind, w: m.w || (m.item && m.item.w) || 0, h: m.h || (m.item && m.item.h) || 0, thumb: !!(m.preview || (m.item && m.item.thumb)) })) };
         if (id) { TT.outbox.add({ kind: "post-edit", url: "/api/posts?id=" + id, method: "PATCH", body: d, postId: id, view }, { defer: true }); location.href = "/article?id=" + id; }
         else { const oid = TT.outbox.add({ kind: "post", url: "/api/posts", method: "POST", body: d, view }, { defer: true }); location.href = feed ? "/articles#feed" : "/article?p=" + oid; }
       };

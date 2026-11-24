@@ -897,7 +897,9 @@ a.art { text-decoration: none; color: inherit; }
 .fd__top { display: flex; align-items: center; gap: 10px; }
 .fd__car { position: relative; margin-top: 12px; }
 .fd .gal { margin-top: 0; }
-.fd .gal__it { aspect-ratio: 1 / 1; }
+.fd .gal__it { aspect-ratio: var(--fr, 1); }   /* --fr: 첫 사진·동영상의 비율(assets/feed.js) */
+.gal--feed .gal__it { aspect-ratio: var(--fr, 4 / 3); }
+.gal--feed .gal__it img { object-fit: cover; }
 .fd .gal__it img { object-fit: cover; }
 .fd .gal__it--v video { object-fit: contain; }
 .fd__n { position: absolute; top: 10px; right: 10px; padding: 2px 9px; font-size: .75rem; font-weight: 700; color: #fff; background: rgb(23 23 25 / .62); border-radius: 99px; pointer-events: none; }

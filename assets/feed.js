@@ -3,13 +3,22 @@
 // 사진·동영상은 합쳐 10개(동영상 2개·개당 100MB, api/_media.js)이고 섞여서 한 캐러셀에 나온다.
 (() => {
   const url = (x, v) => `/api/media?id=${x.id}&v=${v}`;
-  const slide = (x, i) => (x.kind === "video"
-    ? `<div class="gal__it gal__it--v"><video controls playsinline preload="metadata"${x.thumb ? ` poster="${url(x, "thumb")}"` : ""} src="${url(x, "full")}"></video></div>`
-    : `<div class="gal__it"><img src="${url(x, "full")}" alt="" ${i ? 'loading="lazy" ' : ""}decoding="async"></div>`);
+  // 캐러셀 칸의 가로세로 비율 = 첫 사진·동영상의 비율(너무 길거나 납작하면 세로 9:16 ~ 가로 16:9 로 제한). 그래서 보통은 검은 띠도, 잘리는 부분도 없다.
+  // 크기를 모르면(저장 중인 글 등) 정사각.
+  const ratio = (x) => (x && x.w > 0 && x.h > 0 ? x.w / x.h : 0);
+  const frame = (ms) => Math.min(16 / 9, Math.max(9 / 16, ratio(ms && ms[0]) || 1));
+  const slide = (x, i, fr) => {
+    if (x.kind === "video") {
+      const r = ratio(x) || fr, same = Math.abs(r / fr - 1) < 0.25;   // 칸과 비율이 비슷하면 꽉 채우고, 많이 다르면(섞어 올린 경우) 잘리지 않게 전체를 보여 준다
+      const square = Math.abs(r - 1) < 0.1 && x.thumb;                  // 대표 장면 썸네일은 정사각이라 정사각 영상에만 쓰고, 나머지는 첫 장면(#t)을 그대로 보여 준다
+      return `<div class="gal__it gal__it--v"><video controls playsinline preload="metadata" style="object-fit:${same ? "cover" : "contain"}"${square ? ` poster="${url(x, "thumb")}"` : ""} src="${url(x, "full")}${square ? "" : "#t=0.1"}"></video></div>`;
+    }
+    return `<div class="gal__it"><img src="${url(x, "full")}" alt="" ${i ? 'loading="lazy" ' : ""}decoding="async"></div>`;
+  };
 
   function card(p) {
-    const a = TT.who(p.author), ms = p.media || [], n = ms.length;
-    const car = !n ? "" : `<div class="fd__car"><div class="gal fd__gal" role="group" aria-label="사진·동영상 ${n}개" tabindex="0">${ms.map(slide).join("")}</div>${n > 1
+    const a = TT.who(p.author), ms = p.media || [], n = ms.length, fr = frame(ms);
+    const car = !n ? "" : `<div class="fd__car"><div class="gal fd__gal" style="--fr:${fr}" role="group" aria-label="사진·동영상 ${n}개" tabindex="0">${ms.map((x, i) => slide(x, i, fr)).join("")}</div>${n > 1
       ? `<span class="fd__n" aria-live="polite">1 / ${n}</span><button class="fd__nav fd__nav--p" type="button" data-nav="-1" aria-label="이전">‹</button><button class="fd__nav fd__nav--n" type="button" data-nav="1" aria-label="다음">›</button><div class="fd__dots" aria-hidden="true">${ms.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>` : ""}</div>`;
     const bar = p.pending ? '<span class="fd__saving">저장 중…</span>'
       : `<button class="fd__act fd__like${p.liked ? " is-on" : ""}" type="button" aria-pressed="${!!p.liked}" aria-label="좋아요">${TT.heart}<span>${p.likes}</span></button><a class="fd__act" href="/article?id=${p.id}" aria-label="댓글 ${p.comments}개">${TT.bubble}<span>${p.comments}</span></a>`;
@@ -60,5 +69,5 @@
     });
   }
 
-  window.TT.feed = { card, clamp, bind };
+  window.TT.feed = { card, clamp, bind, frame };
 })();

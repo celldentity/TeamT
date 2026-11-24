@@ -50,7 +50,7 @@
         <div class="empty" id="empty" hidden></div>
       </div>
       <div id="feedBox" hidden>
-        <p class="sec__lead">팀원들이 일상·정보·사진을 가볍게 나누는 곳이에요.</p>
+        <p class="sec__lead">팀원들이 일상과 사진을 나누는 곳이에요.</p>
         <ul class="fds" id="feeds"></ul>
         <button class="btn btn--ghost btn--block fd-more" id="feedMore" type="button" hidden>더 보기</button>
         <div class="empty" id="feedEmpty" hidden></div>
@@ -116,7 +116,7 @@
     function setTab(t) {
       tab = t;
       $("tabArt").setAttribute("aria-selected", t === "art"); $("tabFeed").setAttribute("aria-selected", t === "feed");
-      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").hidden = t !== "art"; $("count").hidden = t !== "art";
+      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").classList.toggle("is-ghost", t !== "art");   // 숨기지 않고 투명하게: 필터 버튼 높이만큼 제목 줄이 유지돼 탭을 눌러도 아래가 흔들리지 않는다 $("count").hidden = t !== "art";
       $("ttl").textContent = t === "feed" ? "피드" : "아티클";
       if (fab) { fab.href = t === "feed" ? "/write?feed=1" : "/write"; fab.setAttribute("aria-label", t === "feed" ? "피드 쓰기" : "글쓰기"); }
       history.replaceState(null, "", t === "feed" ? "#feed" : location.pathname + location.search);

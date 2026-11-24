@@ -892,7 +892,7 @@ a.art { text-decoration: none; color: inherit; }
 .seg { display: flex; gap: 4px; margin-top: 14px; padding: 4px; background: var(--lavender-tint); border-radius: 99px; }
 .seg button { flex: 1; min-height: 40px; border: 0; border-radius: 99px; background: transparent; font: inherit; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
 .seg button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--lavender-deep); }
-.fds { display: grid; gap: 14px; margin-top: 16px; }
+.fds { display: grid; gap: 14px; margin-top: 8px; }   /* 8px: 아티클 목록(.arts)과 첫 카드 위치를 맞춘다 */
 .fd { padding: 14px 14px 4px; background: #fff; border: 1.5px solid var(--pink); border-radius: 20px; }
 .fd__top { display: flex; align-items: center; gap: 10px; }
 .fd__car { position: relative; margin-top: 12px; }
@@ -918,3 +918,5 @@ a.art { text-decoration: none; color: inherit; }
 .fd__saving { min-height: 44px; display: inline-flex; align-items: center; font-size: .8125rem; color: var(--ph); }
 .fd-more { display: block; width: 100%; margin-top: 14px; }
 .chip--feed { color: var(--violet); background: #fff; border-color: var(--violet); }
+.is-ghost { visibility: hidden; pointer-events: none; }   /* 자리는 차지하되 보이지 않게(탭 전환 때 높이가 달라지지 않도록) */
+.seg button:focus-visible { outline-offset: -4px; }

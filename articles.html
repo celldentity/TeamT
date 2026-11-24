@@ -116,7 +116,8 @@
     function setTab(t) {
       tab = t;
       $("tabArt").setAttribute("aria-selected", t === "art"); $("tabFeed").setAttribute("aria-selected", t === "feed");
-      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").classList.toggle("is-ghost", t !== "art");   // 숨기지 않고 투명하게: 필터 버튼 높이만큼 제목 줄이 유지돼 탭을 눌러도 아래가 흔들리지 않는다 $("count").hidden = t !== "art";
+      $("artBox").hidden = t !== "art"; $("feedBox").hidden = t !== "feed"; $("filt").classList.toggle("is-ghost", t !== "art"); $("count").hidden = t !== "art";
+      // (필터 버튼은 숨기지 않고 투명하게: 버튼 높이만큼 제목 줄이 유지돼 탭을 눌러도 아래가 흔들리지 않는다. 글 수 숫자는 아티클 탭에서만 보인다)
       $("ttl").textContent = t === "feed" ? "피드" : "아티클";
       if (fab) { fab.href = t === "feed" ? "/write?feed=1" : "/write"; fab.setAttribute("aria-label", t === "feed" ? "피드 쓰기" : "글쓰기"); }
       history.replaceState(null, "", t === "feed" ? "#feed" : location.pathname + location.search);

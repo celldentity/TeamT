@@ -11,6 +11,7 @@
   --lavender-tint: #eee9fc;
   --violet: #7a5fd6;              /* 검색 버튼처럼 «분홍·검정과 다른» 포인트가 필요할 때 */
   --blush: #fff1f6;
+  --weekly: #ffdcec;              /* 이번 주 토론(팀원이 한 주 동안 이야기하는 글) 카드 바탕 — 다른 글과 한눈에 구분 */
   --ink: #171719;
   --ink-soft: #57546b;
   --line: #ebe5f7;                /* 머리선·구분선: 라벤더 기운이 도는 회색 */
@@ -326,6 +327,8 @@ a.art { text-decoration: none; color: inherit; }
 .art--human, .post--human { background: #fff; border-color: var(--pink); }
 .art--assist, .post--assist { background: var(--lavender-tint); border-color: var(--lavender-deep); }
 .art--ai, .post--ai { background: linear-gradient(135deg, #f4f0fe 0%, #e5dcfb 100%); border: 1.5px dashed var(--lavender-deep); }
+.art--weekly, .post--weekly { background: linear-gradient(135deg, var(--blush) 0%, var(--weekly) 100%); border: 2px solid var(--pink-deep); }   /* 주 단위 글: 분홍 바탕+굵은 실선(AI 작성 라벤더 점선과 구분) */
+.art--weekly .sp__bar i { background: var(--pink-ink); }
 .post { padding: 18px 16px 20px; border-radius: 20px; }
 .chip--human, .chip--assist, .chip--ai { display: inline-flex; align-items: center; gap: 4px; }
 .chip--human { color: var(--pink-ink); background: var(--blush); border-color: #f3d3e3; }
@@ -523,7 +526,7 @@ a.art { text-decoration: none; color: inherit; }
 
 /* 오늘의 질문 · 이번 주 토론 · 정리된 아티클 */
 .chip--daily { color: var(--pink-ink); background: var(--blush); border-color: var(--pink-deep); }
-.chip--weekly { background: var(--lavender); border-color: var(--lavender-deep); }
+.chip--weekly { background: var(--pink); border-color: var(--pink-deep); }   /* 분홍 주간 카드(.art--weekly)와 같은 계열 */
 .chip--digest { color: #fff; background: var(--pink-ink); border-color: var(--pink-ink); }
 .chip--xs { padding: 0 7px; font-size: .6875rem; line-height: 1.6; }
 .sp { margin-top: 8px; font-size: .8125rem; color: var(--ink-soft); }
@@ -540,7 +543,8 @@ a.art { text-decoration: none; color: inherit; }
 .sp-card__t { flex: 1; min-width: 0; }
 .sp-card p { margin-top: 2px; font-size: .875rem; line-height: 1.6; color: var(--ink-soft); }
 .sp-card__row { display: flex; justify-content: space-between; width: 100%; }
-.sp-card--weekly { display: block; }
+.sp-card--weekly { display: block; background: #fff; border-color: var(--pink-deep); }
+.sp-card--weekly .sp__bar i { background: var(--pink-ink); }
 .sp-card--weekly .btn { margin-top: 10px; }
 
 /* 아티클 분류 필터: 제목 옆 버튼 + 펼침 창(고르면 «쪼잉» 하고 닫힘). 분류가 골라져 있으면 버튼에 불이 들어온다 */

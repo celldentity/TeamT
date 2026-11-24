@@ -73,4 +73,5 @@ async function settleWeek(db, post, keys) {
   return { gave, top: rows.filter((r) => topIds.includes(r.uid)).map((r) => r.nickname), key: keyHits.map((h) => ({ nickname: h.nickname, reason: h.reason })) };
 }
 
-module.exports = { RULES, KIND, year, size, onComment, onGone, backfillDaily, settleWeek };
+const WEEKLY_GOAL = 5;   // 주간 토론: 서로 다른 팀원이 이만큼 의견을 남기면 진척도 100%(한 사람이 여러 개 달아도 한 명으로 센다)
+module.exports = { WEEKLY_GOAL, RULES, KIND, year, size, onComment, onGone, backfillDaily, settleWeek };

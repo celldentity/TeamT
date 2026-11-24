@@ -159,12 +159,12 @@
   const specialLine = (p) => p.special === "daily" && p.target
       ? `<p class="sp sp--daily">지목 ${chip(p.target)}${p.answered ? STAMP : ` · ${p.forMe ? "나에게 온 질문 · 답변 기다리는 중" : "답변 기다리는 중"}`}</p>`
     : p.special === "weekly" && p.progress
-      ? `<div class="sp sp--weekly"><span class="sp__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.progress.pct}"><i style="width:${p.progress.pct}%"></i></span><span class="sp__t">${p.progress.stage === "done" ? "정리 완료" : `의논 진행도 ${Math.min(p.progress.done, p.progress.goal)}/${p.progress.goal} · ${p.progress.pct}%`}</span></div>`
+      ? `<div class="sp sp--weekly"><span class="sp__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.progress.pct}"><i style="width:${p.progress.pct}%"></i></span><span class="sp__t">${p.progress.stage === "done" ? "정리 완료" : `의논 진행도 ${Math.min(p.progress.done, p.progress.goal)}/${p.progress.goal}명 · ${p.progress.pct}%`}</span></div>`
     : "";
   // 아티클 카드(목록·홈 공용): 왼쪽에 분류·글 종류·제목·미리보기, 오른쪽에 대표 사진·동영상 썸네일(있을 때만), 아래 줄에 글쓴이·시각·좋아요·댓글
   const PLAY = '<span class="th__play"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l13-7.5z"/></svg></i></span>';
   const thumb = (c) => (!c ? "" : `<span class="th${c.thumb ? "" : " th--none"}">${c.thumb ? `<img src="/api/media?id=${c.id}&v=thumb" alt="" loading="lazy" decoding="async">` : ""}${c.kind === "video" ? PLAY : ""}${c.n > 1 ? `<span class="th__n" aria-label="파일 ${c.n}개">+${c.n - 1}</span>` : ""}</span>`);
-  const postCard = (p) => `<li><a class="art art--${kind(p)}${p.cover ? " art--img" : ""}" href="${p.href || "/article?id=" + p.id}">
+  const postCard = (p) => `<li><a class="art art--${kind(p)}${p.special === "weekly" ? " art--weekly" : ""}${p.cover ? " art--img" : ""}" href="${p.href || "/article?id=" + p.id}">
     <div class="art__main"><div class="art__meta"><span class="chip">${esc(p.category)}</span>${specialChip(p)}${kindChip(p)}</div>
     <h3 class="art__title">${esc(p.title)}</h3>
     <p class="art__text">${esc((p.excerpt || "").replace(/\s+/g, " "))}</p>${specialLine(p)}</div>${thumb(p.cover)}

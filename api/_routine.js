@@ -8,7 +8,7 @@ const H = require("./_holidays");
 const Img = require("./_qimg");
 const P = require("./_points");
 
-const GOAL = 10;                 // 주간 토론: 사람이 단 댓글이 이만큼 모이면 진척도 100%
+const GOAL = P.WEEKLY_GOAL;      // 주간 토론: 서로 다른 팀원이 이만큼 의견을 남기면 진척도 100%(예전 글의 posts.goal=10 은 무시하고 이 값을 쓴다)
 const MORE_COMMENTS = 3;         // AI 가 반문한 뒤 이만큼 댓글이 더 달리면 다음 단계로
 const MAX_ROUNDS = 3;            // AI 가 반문하는 최대 차례(마지막 차례에는 어떻게든 글로 정리한다)
 // 요일마다 질문 종류가 돌아간다(공휴일로 그날이 쉬면 그 종류는 그냥 건너뛴다): 월 커리어 · 화 HR · 수 상식 · 목 HR · 금 일상(가벼운 질문)
@@ -101,6 +101,10 @@ const humanCount = async (db, postId, since) => {
   const [r] = await db.query("SELECT COUNT(*) AS n FROM comments WHERE post_id = ? AND deleted = 0 AND author_id IS NOT NULL" + (since ? " AND created_at > ?" : ""), since ? [postId, since] : [postId]);
   return Number(r[0].n);
 };
+const peopleCount = async (db, postId) => {
+  const [r] = await db.query("SELECT COUNT(DISTINCT author_id) AS n FROM comments WHERE post_id = ? AND deleted = 0 AND author_id IS NOT NULL", [postId]);
+  return Number(r[0].n);
+};
 async function thread(db, postId) {
   const [cs] = await db.query("SELECT c.body, u.nickname FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? AND c.deleted = 0 ORDER BY c.created_at, c.id", [postId]);
   return cs.map((c) => `[${c.nickname || "미드핑"}] ${String(c.body).replace(/\s+/g, " ")}`).join("\n").slice(-14000);
@@ -118,13 +122,13 @@ async function wrapOne(db, post) {
   const topic = `주제: ${post.title}\n${post.body}`;
 
   if (post.stage === "open") {
-    if ((await humanCount(db, post.id)) < post.goal) return { id: post.id, skipped: "진척도 100% 아님" };
+    if ((await peopleCount(db, post.id)) < GOAL) return { id: post.id, skipped: "진척도 100% 아님" };
     await db.query("UPDATE posts SET ai_try_at = NOW() WHERE id = ?", [post.id]);
     const out = AI.json(await AI.ask({ system: SYS, max: 1500,
       user: `${topic}\n\n지금까지의 댓글:\n${await thread(db, post.id)}\n\n해야 할 일: (1) 지금까지 나온 의견을 3~5문장으로 요약하세요. (2) 아직 부족하거나 의견이 엇갈리는 지점을 짚어 추가 질문 또는 반문을 2~3개 만드세요.\n출력: {"summary":"요약","questions":["질문1","질문2"]}` }));
     const qs = (out.questions || []).map((x) => String(x).trim()).filter(Boolean).slice(0, 3);
     if (!out.summary || !qs.length) throw new Error("요약 형식이 올바르지 않아요.");
-    const cid = await aiComment(db, post.id, `댓글이 ${post.goal}개 모여서 지금까지의 이야기를 정리해 볼게요.\n\n${String(out.summary).trim()}\n\n더 이야기해 보면 좋을 질문이에요.\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}`);
+    const cid = await aiComment(db, post.id, `${GOAL}명이 의견을 남겨서 지금까지의 이야기를 정리해 볼게요.\n\n${String(out.summary).trim()}\n\n더 이야기해 보면 좋을 질문이에요.\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}`);
     await db.query("UPDATE posts SET stage = 'review', ai_round = 1, ai_at = NOW() WHERE id = ?", [post.id]);
     const push = await Push.notify(null, () => ({ title: "미드핑이 토론을 정리하고 질문을 남겼어요", icon: "/assets/miding.jpg", body: post.title, url: `/article?id=${post.id}#c${cid}`, tag: `wrap-${post.id}-1`, badge: "auto" })).catch(() => null);
     return { id: post.id, step: "summary", push };

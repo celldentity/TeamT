@@ -6,6 +6,7 @@
 //   DELETE /api/posts?id=N                           → 글 삭제(쓴 사람만, 댓글·좋아요도 함께)
 const L = require("./_lib");
 const M = require("./_media");
+const { WEEKLY_GOAL } = require("./_points");
 
 const who = (id, nickname, photo_v) => (id ? { id, nickname, photoUrl: L.photoUrl({ id, photo_v }) } : null); // null = T조 AI
 const fields = (b) => {
@@ -34,7 +35,7 @@ async function setMedia(db, postId, ids) {
 }
 const SELECT = `SELECT p.id, p.author_id, p.ai, p.category, p.title, p.created_at, p.updated_at, u.nickname, u.photo_v,
   p.kind, p.target_id, p.qdate, p.goal, p.stage, p.ref_post_id, t.nickname AS t_nick, t.photo_v AS t_pv,
-  (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0 AND c.author_id IS NOT NULL) AS human_comments,
+  (SELECT COUNT(DISTINCT c.author_id) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0 AND c.author_id IS NOT NULL) AS human_comments,
   (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.id AND c.deleted = 0 AND p.target_id IS NOT NULL AND c.author_id = p.target_id) AS target_comments,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id) AS likes,
   (SELECT COUNT(*) FROM likes l WHERE l.target_type = 'p' AND l.target_id = p.id AND l.user_id = ?) AS liked,
@@ -52,7 +53,7 @@ const shape = (r, me) => ({
   answered: r.kind === "daily" ? Number(r.target_comments) > 0 : undefined,                                       // 지목된 사람이 답했는지
   forMe: !!r.target_id && r.target_id === me.id,
   qdate: r.qdate ? new Date(r.qdate).toISOString().slice(0, 10) : null,
-  progress: r.kind === "weekly" ? { done: Number(r.human_comments), goal: r.goal, pct: Math.min(100, Math.round((Number(r.human_comments) / Math.max(1, r.goal)) * 100)), stage: r.stage } : null,
+  progress: r.kind === "weekly" ? { done: Number(r.human_comments), goal: WEEKLY_GOAL, pct: Math.min(100, Math.round((Number(r.human_comments) / WEEKLY_GOAL) * 100)), stage: r.stage } : null,
   ref: r.ref_post_id || null,                                                                                     // weekly ↔ digest
   cover: r.cover_id ? { id: r.cover_id, kind: r.cover_kind, thumb: !!r.cover_thumb, n: Number(r.media_n) } : null,   // 목록 카드의 썸네일
 });

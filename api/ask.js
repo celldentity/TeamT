@@ -61,7 +61,7 @@ async function read(db, { id }) {
   const [[p]] = await db.query("SELECT p.id, p.title, p.category, p.kind, p.body, p.goal, p.stage, p.created_at, u.nickname, t.nickname AS target FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id WHERE p.id = ?", [id]);
   if (!p) return { error: "그런 글이 없어요(지워졌을 수 있어요)." };
   const [cs] = await db.query("SELECT c.id, c.parent_id, c.body, c.created_at, u.nickname FROM comments c LEFT JOIN users u ON u.id = c.author_id WHERE c.post_id = ? AND c.deleted = 0 ORDER BY c.created_at, c.id LIMIT 80", [id]);
-  return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "미드핑", date: ymd(p.created_at), ...(p.target ? { 지목된사람: p.target } : {}), ...(p.kind === "weekly" ? { 진행단계: p.stage, 목표댓글수: p.goal } : {}),
+  return { id: p.id, title: p.title, category: p.category, kind: KIND_NAME[p.kind] || p.kind, author: p.nickname || "미드핑", date: ymd(p.created_at), ...(p.target ? { 지목된사람: p.target } : {}), ...(p.kind === "weekly" ? { 진행단계: p.stage, 목표참여인원: require("./_points").WEEKLY_GOAL } : {}),
     body: cut(p.body, 6000), commentCount: cs.length, comments: cs.map((c) => ({ id: c.id, ...(c.parent_id ? { replyTo: c.parent_id } : {}), author: c.nickname || "미드핑", date: ymd(c.created_at), text: cut(c.body, 700) })) };
 }
 

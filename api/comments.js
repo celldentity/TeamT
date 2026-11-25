@@ -73,7 +73,7 @@ module.exports = async (req, res) => {
       let points = 0;   // 오늘의 질문에서 지목된 사람이 제대로 답했으면 포인트(실패해도 댓글은 성공)
       try { points = await P.onComment(db, { postId, commentId: r.insertId, userId: me.id, text }); } catch (e) { console.error("points", e); }
       // 이번 주 토론이 방금 100%(서로 다른 5명)가 됐으면 5분 크론을 기다리지 않고 바로 미드핑이 정리한다. 실패해도 댓글은 이미 저장됐고, 크론이 다시 시도한다.
-      if (p[0].kind === "weekly" && p[0].stage !== "done") { try { await require("./_routine").wrapPost(db, postId); } catch (e) { console.error("wrap on comment", postId, e.message); } }
+      if (p[0].kind === "weekly" && (p[0].stage === "open" || p[0].stage === "review")) { try { await require("./_routine").wrapPost(db, postId); } catch (e) { console.error("wrap on comment", postId, e.message); } }
       return L.json(res, 201, { id: r.insertId, points });
     }
 

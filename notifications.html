@@ -60,10 +60,10 @@
       $("#empty").hidden = items.length > 0;
       if (unread) $("#n-lead").textContent = `새 알림 ${unread}개가 있어요.`;
       const BELL = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5s1.2-6.1 3.6-8.5z"/></svg>';
-      $("#list").innerHTML = items.map((n) => n.kind === "notice" ? `<li><div class="noti${n.isNew ? " noti--new" : ""}">
+      $("#list").innerHTML = items.map((n) => n.kind === "notice" ? `<li><${n.postId ? `a href="/article?id=${n.postId}"` : "div"} class="noti${n.isNew ? " noti--new" : ""}">
         <span class="noti__av">${BELL}</span>
         <div><p class="noti__txt"><b>${TT.esc(n.postTitle)}</b>${n.isNew ? '<span class="noti__new" aria-label="새 알림"></span>' : ""}</p>
-        <p class="noti__snip">${TT.esc(n.snippet)}</p><p class="noti__time">${TT.ago(n.createdAt)}</p></div></div></li>` : `<li><a class="noti${n.isNew ? " noti--new" : ""}" href="/article?id=${n.postId}${n.kind === "comment" || n.kind === "reply" ? "#c" + n.refId : ""}">
+        <p class="noti__snip">${TT.esc(n.snippet)}</p><p class="noti__time">${TT.ago(n.createdAt)}</p></div></${n.postId ? "a" : "div"}></li>` : `<li><a class="noti${n.isNew ? " noti--new" : ""}" href="/article?id=${n.postId}${n.kind === "comment" || n.kind === "reply" ? "#c" + n.refId : ""}">
         <span class="noti__av">${TT.avatar(n.actor)}</span>
         <div><p class="noti__txt">${text(n)}${n.isNew ? '<span class="noti__new" aria-label="새 알림"></span>' : ""}</p>
         ${n.kind === "post" ? `<p class="noti__snip">${TT.esc(n.postTitle)}</p>` : n.snippet ? `<p class="noti__snip">${TT.esc(n.snippet.replace(/\s+/g, " "))}</p>` : ""}<p class="noti__time">${TT.ago(n.createdAt)}</p></div></a></li>`).join("");

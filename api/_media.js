@@ -29,6 +29,10 @@ async function removeFiles(ids) {
     await L.r2().send(new DeleteObjectsCommand({ Bucket: bucket(), Delete: { Quiet: true, Objects: ids.flatMap((id) => [{ Key: key(id, "full") }, { Key: key(id, "thumb") }]) } }));
   } catch (e) { console.error("media remove", e); }
 }
+// 주간 토론 정리 리포트(PDF) — 운영자가 scripts/make_report.js 로 올린다. R2 reports/<글번호>.pdf
+const reportKey = (postId) => `reports/${postId}.pdf`;
+const reportUrl = (postId, filename) => getSignedUrl(L.r2(), new GetObjectCommand({ Bucket: bucket(), Key: reportKey(postId), ResponseContentType: "application/pdf", ResponseContentDisposition: `attachment; filename="report-${postId}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}` }), { expiresIn: 600 });
+const putReport = (postId, buf) => L.r2().send(new PutObjectCommand({ Bucket: bucket(), Key: reportKey(postId), Body: buf, ContentType: "application/pdf" }));
 const shape = (m) => ({ id: m.id, kind: m.kind, w: m.w, h: m.h, thumb: !!m.has_thumb });
 
-module.exports = { F_MAX_VIDEO, F_MAX_FILES, F_MAX_VIDEOS, C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, key, putUrl, getUrl, head, removeFiles, shape };
+module.exports = { reportKey, reportUrl, putReport, F_MAX_VIDEO, F_MAX_FILES, F_MAX_VIDEOS, C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, key, putUrl, getUrl, head, removeFiles, shape };

@@ -33,4 +33,17 @@ async function domainExpiry(db, { today = kstDay(), push = true } = {}) {
   return { left, made: true, push: sent };
 }
 
-module.exports = { domainExpiry, text, kstDay, days, monthBefore, DOMAIN };
+// 운영자(환경변수 DOMAIN_NOTICE_EMAIL 의 이메일로 가입한 팀원)에게 알림 한 건: 앱 안 알림(notices) + 폰 푸시. kind 는 20자 이하, (user_id, kind, day) 가 유일해 같은 날 같은 kind 는 한 번만 만든다.
+// 글을 가리키는 알림은 kind 를 «ready:<글번호>» 로 쓴다(알림 페이지가 그 글로 연결). 받을 사람이 없으면 아무것도 안 하고 이유만 돌려준다.
+async function notifyOperator(db, { kind, title, body = "", url = "/notifications", tag, push = true, today = kstDay() }) {
+  const email = String(process.env.DOMAIN_NOTICE_EMAIL || "").trim().toLowerCase();
+  if (!email) return { skip: "받을 사람(DOMAIN_NOTICE_EMAIL)이 정해지지 않았어요" };
+  const [[u]] = await db.query("SELECT id FROM users WHERE LOWER(email) = ?", [email]);
+  if (!u) return { skip: "그 이메일로 가입한 팀원이 없어요" };
+  const [r] = await db.query("INSERT IGNORE INTO notices (user_id, kind, day, title, body) VALUES (?, ?, ?, ?, ?)", [u.id, String(kind).slice(0, 20), today, String(title).slice(0, 100), String(body).slice(0, 300)]);
+  if (!r.affectedRows) return { made: false };
+  let sent; if (push) sent = await require("./_push").notify([u.id], () => ({ title, body, url, tag: tag || String(kind), badge: "auto" })).catch((e) => ({ error: e.message }));
+  return { made: true, push: sent };
+}
+
+module.exports = { notifyOperator, domainExpiry, text, kstDay, days, monthBefore, DOMAIN };

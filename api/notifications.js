@@ -25,13 +25,13 @@ module.exports = async (req, res) => {
     const [cnt] = await db.query(`SELECT COUNT(*) AS n FROM (${EVENTS}) e WHERE e.created_at > ${SEEN}`, [...P, me.id]);
     // 시스템 알림(notices, 예: 도메인 만료 임박) — 본인 것만. 표가 아직 없으면 건너뛴다.
     let notices = [];
-    try { [notices] = await db.query(`SELECT id, title, body, created_at, created_at > ${SEEN} AS is_new FROM notices WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 50`, [me.id, me.id]); } catch (e) { if (e.errno !== 1146) throw e; }
+    try { [notices] = await db.query(`SELECT id, kind, title, body, created_at, created_at > ${SEEN} AS is_new FROM notices WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 50`, [me.id, me.id]); } catch (e) { if (e.errno !== 1146) throw e; }
     const unread = Number(cnt[0].n) + notices.filter((n) => Number(n.is_new)).length;
     if (req.query.count) return L.json(res, 200, { unread });
 
     const [rows] = await db.query(`SELECT e.kind, e.ref_id, e.post_id, e.snippet, e.created_at, e.created_at > ${SEEN} AS is_new, u.id AS actor_id, u.nickname, u.photo_v, p.title
       FROM (${EVENTS}) e LEFT JOIN users u ON u.id = e.actor_id JOIN posts p ON p.id = e.post_id ORDER BY e.created_at DESC, e.ref_id DESC LIMIT 50`, [me.id, ...P]);
-    const sys = notices.map((n) => ({ kind: "notice", refId: n.id, postId: 0, postTitle: n.title, snippet: n.body, createdAt: n.created_at, isNew: !!Number(n.is_new), actor: { id: 0, nickname: "공지", photoUrl: null } }));
+    const sys = notices.map((n) => ({ kind: "notice", refId: n.id, postId: /^ready:\d+$/.test(n.kind) ? Number(n.kind.slice(6)) : 0, postTitle: n.title, snippet: n.body, createdAt: n.created_at, isNew: !!Number(n.is_new), actor: { id: 0, nickname: "공지", photoUrl: null } }));
     return L.json(res, 200, {
       unread,
       items: [...sys, ...rows.map((r) => ({

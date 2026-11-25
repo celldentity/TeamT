@@ -7,5 +7,8 @@
     "@aws-sdk/s3-request-presigner": "^3.1171.0",
     "mysql2": "^3.11.0",
     "web-push": "3.6.7"
+  },
+  "devDependencies": {
+    "pdfkit": "^0.21.0"
   }
 }

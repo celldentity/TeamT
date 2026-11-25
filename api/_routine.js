@@ -9,6 +9,7 @@ const Img = require("./_qimg");
 const P = require("./_points");
 
 const GOAL = P.WEEKLY_GOAL;      // 주간 토론: 서로 다른 팀원이 이만큼 의견을 남기면 진척도 100%(예전 글의 posts.goal=10 은 무시하고 이 값을 쓴다)
+const RETRY_MIN = 10;           // AI 호출이 실패해도 같은 글은 이 시간(분) 안에는 다시 부르지 않는다(5분 크론이 그 뒤에 다시 시도)
 const MORE_COMMENTS = 3;         // AI 가 반문한 뒤 이만큼 댓글이 더 달리면 다음 단계로
 const MAX_ROUNDS = 3;            // AI 가 반문하는 최대 차례(마지막 차례에는 어떻게든 글로 정리한다)
 // 요일마다 질문 종류가 돌아간다(공휴일로 그날이 쉬면 그 종류는 그냥 건너뛴다): 월 커리어 · 화 HR · 수 상식 · 목 HR · 금 일상(가벼운 질문)
@@ -116,16 +117,22 @@ async function aiComment(db, postId, body) {
   return r.insertId;
 }
 
-async function wrapOne(db, post) {
+// AI 를 부르기 직전에 «내가 이 글을 맡는다» 는 표시(ai_try_at)를 원자적으로 남긴다 — 댓글 저장 직후 호출과 5분 크론이 동시에 와도 한쪽만 Claude 를 부른다.
+async function claim(db, post) {
+  const [r] = await db.query("UPDATE posts SET ai_try_at = NOW() WHERE id = ? AND stage = ? AND (ai_try_at IS NULL OR ai_try_at < DATE_SUB(NOW(), INTERVAL ? MINUTE))", [post.id, post.stage, RETRY_MIN]);
+  return r.affectedRows === 1;
+}
+
+async function wrapOne(db, post, opts = {}) {
   const h = (ts) => (ts ? (Date.now() - new Date(ts).getTime()) / 36e5 : 1e9);
-  if (post.ai_try_at && h(post.ai_try_at) < 0.5) return { id: post.id, skipped: "최근에 시도함" };
+  if (post.ai_try_at && h(post.ai_try_at) < RETRY_MIN / 60) return { id: post.id, skipped: "최근에 시도함" };
   const topic = `주제: ${post.title}\n${post.body}`;
 
   if (post.stage === "open") {
     if ((await peopleCount(db, post.id)) < GOAL) return { id: post.id, skipped: "진척도 100% 아님" };
-    await db.query("UPDATE posts SET ai_try_at = NOW() WHERE id = ?", [post.id]);
-    const out = AI.json(await AI.ask({ system: SYS, max: 1500,
-      user: `${topic}\n\n지금까지의 댓글:\n${await thread(db, post.id)}\n\n해야 할 일: (1) 지금까지 나온 의견을 3~5문장으로 요약하세요. (2) 아직 부족하거나 의견이 엇갈리는 지점을 짚어 추가 질문 또는 반문을 2~3개 만드세요.\n출력: {"summary":"요약","questions":["질문1","질문2"]}` }));
+    if (!(await claim(db, post))) return { id: post.id, skipped: "다른 곳에서 처리 중" };
+    const out = await AI.askJson({ system: SYS, max: 2500, tries: opts.tries, timeout: opts.timeout,
+      user: `${topic}\n\n지금까지의 댓글:\n${await thread(db, post.id)}\n\n해야 할 일: (1) 지금까지 나온 의견을 3~5문장으로 요약하세요. (2) 아직 부족하거나 의견이 엇갈리는 지점을 짚어 추가 질문 또는 반문을 2~3개 만드세요.\n출력: {"summary":"요약","questions":["질문1","질문2"]}` });
     const qs = (out.questions || []).map((x) => String(x).trim()).filter(Boolean).slice(0, 3);
     if (!out.summary || !qs.length) throw new Error("요약 형식이 올바르지 않아요.");
     const cid = await aiComment(db, post.id, `${GOAL}명이 의견을 남겨서 지금까지의 이야기를 정리해 볼게요.\n\n${String(out.summary).trim()}\n\n더 이야기해 보면 좋을 질문이에요.\n${qs.map((q, i) => `${i + 1}. ${q}`).join("\n")}`);
@@ -137,10 +144,10 @@ async function wrapOne(db, post) {
   if (post.stage === "review") {
     const fresh = await humanCount(db, post.id, post.ai_at), waited = h(post.ai_at);
     if (!(fresh >= MORE_COMMENTS || (fresh >= 1 && waited >= 24) || waited >= 72)) return { id: post.id, skipped: "더 기다리는 중", fresh };
-    await db.query("UPDATE posts SET ai_try_at = NOW() WHERE id = ?", [post.id]);
+    if (!(await claim(db, post))) return { id: post.id, skipped: "다른 곳에서 처리 중" };
     const last = post.ai_round >= MAX_ROUNDS || waited >= 72;
-    const out = AI.json(await AI.ask({ system: SYS, max: 4000,
-      user: `${topic}\n\n지금까지의 댓글(마지막 AI 댓글 이후 사람이 ${fresh}개 더 달았어요):\n${await thread(db, post.id)}\n\n해야 할 일: 이 토론이 «인살롱(HR 커뮤니티)에 올려도 될 정도의 글»이 될 만큼 충분히 모였는지 판단하세요. 기준은 서로 다른 관점, 근거나 사례, 실무에 쓸 수 있는 결론입니다.${last ? " 이번이 마지막 차례이므로 부족한 점이 있어도 지금까지의 내용으로 글을 정리하세요(ready 는 true)." : ""}\n충분하면 글로 정리하세요: 제목 80자 이내, 분류는 ${L.CATS.join("/")} 중 하나, 본문은 1500~3500자로 도입-관점별 정리-결론과 실무 팁 순서의 일반 글(소제목은 한 줄 문장으로), 토론에 참여한 닉네임을 자연스럽게 언급하세요. 또한 포인트 가산점을 위해, 이 대화의 흐름을 이끌었거나 결론을 내는 데 «핵심적인 역할»을 한 팀원을 최대 ${P.RULES.KEY_MAX}명 고르세요(댓글 수가 아니라 기여의 질로 판단: 새로운 관점·근거나 사례를 보탰거나, 엇갈린 의견을 조율했거나, 결론의 뼈대를 만든 사람. 닉네임은 댓글에 적힌 그대로, 이유는 한 문장. 마땅한 사람이 없으면 빈 배열).\n부족하면 추가 질문 1~2개를 만드세요.\n출력(충분): {"ready":true,"title":"제목","category":"분류","body":"본문","key":[{"nickname":"닉네임","reason":"한 문장 이유"}]}\n출력(부족): {"ready":false,"questions":["질문1"]}` }));
+    const out = await AI.askJson({ system: SYS, max: 4000, tries: opts.tries, timeout: opts.timeout,
+      user: `${topic}\n\n지금까지의 댓글(마지막 AI 댓글 이후 사람이 ${fresh}개 더 달았어요):\n${await thread(db, post.id)}\n\n해야 할 일: 이 토론이 «인살롱(HR 커뮤니티)에 올려도 될 정도의 글»이 될 만큼 충분히 모였는지 판단하세요. 기준은 서로 다른 관점, 근거나 사례, 실무에 쓸 수 있는 결론입니다.${last ? " 이번이 마지막 차례이므로 부족한 점이 있어도 지금까지의 내용으로 글을 정리하세요(ready 는 true)." : ""}\n충분하면 글로 정리하세요: 제목 80자 이내, 분류는 ${L.CATS.join("/")} 중 하나, 본문은 1500~3500자로 도입-관점별 정리-결론과 실무 팁 순서의 일반 글(소제목은 한 줄 문장으로), 토론에 참여한 닉네임을 자연스럽게 언급하세요. 또한 포인트 가산점을 위해, 이 대화의 흐름을 이끌었거나 결론을 내는 데 «핵심적인 역할»을 한 팀원을 최대 ${P.RULES.KEY_MAX}명 고르세요(댓글 수가 아니라 기여의 질로 판단: 새로운 관점·근거나 사례를 보탰거나, 엇갈린 의견을 조율했거나, 결론의 뼈대를 만든 사람. 닉네임은 댓글에 적힌 그대로, 이유는 한 문장. 마땅한 사람이 없으면 빈 배열).\n부족하면 추가 질문 1~2개를 만드세요.\n출력(충분): {"ready":true,"title":"제목","category":"분류","body":"본문","key":[{"nickname":"닉네임","reason":"한 문장 이유"}]}\n출력(부족): {"ready":false,"questions":["질문1"]}` });
     if (out.ready || last) {
       const title = String(out.title || post.title).trim().slice(0, 80), body = String(out.body || "").trim().slice(0, 4900), cat = L.CATS.includes(out.category) ? out.category : post.category;
       if (L.len(body) < 10) throw new Error("정리된 글이 너무 짧아요.");
@@ -168,6 +175,14 @@ async function wrapOne(db, post) {
   return { id: post.id, skipped: "처리할 단계 아님" };
 }
 
+// 댓글이 저장된 직후 api/comments.js 가 부른다: 그 글이 주간 토론이고 방금 100% 가 됐다면(또는 정리 다음 단계 조건이 찼다면) 5분 크론을 기다리지 않고 바로 Claude 를 부른다.
+// 조건이 안 맞으면 SELECT 몇 번만 하고 끝난다. 실패해도 5분 크론이 RETRY_MIN 분 뒤에 다시 시도한다(여기서는 한 번만, 댓글 저장 요청이 오래 붙잡히지 않게 45초 제한).
+async function wrapPost(db, postId) {
+  if (!AI.enabled()) return { skipped: "ANTHROPIC_API_KEY 없음" };
+  const [rows] = await db.query("SELECT id, title, body, category, goal, stage, ai_round, ai_at, ai_try_at FROM posts WHERE id = ? AND kind = 'weekly' AND stage IN ('open', 'review')", [postId]);
+  return rows[0] ? wrapOne(db, rows[0], { tries: 1, timeout: 45000 }) : { skipped: "주간 토론이 아니거나 이미 끝남" };
+}
+
 async function wrap(db) {
   if (!AI.enabled()) return { skipped: "ANTHROPIC_API_KEY 가 없어요(토론 정리는 Claude 가 연결돼야 해요)" };
   const [posts] = await db.query("SELECT id, title, body, category, goal, stage, ai_round, ai_at, ai_try_at FROM posts WHERE kind = 'weekly' AND stage IN ('open', 'review') ORDER BY id");
@@ -176,4 +191,4 @@ async function wrap(db) {
   return { results: out };
 }
 
-module.exports = { GOAL, TYPE_BY_DOW, newQuestion, kstNow, ymd, mondayOf, pickMember, makeDaily, makeWeekly, wrap };
+module.exports = { wrapPost, wrapOne, GOAL, TYPE_BY_DOW, newQuestion, kstNow, ymd, mondayOf, pickMember, makeDaily, makeWeekly, wrap };

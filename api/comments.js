@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
       if (text === null) return L.json(res, 400, { error: "댓글은 1~1000자로 적어 주세요(사진·동영상만 올려도 돼요)." });
       const bad = await checkMedia(db, mids, me.id, 0);
       if (bad) return L.json(res, 400, { error: bad });
-      const [p] = await db.query("SELECT id FROM posts WHERE id = ?", [postId]);
+      const [p] = await db.query("SELECT id, kind, stage FROM posts WHERE id = ?", [postId]);
       if (!p[0]) return L.json(res, 404, { error: "글을 찾을 수 없어요. 지워졌을 수 있어요." });
       let parentId = null;
       if (b.parentId) {
@@ -72,6 +72,8 @@ module.exports = async (req, res) => {
       } catch (e) { console.error("push comment", e); }
       let points = 0;   // 오늘의 질문에서 지목된 사람이 제대로 답했으면 포인트(실패해도 댓글은 성공)
       try { points = await P.onComment(db, { postId, commentId: r.insertId, userId: me.id, text }); } catch (e) { console.error("points", e); }
+      // 이번 주 토론이 방금 100%(서로 다른 5명)가 됐으면 5분 크론을 기다리지 않고 바로 미드핑이 정리한다. 실패해도 댓글은 이미 저장됐고, 크론이 다시 시도한다.
+      if (p[0].kind === "weekly" && p[0].stage !== "done") { try { await require("./_routine").wrapPost(db, postId); } catch (e) { console.error("wrap on comment", postId, e.message); } }
       return L.json(res, 201, { id: r.insertId, points });
     }
 

@@ -53,4 +53,34 @@ function json(text) {
   return JSON.parse(text.slice(a, b + 1));
 }
 
-module.exports = { enabled, ask, askJson, chat, json };
+// 웹 검색 서버 도구를 붙여 묻는다. 검색은 Anthropic 쪽에서 돌고, 결과 블록(web_search_tool_result)이 응답에 섞여 온다. pause_turn 이면 이어서 부른다(최대 conts 번).
+// 돌려주는 값: {text, sources(검색 결과에 «실제로 나온» 주소만), searches(검색 횟수), stop}. 웹 검색이 꺼져 있으면(콘솔 설정 등) 400 계열 오류가 나므로 부르는 쪽에서 잡아 검색 없이 다시 묻는다.
+async function searchAsk({ system, user, max = 4000, timeout = 55000, maxUses = 3, conts = 3 }) {
+  if (!enabled()) throw new Error("ANTHROPIC_API_KEY 가 없어요.");
+  const tools = [{ type: "web_search_20260209", name: "web_search", max_uses: maxUses }];
+  const messages = [{ role: "user", content: user }];
+  const sources = new Map(); let searches = 0;
+  for (let i = 0; i <= conts; i++) {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+    let j;
+    try {
+      const r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", signal: ctl.signal,
+        headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
+        body: JSON.stringify({ model: process.env.ANTHROPIC_MODEL || "claude-sonnet-5-5", max_tokens: max, system, tools, messages }),
+      });
+      j = await r.json().catch(() => ({}));
+      if (!r.ok) throw Object.assign(new Error(`Claude 응답 오류 ${r.status}: ${(j.error && j.error.message) || ""}`.trim()), { status: r.status });
+    } finally { clearTimeout(t); }
+    const blocks = j.content || [];
+    for (const b of blocks) {
+      if (b.type === "server_tool_use") searches++;
+      else if (b.type === "web_search_tool_result" && Array.isArray(b.content)) for (const x of b.content) if (x && x.type === "web_search_result" && /^https?:\/\//.test(x.url || "")) sources.set(x.url, x.title || x.url);
+    }
+    if (j.stop_reason === "pause_turn") { messages.push({ role: "assistant", content: blocks }); continue; }
+    return { text: blocks.filter((c) => c.type === "text").map((c) => c.text).join("").trim(), sources: [...sources].map(([url, title]) => ({ url, title })), searches, stop: j.stop_reason || "" };
+  }
+  throw new Error("웹 검색이 끝나지 않았어요.");
+}
+
+module.exports = { enabled, ask, askJson, searchAsk, chat, json };

@@ -134,9 +134,11 @@ async function render(specIn, facts = {}) {
     rr(PAGE.m, top, CW, bottom - top, 24, C.white, C.line, 1.2);
     const pos = S.perspectives.map((_, i) => { const a = (-90 + (360 / n) * i + (n === 2 ? 0 : 0)) * Math.PI / 180; return [cx + rx * Math.cos(a) * (n === 2 ? 1 : 1), cy + ry * Math.sin(a)]; });
     if (n === 2) { pos[0] = [cx - rx, cy]; pos[1] = [cx + rx, cy]; }
+    if (n >= 4) { const dx = rx * 0.86, dy = Math.min(ry * 0.78, (bottom - top) / 2 - 62); [[-1, -1], [1, -1], [-1, 1], [1, 1]].slice(0, n).forEach(([sx, sy], i) => { pos[i] = [cx + sx * dx, cy + sy * dy]; }); }
+    const R0 = n >= 4 ? 52 : 64;
     pos.forEach(([px, py], i) => { doc.lineWidth(2.2).dash(5, { space: 5 }).strokeColor(i % 2 ? C.pink : C.lavDeep).moveTo(cx, cy).lineTo(px, py).stroke().undash(); });
-    doc.circle(cx, cy, 64).fill(C.pink); doc.circle(cx, cy, 64).lineWidth(3).stroke(C.white);
-    const tt = clip(S.title, 34), th = hOf(tt, 100, 11, true, 2); txt(tt, cx - 50, cy - th / 2, { w: 100, align: "center", size: 11, b: true, gap: 2 });
+    doc.circle(cx, cy, R0).fill(C.pink); doc.circle(cx, cy, R0).lineWidth(3).stroke(C.white);
+    const tt = clip(S.title, n >= 4 ? 26 : 34), tw = R0 * 1.55, th = hOf(tt, tw, 10.5, true, 2); txt(tt, cx - tw / 2, cy - th / 2, { w: tw, align: "center", size: 10.5, b: true, gap: 2 });
     pos.forEach(([px, py], i) => { const p = S.perspectives[i], fg = i % 2 ? C.pinkInk : C.violet; doc.circle(px, py, 29).fill(C.white); doc.circle(px, py, 29).lineWidth(2.2).stroke(i % 2 ? C.pinkDeep : C.lavDeep); icon(p.icon, px, py, 21, i % 2 ? C.blush : C.lavTint, fg); pill(p.label, 0, py + 34, { cx: px, size: 10.5, fill: i % 2 ? C.blush : C.lavTint, stroke: i % 2 ? C.pink : C.lavDeep, color: fg }); });
   }
 
@@ -189,17 +191,17 @@ async function render(specIn, facts = {}) {
     y += 8;
   }
   if ((facts.days || []).length) {
-    y = need(y, 170); txt("날짜별 댓글", PAGE.m, y, { size: 12.5, b: true, gap: 0 }); y += 28; const days = facts.days.slice(-10), max = Math.max(...days.map((d) => d.n)), ch = 90, cwid = Math.min(46, (CW - 20) / days.length);
+    y = need(y, 170); txt("날짜별 댓글", PAGE.m, y, { size: 12.5, b: true, gap: 0 }); y += 28; const days = facts.days.slice(-10), max = Math.max(...days.map((d) => d.n)), ch = 76, cwid = Math.min(46, (CW - 20) / days.length);
     doc.lineWidth(1).strokeColor(C.line).moveTo(PAGE.m, y + ch).lineTo(PAGE.m + CW, y + ch).stroke();
     days.forEach((d, i) => { const h = Math.max(6, (d.n / max) * (ch - 18)), x = PAGE.m + 8 + i * (cwid + 6); rr(x, y + ch - h, cwid, h, 8, i % 2 ? C.pink : C.lav, i % 2 ? C.pinkDeep : C.lavDeep, 1); txt(String(d.n), x, y + ch - h - 14, { w: cwid, align: "center", size: 9.5, b: true, color: C.pinkInk, gap: 0 }); txt(d.label, x - 4, y + ch + 6, { w: cwid + 8, align: "center", size: 8.5, color: C.soft, gap: 0 }); });
-    y += ch + 36;
+    y += ch + 30;
   }
   if (S.quotes.length) {
     y = need(y, 120); txt("이런 말이 나왔어요", PAGE.m, y, { size: 12.5, b: true, gap: 0 }); y += 26;
     S.quotes.forEach((q, i) => {
-      const bw = CW - 70, th = hOf(`“${q.text}”`, bw - 36, 11.5, false, 4), bh = th + 40; y = need(y, bh + 12); const left = i % 2 === 0, x = left ? PAGE.m + 56 : PAGE.m + 14, av = left ? PAGE.m + 22 : PAGE.m + CW - 22;
+      const bw = CW - 70, th = hOf(`“${q.text}”`, bw - 36, 11.5, false, 4), bh = th + 34; y = need(y, bh + 10); const left = i % 2 === 0, x = left ? PAGE.m + 56 : PAGE.m + 14, av = left ? PAGE.m + 22 : PAGE.m + CW - 22;
       circleImg(CHAR(byName.has(q.nickname) ? charOf(q.nickname) : i + 3), av, y + 24, 20, C.white);
-      rr(x, y, bw + 4, bh, 18, left ? C.blush : C.lavTint, left ? C.pink : C.lavDeep, 1.3); txt(`“${q.text}”`, x + 18, y + 14, { w: bw - 32, size: 11.5, gap: 4 }); txt(`— ${q.nickname || "참여자"}`, x + 18, y + 14 + th + 4, { w: bw - 32, align: "right", size: 9.5, b: true, color: left ? C.pinkInk : C.violet, gap: 0 }); y += bh + 12;
+      rr(x, y, bw + 4, bh, 18, left ? C.blush : C.lavTint, left ? C.pink : C.lavDeep, 1.3); txt(`“${q.text}”`, x + 18, y + 14, { w: bw - 32, size: 11.5, gap: 4 }); txt(`— ${q.nickname || "참여자"}`, x + 18, y + 14 + th + 4, { w: bw - 32, align: "right", size: 9.5, b: true, color: left ? C.pinkInk : C.violet, gap: 0 }); y += bh + 9;
     });
   }
 
@@ -219,8 +221,9 @@ async function render(specIn, facts = {}) {
       S.checklist.forEach((t) => { const th = hOf(t, CW - 70, 11, false, 3), bh = Math.max(40, th + 22); y = need(y, bh + 8); rr(PAGE.m, y, CW, bh, 14, C.white, C.lavDeep, 1.2); rr(PAGE.m + 14, y + bh / 2 - 9, 18, 18, 5, null, C.violet, 1.8); txt(t, PAGE.m + 46, y + bh / 2 - th / 2 + 0.5, { w: CW - 70, size: 11, gap: 3 }); y += bh + 8; });
     }
     y += 18; y = need(y, 120);
-    rr(PAGE.m, y, CW, 96, 22, C.lav, C.lavDeep, 1.5); [1, 5, 8].forEach((m, i) => circleImg(CHAR(m), PAGE.m + 48 + i * 52, y + 48, 22, C.white));
-    txt(S.closing || "함께 이야기해 주셔서 고마워요.", PAGE.m + 210, y + 20, { w: CW - 226, size: 12.5, b: true, gap: 4 }); txt("— 미드핑이 정리했어요", PAGE.m + 210, y + 62, { w: CW - 226, size: 9.5, color: C.violet, b: true, gap: 0 });
+    const closing = S.closing || "함께 이야기해 주셔서 고마워요.", cth = hOf(closing, CW - 226, 12.5, true, 4), chh = Math.max(96, cth + 64);
+    rr(PAGE.m, y, CW, chh, 22, C.lav, C.lavDeep, 1.5); [1, 5, 8].forEach((m, i) => circleImg(CHAR(m), PAGE.m + 48 + i * 52, y + chh / 2, 22, C.white));
+    txt(closing, PAGE.m + 210, y + 22, { w: CW - 226, size: 12.5, b: true, gap: 4 }); txt("— 미드핑이 정리했어요", PAGE.m + 210, y + 22 + cth + 10, { w: CW - 226, size: 9.5, color: C.violet, b: true, gap: 0 });
   }
 
   // 꼬리말(표지 제외): 쪽수

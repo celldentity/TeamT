@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
     const sec = process.env.CRON_SECRET;
     const ok = sec ? req.headers.authorization === `Bearer ${sec}` : !process.env.VERCEL;
     if (!ok) return L.json(res, 401, { error: "허용되지 않은 요청이에요." });
-    const job = req.query.job, db = L.db();
+    const job = req.query.job, db = L.db(), t0 = Date.now();
     // 부를 때마다 한 줄 남긴다(Vercel 이 정말 부르는지 확인용). 요약만, 2주가 지난 기록은 지운다.
     const log = async (out) => { try { await db.query("INSERT INTO cron_runs (job, note) VALUES (?, ?)", [String(job).slice(0, 10), JSON.stringify(out, (k, v) => (k === "title" ? undefined : k === "push" ? (v && v.users !== undefined ? `알림 ${v.sent}건 보냄/${v.users}명${v.failed ? ` 실패${v.failed}` : ""}` : v && v.error ? `알림 오류: ${v.error}` : undefined) : v)).slice(0, 290)]); await db.query("DELETE FROM cron_runs WHERE ran_at < DATE_SUB(NOW(), INTERVAL 14 DAY)"); } catch (e) { console.error("cron log", e.message); } };
     if (job === "daily") {
@@ -31,6 +31,8 @@ module.exports = async (req, res) => {
       // 예전엔 자정 뒤 첫 방문자가 Claude 가 문장을 쓰는 몇 초~십수 초를 로딩 화면에서 기다렸다.
       try { const I = require("./_ilryeok"); out.card = { today: (await I.ensure(db, I.kstDate())).source, tomorrow: (await I.ensure(db, I.kstDate(new Date(Date.now() + 864e5)))).source }; } catch (e) { out.card = "실패"; console.error("cron card", e.message); }
       out.wrap = await R.wrap(db);
+      // 미드핑의 «반응·후기 탐색»(사람이 올린 글에 가끔 댓글): 정리에 시간을 많이 썼으면(50초 넘게) 이번 차례는 건너뛴다
+      if (Date.now() - t0 < 50000) { try { out.react = await require("./_reactor").tick(db); } catch (e) { out.react = { error: e.message }; console.error("react", e); } }
       await log(out);
       return L.json(res, 200, out);
     }

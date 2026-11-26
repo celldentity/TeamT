@@ -10,7 +10,7 @@ const EVENTS = `
   UNION ALL
   SELECT 'comment', c.id, c.post_id, c.author_id, LEFT(c.body, 80), c.created_at
     FROM comments c JOIN posts p ON p.id = c.post_id LEFT JOIN comments pc ON pc.id = c.parent_id
-    WHERE p.author_id = ? AND c.author_id <> ? AND c.deleted = 0 AND (pc.author_id IS NULL OR pc.author_id <> ?)
+    WHERE p.author_id = ? AND (c.author_id IS NULL OR c.author_id <> ?) AND c.deleted = 0 AND (pc.author_id IS NULL OR pc.author_id <> ?)
   UNION ALL
   SELECT 'reply', c.id, c.post_id, c.author_id, LEFT(c.body, 80), c.created_at
     FROM comments c JOIN comments pc ON pc.id = c.parent_id

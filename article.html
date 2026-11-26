@@ -241,6 +241,8 @@
     }
     const disposeAtts = () => document.querySelectorAll("form[data-act]").forEach((f) => { const a = atts.get(f); if (a) a.dispose(); });
 
+    // 미드핑 댓글의 «참고한 글» 주소를 링크로(이스케이프된 문자열 위에서 https 주소만 바꾸므로 HTML 이 끼어들 수 없다)
+    const linkify = (h) => h.replace(/https:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u.length > 48 ? u.slice(0, 47) + "…" : u}</a>`);
     function cmt(c, reply) {
       if (c.deleted) return `<div class="cmt"><span class="cmt__av cmt__av--gone"></span><div><p class="cmt__txt cmt__txt--gone">삭제된 댓글이에요.</p></div></div>`;
       const a = TT.who(c.author), isEdit = editing === c.id;
@@ -248,7 +250,7 @@
         <div class="cmt__top"><span class="cmt__name">${TT.esc(a.nickname)}</span>${c.author === null ? '<span class="chip chip--ai chip--xs">AI</span>' : ""}${c.byTarget ? '<span class="chip chip--daily chip--xs">지목 답변</span>' : ""}<span class="cmt__time">${TT.when(c.createdAt)}${c.updatedAt ? " · 수정됨" : ""}</span></div>
         ${isEdit ? `<form class="cmt-edit" data-act="save-edit" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" aria-label="댓글 수정">${TT.esc(c.body)}</textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>
             <div class="cmt-edit__btns"><button class="btn btn--ghost btn--sm" type="button" data-act="cancel">취소</button><button class="btn btn--sm" type="submit">저장</button></div></form>`
-          : `${c.body ? `<p class="cmt__txt">${TT.esc(c.body)}</p>` : ""}${cmedia(c.media)}
+          : `${c.body ? `<p class="cmt__txt">${c.author === null ? linkify(TT.esc(c.body)) : TT.esc(c.body)}</p>` : ""}${cmedia(c.media)}
         ${c.tmp ? "" : `<div class="cmt__act">${likeBtn("lnk", "c", c.id, c.liked, c.likes)}<button class="lnk" type="button" data-act="reply" data-id="${c.id}">답글</button>
           ${c.mine ? `<button class="lnk" type="button" data-act="edit" data-id="${c.id}">수정</button><button class="lnk" type="button" data-act="del" data-id="${c.id}">삭제</button>` : ""}</div>`}`}
         ${replying === c.id ? `<form class="cmt-form" data-act="send-reply" data-id="${c.id}"><div class="writer">${TT.chip(me)}</div><textarea class="ta" maxlength="1000" placeholder="답글을 남겨 보세요" aria-label="답글 쓰기">${reply ? TT.esc("@" + a.nickname + " ") : ""}</textarea><div class="cm-att" data-att></div><p class="msg msg--err" role="alert"></p>

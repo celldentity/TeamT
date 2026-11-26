@@ -77,6 +77,7 @@ async function render(specIn, facts = {}) {
     const size = o.size || 11, gap = o.gap == null ? 0 : o.gap, w = o.w || 2000, n = wrap(str, w, size, o.b).length;
     return txt(str, cx - w / 2, cy - 0.79 * size - ((n - 1) * LH(size, gap)) / 2, { align: "center", ...o, w, gap });
   };
+  // ⚠ 규칙: 도형·아이콘·칩·상자 «안에» 들어가는 글자는 txt(…, y+임의값) 으로 어림해 놓지 말고 반드시 ctxt(중심 좌표) 로 놓는다(그래야 세로 정중앙). txt 는 상자 위선 기준이라 도형 안에서 아래로 처진다.
   const hOf = (str, w, size, b, gap = 3) => wrap(str, w, size, b).length * LH(size, gap) - gap;
   const pill = (s, x, y, o = {}) => { const size = o.size || 9.5; doc.font("B").fontSize(size); const w = doc.widthOfString(s) + 18, h = size + 11, x0 = o.cx != null ? o.cx - w / 2 : x; rr(x0, y, w, h, h / 2, o.fill || C.lav, o.stroke); ctxt(s, x0 + w / 2, y + h / 2, { size, b: true, color: o.color || C.violet }); return w; };
   const circleImg = (file, cx, cy, r, ring) => { doc.save(); doc.roundedRect(cx - r, cy - r, r * 2, r * 2, r * 0.42).clip(); doc.image(file, cx - r, cy - r, { width: r * 2, height: r * 2 }); doc.restore(); if (ring) rr(cx - r, cy - r, r * 2, r * 2, r * 0.42, null, ring, 1.2); };
@@ -122,7 +123,7 @@ async function render(specIn, facts = {}) {
   if (facts.topicImage) { const iw = CW - 12, ih = iw * 0.75 > 270 ? 270 : iw * 0.75, w = ih / 0.75; const x0 = PAGE.m + 6 + (iw - w) / 2; doc.save(); doc.roundedRect(x0, y, w, ih, 22).clip(); doc.image(facts.topicImage, x0, y, { width: w, height: ih }); doc.restore(); rr(x0, y, w, ih, 22, null, C.pinkDeep, 2.5); y += ih + 26; }
   const stats = [["댓글", facts.totalComments], ["참여한 사람", people.length], ["이야기한 날", (facts.days || []).length]].filter((s) => s[1] != null);
   const sw = (CW - 12 - (stats.length - 1) * 10) / (stats.length || 1);
-  stats.forEach((s, i) => { const x = PAGE.m + 6 + i * (sw + 10); rr(x, y, sw, 64, 16, C.white, C.lavDeep, 1.2); txt(String(s[1]), x, y + 9, { w: sw, align: "center", size: 24, b: true, color: C.pinkInk, gap: 0 }); txt(s[0], x, y + 41, { w: sw, align: "center", size: 10.5, color: C.soft, gap: 0 }); });
+  stats.forEach((s, i) => { const x = PAGE.m + 6 + i * (sw + 10); rr(x, y, sw, 64, 16, C.white, C.lavDeep, 1.2); ctxt(String(s[1]), x + sw / 2, y + 25, { size: 24, b: true, color: C.pinkInk }); ctxt(s[0], x + sw / 2, y + 44, { size: 10.5, color: C.soft }); });
   y += 64 + 24;
   const mascots = [0, 4, 9, 7, 2]; const mx0 = PAGE.m + 6 + (CW - 12 - mascots.length * 62 + 12) / 2; mascots.forEach((m, i) => circleImg(CHAR(m), mx0 + i * 62 + 25, y + 20, 25, C.white));
   txt(`${facts.dateLabel || ""}  ·  미드핑이 정리했어요`, PAGE.m, PAGE.h - 56, { w: CW, align: "center", size: 10, color: C.soft, gap: 0 });
@@ -155,7 +156,7 @@ async function render(specIn, facts = {}) {
       const row = S.perspectives.slice(r * cols, r * cols + cols), rh = Math.max(...heights.slice(r * cols, r * cols + cols)); y = need(y, rh);
       row.forEach((p, k) => {
         const idx = r * cols + k, x = PAGE.m + k * (cw + gap), [bg, ln, fg] = tint[idx % 2];
-        rr(x, y, cw, rh, 20, bg, ln, 1.5); icon(p.icon, x + 32, y + 36, 19, C.white, fg); txt(p.label, x + 58, y + 22, { w: cw - 70, size: 13.5, b: true, gap: 0 });
+        rr(x, y, cw, rh, 20, bg, ln, 1.5); icon(p.icon, x + 32, y + 36, 19, C.white, fg); ctxt(p.label, x + 58 + (cw - 70) / 2, y + 36, { w: cw - 70, align: "left", size: 13.5, b: true });
         let py = y + 74; p.points.forEach((t) => { doc.circle(x + 20, py + 6.5, 6).fill(fg); doc.save(); doc.translate(x + 20, py + 6.5); doc.scale(0.5); doc.lineWidth(2.6).strokeColor(C.white).lineCap("round").lineJoin("round").moveTo(-4, 0.5).lineTo(-1.2, 3.4).lineTo(4.2, -3.4).stroke(); doc.restore(); py = txt(t, x + 34, py, { w: cw - 46, size: 10.5, gap: 3 }) + 9; });
         if (p.who.length) { let wx = x + 14; const wy = y + rh - 32; p.who.forEach((nm) => { doc.font("B").fontSize(8.5); const w = doc.widthOfString(nm) + 14; if (wx + w < x + cw - 8) { rr(wx, wy, w, 18, 9, C.white, ln, 0.8); ctxt(nm, wx + w / 2, wy + 9, { size: 8.5, b: true, color: fg }); wx += w + 5; } }); }
       });
@@ -184,14 +185,14 @@ async function render(specIn, facts = {}) {
       rr(x, y, bw, bh, 18, q ? C.blush : C.lavTint, q ? C.pinkDeep : C.lavDeep, 1.6); txt(f.title, x + 18, y + 13, { w: bw - 36, size: 13, b: true, gap: 0 }); if (f.detail) txt(f.detail, x + 18, y + 34, { w: bw - 36, size: 10.5, color: C.soft, gap: 4 });
       y += bh; if (i < S.flow.length - 1) { arrowDown(PAGE.m + 20, y + 3, y + 22, q ? C.pinkDeep : C.lavDeep); y += 26; }
     });
-    y += 24; if (y < PAGE.h - 190) { circleImg(CHAR(6), PAGE.m + 34, y + 34, 34, C.lavDeep); rr(PAGE.m + 84, y + 8, CW - 84, 52, 16, C.white, C.lavDeep, 1.2); txt("정답은 하나가 아니에요. 내 상황에 맞는 순서로 천천히 따져 보세요.", PAGE.m + 100, y + 22, { w: CW - 116, size: 11, color: C.soft, gap: 3 }); }
+    y += 24; if (y < PAGE.h - 190) { circleImg(CHAR(6), PAGE.m + 34, y + 34, 34, C.lavDeep); rr(PAGE.m + 84, y + 8, CW - 84, 52, 16, C.white, C.lavDeep, 1.2); ctxt("정답은 하나가 아니에요. 내 상황에 맞는 순서로 천천히 따져 보세요.", PAGE.m + 100 + (CW - 116) / 2, y + 34, { w: CW - 116, align: "left", size: 11, color: C.soft, gap: 3 }); }
   }
 
   // ═══ 5. 참여 현황 + 이런 말이 나왔어요 ═══
   doc.addPage(); y = sectionTitle(4, "함께 나눈 이야기", "누가, 언제 이야기했는지");
   if (people.length) {
     txt("사람별 댓글", PAGE.m, y, { size: 12.5, b: true, gap: 0 }); y += 26; const max = Math.max(...people.map((p) => p.comments)), bx = PAGE.m + 96, bwMax = CW - 96 - 40;
-    people.slice(0, 8).forEach((p, i) => { circleImg(CHAR(charOf(p.nickname)), PAGE.m + 20, y + 19, 18, null); txt(clip(p.nickname, 8), PAGE.m + 46, y + 12, { w: 66, size: 10, b: true, gap: 0 }); const w = Math.max(14, (p.comments / max) * bwMax); rr(bx + 8, y + 6, w, 26, 13, i % 2 ? C.pink : C.lavDeep); txt(String(p.comments), bx + 8 + w + 8, y + 11, { size: 11, b: true, color: C.pinkInk, gap: 0 }); y += 40; });
+    people.slice(0, 8).forEach((p, i) => { circleImg(CHAR(charOf(p.nickname)), PAGE.m + 20, y + 19, 18, null); ctxt(clip(p.nickname, 8), PAGE.m + 46 + 33, y + 19, { w: 66, align: "left", size: 10, b: true }); const w = Math.max(14, (p.comments / max) * bwMax); rr(bx + 8, y + 6, w, 26, 13, i % 2 ? C.pink : C.lavDeep); ctxt(String(p.comments), bx + 8 + w + 8 + 20, y + 19, { w: 40, align: "left", size: 11, b: true, color: C.pinkInk }); y += 40; });
     y += 8;
   }
   if ((facts.days || []).length) {
@@ -216,13 +217,13 @@ async function render(specIn, facts = {}) {
     const colH = (list) => 56 + list.reduce((a, t) => a + hOf(t, cw - 54, 10.5, false, 3) + 12, 0);
     const h = Math.max(colH(S.dos), colH(S.donts), 110);
     [[S.dos, "이건 좋아요", C.lavTint, C.lavDeep, C.violet, "check", 0], [S.donts, "이건 피해요", C.blush, C.pink, C.pinkInk, "cross", 1]].forEach(([list, title, bg, ln, fg, ic, k]) => {
-      const x = PAGE.m + k * (cw + 14); rr(x, y, cw, h, 20, bg, ln, 1.5); icon(ic, x + 30, y + 30, 15, fg, C.white); txt(title, x + 54, y + 21, { size: 13.5, b: true, color: fg, gap: 0 });
+      const x = PAGE.m + k * (cw + 14); rr(x, y, cw, h, 20, bg, ln, 1.5); icon(ic, x + 30, y + 30, 15, fg, C.white); ctxt(title, x + 54 + (cw - 70) / 2, y + 30, { w: cw - 70, align: "left", size: 13.5, b: true, color: fg });
       let py = y + 56; list.forEach((t) => { doc.circle(x + 22, py + 6.5, 3.2).fill(fg); py = txt(t, x + 34, py, { w: cw - 54, size: 10.5, gap: 3 }) + 12; });
     });
     y += h + 22;
     if (S.checklist.length) {
       txt("바로 써먹는 체크리스트", PAGE.m, y, { size: 13, b: true, gap: 0 }); y += 28;
-      S.checklist.forEach((t) => { const th = hOf(t, CW - 70, 11, false, 3), bh = Math.max(40, th + 22); y = need(y, bh + 8); rr(PAGE.m, y, CW, bh, 14, C.white, C.lavDeep, 1.2); rr(PAGE.m + 14, y + bh / 2 - 9, 18, 18, 5, null, C.violet, 1.8); txt(t, PAGE.m + 46, y + bh / 2 - th / 2 + 0.5, { w: CW - 70, size: 11, gap: 3 }); y += bh + 8; });
+      S.checklist.forEach((t) => { const th = hOf(t, CW - 70, 11, false, 3), bh = Math.max(40, th + 22); y = need(y, bh + 8); rr(PAGE.m, y, CW, bh, 14, C.white, C.lavDeep, 1.2); rr(PAGE.m + 14, y + bh / 2 - 9, 18, 18, 5, null, C.violet, 1.8); ctxt(t, PAGE.m + 46 + (CW - 70) / 2, y + bh / 2, { w: CW - 70, align: "left", size: 11, gap: 3 }); y += bh + 8; });
     }
     y += 18; y = need(y, 120);
     const closing = S.closing || "함께 이야기해 주셔서 고마워요.", cth = hOf(closing, CW - 226, 12.5, true, 4), chh = Math.max(96, cth + 64);

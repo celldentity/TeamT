@@ -73,12 +73,16 @@ async function render(specIn, facts = {}) {
     lines.forEach((l, i) => { const tw = doc.widthOfString(l), dx = o.align === "center" ? (o.w - tw) / 2 : o.align === "right" ? o.w - tw : 0; doc.text(l, x + dx, y + i * LH(size, gap), { lineBreak: false }); });
     return y + lines.length * LH(size, gap) - gap;
   };
+  const ctxt = (str, cx, cy, o = {}) => {   // 도형 한가운데에 글자 놓기(가로·세로 모두 글자 모양 기준 정중앙, 여러 줄도 가능)
+    const size = o.size || 11, gap = o.gap == null ? 0 : o.gap, w = o.w || 2000, n = wrap(str, w, size, o.b).length;
+    return txt(str, cx - w / 2, cy - 0.79 * size - ((n - 1) * LH(size, gap)) / 2, { align: "center", ...o, w, gap });
+  };
   const hOf = (str, w, size, b, gap = 3) => wrap(str, w, size, b).length * LH(size, gap) - gap;
-  const pill = (s, x, y, o = {}) => { const size = o.size || 9.5; doc.font("B").fontSize(size); const w = doc.widthOfString(s) + 18, h = size + 11, x0 = o.cx != null ? o.cx - w / 2 : x; rr(x0, y, w, h, h / 2, o.fill || C.lav, o.stroke); txt(s, x0, y + 5.5, { w, align: "center", size, b: true, color: o.color || C.violet, gap: 0 }); return w; };
+  const pill = (s, x, y, o = {}) => { const size = o.size || 9.5; doc.font("B").fontSize(size); const w = doc.widthOfString(s) + 18, h = size + 11, x0 = o.cx != null ? o.cx - w / 2 : x; rr(x0, y, w, h, h / 2, o.fill || C.lav, o.stroke); ctxt(s, x0 + w / 2, y + h / 2, { size, b: true, color: o.color || C.violet }); return w; };
   const circleImg = (file, cx, cy, r, ring) => { doc.save(); doc.roundedRect(cx - r, cy - r, r * 2, r * 2, r * 0.42).clip(); doc.image(file, cx - r, cy - r, { width: r * 2, height: r * 2 }); doc.restore(); if (ring) rr(cx - r, cy - r, r * 2, r * 2, r * 0.42, null, ring, 1.2); };
   const pageBg = (color) => { doc.rect(0, 0, PAGE.w, PAGE.h).fill(color); };
   const sectionTitle = (no, title, sub) => {
-    doc.circle(PAGE.m + 14, PAGE.m + 24, 14).fill(C.pink); txt(String(no), PAGE.m, PAGE.m + 16.5, { w: 28, align: "center", size: 14, b: true, gap: 0 });
+    doc.circle(PAGE.m + 14, PAGE.m + 24, 14).fill(C.pink); ctxt(String(no), PAGE.m + 14, PAGE.m + 24, { size: 14, b: true });
     txt(title, PAGE.m + 40, PAGE.m + 10, { size: 21, b: true, gap: 0 }); if (sub) txt(sub, PAGE.m + 40, PAGE.m + 38, { size: 10, color: C.soft, gap: 0 });
     return PAGE.m + 66;
   };
@@ -138,7 +142,7 @@ async function render(specIn, facts = {}) {
     const R0 = n >= 4 ? 52 : 64;
     pos.forEach(([px, py], i) => { doc.lineWidth(2.2).dash(5, { space: 5 }).strokeColor(i % 2 ? C.pink : C.lavDeep).moveTo(cx, cy).lineTo(px, py).stroke().undash(); });
     doc.circle(cx, cy, R0).fill(C.pink); doc.circle(cx, cy, R0).lineWidth(3).stroke(C.white);
-    const tt = clip(S.title, n >= 4 ? 26 : 34), tw = R0 * 1.55, th = hOf(tt, tw, 10.5, true, 2); txt(tt, cx - tw / 2, cy - th / 2, { w: tw, align: "center", size: 10.5, b: true, gap: 2 });
+    const tt = clip(S.title, n >= 4 ? 26 : 34), tw = R0 * 1.55, th = hOf(tt, tw, 10.5, true, 2); ctxt(tt, cx, cy, { w: tw, size: 10.5, b: true, gap: 2 });
     pos.forEach(([px, py], i) => { const p = S.perspectives[i], fg = i % 2 ? C.pinkInk : C.violet; doc.circle(px, py, 29).fill(C.white); doc.circle(px, py, 29).lineWidth(2.2).stroke(i % 2 ? C.pinkDeep : C.lavDeep); icon(p.icon, px, py, 21, i % 2 ? C.blush : C.lavTint, fg); pill(p.label, 0, py + 34, { cx: px, size: 10.5, fill: i % 2 ? C.blush : C.lavTint, stroke: i % 2 ? C.pink : C.lavDeep, color: fg }); });
   }
 
@@ -153,18 +157,18 @@ async function render(specIn, facts = {}) {
         const idx = r * cols + k, x = PAGE.m + k * (cw + gap), [bg, ln, fg] = tint[idx % 2];
         rr(x, y, cw, rh, 20, bg, ln, 1.5); icon(p.icon, x + 32, y + 36, 19, C.white, fg); txt(p.label, x + 58, y + 22, { w: cw - 70, size: 13.5, b: true, gap: 0 });
         let py = y + 74; p.points.forEach((t) => { doc.circle(x + 20, py + 6.5, 6).fill(fg); doc.save(); doc.translate(x + 20, py + 6.5); doc.scale(0.5); doc.lineWidth(2.6).strokeColor(C.white).lineCap("round").lineJoin("round").moveTo(-4, 0.5).lineTo(-1.2, 3.4).lineTo(4.2, -3.4).stroke(); doc.restore(); py = txt(t, x + 34, py, { w: cw - 46, size: 10.5, gap: 3 }) + 9; });
-        if (p.who.length) { let wx = x + 14; const wy = y + rh - 32; p.who.forEach((nm) => { doc.font("B").fontSize(8.5); const w = doc.widthOfString(nm) + 14; if (wx + w < x + cw - 8) { rr(wx, wy, w, 18, 9, C.white, ln, 0.8); txt(nm, wx, wy + 4.5, { w, align: "center", size: 8.5, b: true, color: fg, gap: 0 }); wx += w + 5; } }); }
+        if (p.who.length) { let wx = x + 14; const wy = y + rh - 32; p.who.forEach((nm) => { doc.font("B").fontSize(8.5); const w = doc.widthOfString(nm) + 14; if (wx + w < x + cw - 8) { rr(wx, wy, w, 18, 9, C.white, ln, 0.8); ctxt(nm, wx + w / 2, wy + 9, { size: 8.5, b: true, color: fg }); wx += w + 5; } }); }
       });
       y += rh + gap;
     }
     if (S.compare) {
       y = need(y + 8, 150); txt("한눈에 비교", PAGE.m, y, { size: 13, b: true, gap: 0 }); y += 26;
       const cr = S.compare.criteria, first = 96, cellw = (CW - first) / cr.length;
-      rr(PAGE.m, y, CW, 30, 10, C.ink); cr.forEach((c, i) => txt(c, PAGE.m + first + i * cellw, y + 8.5, { w: cellw, align: "center", size: 10.5, b: true, color: C.white, gap: 0 })); y += 34;
+      rr(PAGE.m, y, CW, 30, 10, C.ink); cr.forEach((c, i) => ctxt(c, PAGE.m + first + i * cellw + cellw / 2, y + 15, { w: cellw, size: 10.5, b: true, color: C.white })); y += 34;
       S.compare.rows.forEach((row, ri) => {
         const rh = Math.max(34, ...row.cells.map((t) => hOf(t, cellw - 14, 10, false, 3) + 18)); y = need(y, rh);
-        rr(PAGE.m, y, CW, rh, 10, ri % 2 ? C.white : C.lavTint, C.line, 1); txt(row.option, PAGE.m + 10, y + rh / 2 - 8, { w: first - 14, size: 10.5, b: true, color: C.pinkInk, gap: 0 });
-        row.cells.forEach((t, i) => txt(t, PAGE.m + first + i * cellw + 7, y + 9, { w: cellw - 14, align: "center", size: 10, gap: 3 })); y += rh + 4;
+        rr(PAGE.m, y, CW, rh, 10, ri % 2 ? C.white : C.lavTint, C.line, 1); ctxt(row.option, PAGE.m + 10 + (first - 14) / 2, y + rh / 2, { w: first - 14, align: "left", size: 10.5, b: true, color: C.pinkInk });
+        row.cells.forEach((t, i) => ctxt(t, PAGE.m + first + i * cellw + cellw / 2, y + rh / 2, { w: cellw - 14, size: 10, gap: 3 })); y += rh + 4;
       });
     }
   }
@@ -176,7 +180,7 @@ async function render(specIn, facts = {}) {
     S.flow.forEach((f, i) => {
       const dh = f.detail ? hOf(f.detail, bw - 36, 10.5, false, 4) : 0, bh = Math.max(56, 40 + dh + 10); y = need(y, bh + 28);
       const q = f.kind === "question";
-      doc.circle(PAGE.m + 20, y + bh / 2, 17).fill(q ? C.pinkInk : C.violet); txt(q ? "?" : String(i + 1), PAGE.m + 3, y + bh / 2 - 9.5, { w: 34, align: "center", size: 17, b: true, color: C.white, gap: 0 });
+      doc.circle(PAGE.m + 20, y + bh / 2, 17).fill(q ? C.pinkInk : C.violet); ctxt(q ? "?" : String(i + 1), PAGE.m + 20, y + bh / 2, { size: 17, b: true, color: C.white });
       rr(x, y, bw, bh, 18, q ? C.blush : C.lavTint, q ? C.pinkDeep : C.lavDeep, 1.6); txt(f.title, x + 18, y + 13, { w: bw - 36, size: 13, b: true, gap: 0 }); if (f.detail) txt(f.detail, x + 18, y + 34, { w: bw - 36, size: 10.5, color: C.soft, gap: 4 });
       y += bh; if (i < S.flow.length - 1) { arrowDown(PAGE.m + 20, y + 3, y + 22, q ? C.pinkDeep : C.lavDeep); y += 26; }
     });

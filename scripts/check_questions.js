@@ -4,8 +4,8 @@ const Q = require("../api/_qbank");
 const L = require("../api/_lib");
 const len = (s) => [...String(s)].length;
 const bad = [], note = (m) => bad.push(m);
-const SENSITIVE = ["연봉", "월급", "몇 살", "나이", "결혼", "이혼", "종교", "정당", "대통령", "임신", "질병", "우울", "가족", "부모님"];
-const TYPES = { HR: 36, 커리어: 20, 상식: 15, 일상: 15 };   // 요일마다 한 번씩 쓰이므로 종류별 최소 개수(요일 주기로 ≥ 15주)
+const SENSITIVE = ["몇 살", "나이", "결혼", "이혼", "종교", "정당", "대통령", "임신", "질병", "우울", "가족", "부모님"];   // 연봉·월급 은 보상 «제도» 질문에 쓰인다(내 연봉이 얼마 같은 구체적 액수는 질문 검수에서 거른다)
+const TYPES = { HR: 36, 커리어: 18, 상식: 18, 일상: 18 };   // 3개월치(2026-11-26): 요일마다 한 번씩 쓰이므로 종류별 최소 개수(요일 주기로 18주 = 오늘의 질문 90개)
 
 const scenes = require("./qimg/scenes.json");   // 질문마다 일러스트 장면(영어)이 있어야 한다
 const ids = new Set();
@@ -23,7 +23,7 @@ for (const [kind, list] of [["daily", Q.DAILY], ["weekly", Q.WEEKLY]]) {
     if (!/[?？]$/.test(q.title) && !/(주세요|세요|까요|나요|요)[.?]?$/.test(q.title)) note(`질문 어미가 아닌 듯해요: ${q.title}`);
     if (kind === "daily") {
       if (!TYPES[q.type]) note(`종류 오류(${q.type}): ${q.title}`);
-      for (const w of SENSITIVE) if ((q.title + q.body).includes(w)) note(`민감어 «${w}»: ${q.title}`);
+      for (const w of SENSITIVE) if ((q.title + q.body).replace(/정당(한|성|화)/g, "").includes(w)) note(`민감어 «${w}»: ${q.title}`);   // «정당한 거부» 같은 쓰임은 정치 얘기가 아니다
     }
   }
 }

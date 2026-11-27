@@ -13,9 +13,11 @@ from PIL import Image, ImageStat  # noqa: E402
 
 HERE = Path(__file__).parent
 OUT = Path(os.environ.get("QIMG_DIR") or HERE.parent.parent / ".cache" / "teamt-qimg")
-STYLE = ("cute kawaii anime-style flat illustration, soft pastel pink and lavender palette, thick soft outlines, "
-         "round chubby characters with tiny dot eyes and pink cheeks, clean simple pastel background, centered composition "
-         "with the characters and props filling the frame, no text, no letters, no numbers, no logo, no watermark. ")
+# 2026-11-26: 카와이 동글이 → 편집 일러스트 → (최종) 실사 사진풍. 오피스에서 실제로 고민·상황을 겪는 세련된 한국인 직장인 남녀. 사이트 팔레트(분홍·라벤더)는 소품·조명 정도로만 살짝.
+STYLE = ("photorealistic candid editorial photograph, shot on a full-frame camera with a 50mm lens, shallow depth of field, natural soft window light, "
+         "attractive stylish young Korean office professionals with refined features and neat fashionable business-casual outfits, "
+         "bright modern Korean office interior with subtle pastel pink and lavender accents, calm sophisticated mood, high-end lifestyle magazine quality, "
+         "no text, no letters, no numbers, no logo, no watermark. ")
 W, H = 768, 576            # FLUX 는 16 의 배수. 이 크기 그대로 저장(가로 800 안팎). 시험: 832x624·20단계 54초, 768x576·16단계 42초
 STEPS = 16
 

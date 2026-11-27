@@ -1,5 +1,6 @@
 // 피드(아티클 안의 «피드» 탭): 팀원이 일상·정보·사진을 직접 올리는 곳. 쓰는 곳: articles.html.
-//   TT.feed.card(p) → 카드 <li> HTML · TT.feed.bind(root, {onLike}) → 캐러셀(가로로 넘겨 보기)·좋아요·«더 보기» 글줄임을 한 번 묶어 둔다
+//   TT.feed.card(p) → 카드 <li> HTML · TT.feed.bind(root, {onLike}) → 캐러셀(가로로 넘겨 보기)·좋아요·«더 보기» 글줄임·크게 보기를 한 번 묶어 둔다
+//   TT.feed.zoom(버튼) → 사진·동영상 크게 보기(글 보기 article.html 도 같이 쓴다)
 // 사진·동영상은 합쳐 10개(동영상 2개·개당 100MB, api/_media.js)이고 섞여서 한 캐러셀에 나온다.
 (() => {
   const url = (x, v) => `/api/media?id=${x.id}&v=${v}`;
@@ -11,10 +12,23 @@
     if (x.kind === "video") {
       const r = ratio(x) || fr, same = Math.abs(r / fr - 1) < 0.25;   // 칸과 비율이 비슷하면 꽉 채우고, 많이 다르면(섞어 올린 경우) 잘리지 않게 전체를 보여 준다
       const square = Math.abs(r - 1) < 0.1 && x.thumb;                  // 대표 장면 썸네일은 정사각이라 정사각 영상에만 쓰고, 나머지는 첫 장면(#t)을 그대로 보여 준다
-      return `<div class="gal__it gal__it--v"><video controls playsinline preload="metadata" style="object-fit:${same ? "cover" : "contain"}"${square ? ` poster="${url(x, "thumb")}"` : ""} src="${url(x, "full")}${square ? "" : "#t=0.1"}"></video></div>`;
+      return `<button class="gal__it gal__it--v" type="button" data-big="${x.id}" data-kind="video" aria-label="동영상 ${i + 1} 크게 보기"><video muted playsinline preload="metadata" tabindex="-1" style="object-fit:${same ? "cover" : "contain"}"${square ? ` poster="${url(x, "thumb")}"` : ""} src="${url(x, "full")}${square ? "" : "#t=0.1"}"></video><span class="th__play" aria-hidden="true"><i><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></i></span></button>`;
     }
-    return `<div class="gal__it"><img src="${url(x, "full")}" alt="" ${i ? 'loading="lazy" ' : ""}decoding="async"></div>`;
+    return `<button class="gal__it gal__it--i" type="button" data-big="${x.id}" aria-label="사진 ${i + 1} 크게 보기"><img src="${url(x, "full")}" alt="" ${i ? 'loading="lazy" ' : ""}decoding="async"></button>`;
   };
+
+  // 크게 보기: data-big(파일 번호)·data-kind 가 붙은 버튼을 넘기면 화면 가득 띄운다(PC 에서도 앱 폭까지만, .lb__in).
+  // 닫기 = × · Esc · 바깥 누르기(사진은 아무 데나). 동영상은 바로 재생하고 눌러도 닫히지 않는다.
+  function zoom(b) {
+    const video = b.dataset.kind === "video", src = url({ id: b.dataset.big }, "full");
+    const lb = document.createElement("div"); lb.className = "lb"; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-label", video ? "동영상 크게 보기" : "사진 크게 보기");
+    lb.innerHTML = `<div class="lb__in">${video ? `<video controls autoplay playsinline src="${src}"></video>` : `<img src="${src}" alt="">`}<button class="lb__x" type="button" aria-label="닫기">×</button></div>`;
+    const close = () => { lb.remove(); document.removeEventListener("keydown", esc); document.body.style.overflow = ""; b.focus({ preventScroll: true }); };
+    const esc = (k) => { if (k.key === "Escape") close(); };
+    lb.addEventListener("click", (e) => { if (e.target.tagName !== "VIDEO") close(); });
+    document.addEventListener("keydown", esc);
+    document.body.style.overflow = "hidden"; document.body.appendChild(lb); lb.querySelector(".lb__x").focus();
+  }
 
   function card(p) {
     const a = TT.who(p.author), ms = p.media || [], n = ms.length, fr = frame(ms);
@@ -44,7 +58,6 @@
       const car = g.parentElement, n = car.querySelector(".fd__n");
       if (n) n.textContent = `${i + 1} / ${g.children.length}`;
       car.querySelectorAll(".fd__dots i").forEach((d, k) => d.classList.toggle("on", k === i));
-      [...g.children].forEach((c, k) => { if (k !== i) { const v = c.querySelector("video"); if (v && !v.paused) v.pause(); } });   // 넘어가면 지나친 동영상은 멈춘다
     }, true);
 
     const wait = new Map();   // 글 번호 → 아직 서버가 처리 못 한 좋아요 요청 수(서버가 누를 때마다 켜고 끄는 토글이라 요청은 순서대로 하나씩)
@@ -65,9 +78,11 @@
       if (nav) { const g = nav.parentElement.querySelector(".fd__gal"); g.scrollBy({ left: Number(nav.dataset.nav) * stride(g), behavior: "smooth" }); return; }
       const more = e.target.closest(".fd__more");
       if (more) { more.previousElementSibling.classList.add("is-open"); more.remove(); return; }
+      const big = e.target.closest("[data-big]");
+      if (big) { zoom(big); return; }
       const lk = e.target.closest(".fd__like"); if (lk) like(lk);
     });
   }
 
-  window.TT.feed = { card, clamp, bind, frame };
+  window.TT.feed = { card, clamp, bind, frame, slide, zoom };
 })();

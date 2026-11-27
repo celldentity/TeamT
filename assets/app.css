@@ -382,11 +382,13 @@ a.art { text-decoration: none; color: inherit; }
 .gal::-webkit-scrollbar { display: none; }
 .gal__it { flex: 0 0 100%; display: block; aspect-ratio: 4 / 3; margin: 0; padding: 0; overflow: hidden; scroll-snap-align: center; background: var(--lavender-tint); border: 0; border-radius: 14px; }
 .gal__it--i { cursor: zoom-in; }
-.gal__it--v { background: #000; }
+.gal__it--v { position: relative; background: #000; }
+button.gal__it--v { cursor: zoom-in; }
 .gal__it img, .gal__it video { display: block; width: 100%; height: 100%; object-fit: contain; }
 .gal__n { margin-top: 8px; font-size: .8125rem; text-align: center; color: var(--ink-soft); }
-.lb { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgb(23 23 25 / .94); cursor: zoom-out; }
-.lb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lb { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: center; background: rgb(23 23 25 / .94); cursor: zoom-out; }
+.lb__in { position: relative; width: min(100%, var(--app-w)); height: 100%; }   /* PC 에서도 폰 화면 폭까지만 키운다 */
+.lb img, .lb video { display: block; width: 100%; height: 100%; object-fit: contain; }
 .lb__x { position: absolute; top: calc(10px + env(safe-area-inset-top)); right: 10px; width: 44px; height: 44px; font-size: 1.75rem; line-height: 1; color: #fff; background: rgb(255 255 255 / .16); border: 0; border-radius: 50%; cursor: pointer; }
 
 /* ── 글쓰기: 사진·동영상 올리기 ── */

@@ -378,24 +378,38 @@
     })();
     return TT.alerts;
   });
-  // 새 게시물 숫자: 서버가 돌려준 now(DB 시각)를 «본 시각» 으로 이 기기·이 계정(tt_seen_<id>)에 둔다. 아티클·자료실 목록 페이지를 열면 그 숫자는 지워진다. 처음 쓰는 기기는 지금까지의 것을 본 것으로 시작한다.
+  // 새 게시물 숫자: 서버가 돌려준 now(DB 시각)를 «본 시각» 으로 이 기기·이 계정(tt_seen_<id>)에 둔다. 아티클·자료실 목록 페이지를 열면 그 숫자는 지워지고,
+  // 아티클은 목록을 안 열고 글 하나만 열어 본 경우(알림·링크로 들어옴)도 그 글은 뺀다(v.p = 열어 본 글 번호). 처음 쓰는 기기는 지금까지의 것을 본 것으로 시작한다.
+  const openedId = path === "/article" ? Number(new URLSearchParams(location.search).get("id")) || 0 : 0;
+  const paintTabNew = (cnt) => {
+    for (const k of Object.keys(cnt)) {
+      const b = document.getElementById("tn_" + k); if (!b) continue;
+      b.hidden = !cnt[k]; b.textContent = cnt[k] > 99 ? "99+" : cnt[k] || "";
+      b.closest(".tab")?.setAttribute("aria-label", cnt[k] ? `${NEWL[k]}, 새 게시물 ${cnt[k]}개` : NEWL[k]);
+    }
+    try { const o = {}; for (const k of Object.keys(cnt)) if (cnt[k]) o[k] = cnt[k]; Object.keys(o).length ? localStorage.setItem("tt_tn", JSON.stringify(o)) : localStorage.removeItem("tt_tn"); } catch {}
+  };
+  const refreshTabNew = async (first) => {
+    const v0 = seenGet(), res = {};
+    await Promise.all([["a", "/api/posts"], ["l", "/api/library"]].map(async ([k, api]) => {
+      res[k] = await fetch(`${api}?count=1${v0[k] ? "&after=" + encodeURIComponent(v0[k]) : ""}`, { credentials: "same-origin" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+    }));
+    const v = seenGet(), cnt = {}, p = Array.isArray(v.p) ? v.p : [];   // 응답을 기다리는 동안 다른 탭이 바꿨을 수 있어 쓰기 직전에 다시 읽는다
+    if (openedId && !p.includes(openedId)) { p.push(openedId); v.p = p.slice(-300); }
+    for (const [k, page] of [["a", "/articles"], ["l", "/library"]]) {
+      const r = res[k];
+      if (!r) { cnt[k] = tnv[k] || 0; continue; }   // 못 받았으면 지난번 숫자를 그대로 둔다
+      if (v[k] == null || (first && path === page)) { v[k] = r.now; cnt[k] = 0; if (k === "a") v.p = []; }
+      else cnt[k] = k === "a" && r.ids ? r.ids.filter((i) => !p.includes(i)).length : r.count;
+    }
+    seenPut(v); paintTabNew(cnt);
+  };
   TT.tabNewReady = TT.ready.then((u) => {
     if (!u || GATE) return;
-    (async () => {
-      const v = seenGet(), cnt = {}, tabs = [["a", "/api/posts", "/articles"], ["l", "/api/library", "/library"]];
-      await Promise.all(tabs.map(async ([k, api, page]) => {
-        const r = await fetch(`${api}?count=1${v[k] ? "&after=" + encodeURIComponent(v[k]) : ""}`, { credentials: "same-origin" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-        if (!r) { cnt[k] = tnv[k] || 0; return; }   // 못 받았으면 지난번 숫자를 그대로 둔다
-        if (v[k] == null || path === page) { v[k] = r.now; cnt[k] = 0; } else cnt[k] = r.count;
-      }));
-      seenPut(v);
-      for (const k of Object.keys(cnt)) {
-        const b = document.getElementById("tn_" + k); if (!b) continue;
-        b.hidden = !cnt[k]; b.textContent = cnt[k] > 99 ? "99+" : cnt[k] || "";
-        b.closest(".tab")?.setAttribute("aria-label", cnt[k] ? `${NEWL[k]}, 새 게시물 ${cnt[k]}개` : NEWL[k]);
-      }
-      try { const o = {}; for (const k of Object.keys(cnt)) if (cnt[k]) o[k] = cnt[k]; Object.keys(o).length ? localStorage.setItem("tt_tn", JSON.stringify(o)) : localStorage.removeItem("tt_tn"); } catch {}
-    })();
+    refreshTabNew(true);
+    // 앱을 켜 둔 채로도 새 글이 오면 숫자가 오르도록: 화면이 다시 보일 때와 1분마다(보이는 동안만) 다시 센다
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshTabNew(); });
+    setInterval(() => { if (!document.hidden) refreshTabNew(); }, 60000);
   });
   // 발표 시작: 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
   // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.

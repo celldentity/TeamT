@@ -84,8 +84,8 @@ module.exports = async (req, res) => {
       if (req.query.count) {
         const [[t]] = await db.query("SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS now"), after = String(req.query.after || "");
         if (!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(after)) return L.json(res, 200, { count: 0, now: t.now });
-        const [[c]] = await db.query("SELECT COUNT(*) AS n FROM posts WHERE created_at > ? AND (author_id IS NULL OR author_id <> ?)", [after, me.id]);
-        return L.json(res, 200, { count: Number(c.n), now: t.now });
+        const [rows] = await db.query("SELECT id FROM posts WHERE created_at > ? AND (author_id IS NULL OR author_id <> ?) ORDER BY id DESC LIMIT 100", [after, me.id]);
+        return L.json(res, 200, { count: rows.length, ids: rows.map((r) => r.id), now: t.now });
       }
       if (!req.query.id && req.query.feed) {
         const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20)), before = Number(req.query.before) || 0;

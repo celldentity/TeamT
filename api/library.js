@@ -23,6 +23,13 @@ module.exports = async (req, res) => {
     const db = L.db();
 
     if (req.method === "GET") {
+      // 하단 «자료실» 새 링크 숫자: ?count=1&after=<이전에 받은 now> → 그 뒤에 남이 올린 링크 수와 지금 DB 시각(now). after 가 없으면 0(처음 쓰는 기기는 지금까지의 것을 «본 것» 으로 시작).
+      if (req.query.count) {
+        const [[t]] = await db.query("SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS now"), after = String(req.query.after || "");
+        if (!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(after)) return L.json(res, 200, { count: 0, now: t.now });
+        const [[c]] = await db.query("SELECT COUNT(*) AS n FROM library WHERE created_at > ? AND user_id <> ?", [after, me.id]);
+        return L.json(res, 200, { count: Number(c.n), now: t.now });
+      }
       if (req.query.img) {
         const id = Number(req.query.img); if (!Number.isInteger(id) || id < 1) return L.json(res, 400, { error: "잘못된 요청입니다." });
         const url = await getSignedUrl(L.r2(), new GetObjectCommand({ Bucket: bucket(), Key: key(id) }), { expiresIn: 3600 });

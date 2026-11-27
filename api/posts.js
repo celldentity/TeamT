@@ -80,6 +80,13 @@ module.exports = async (req, res) => {
     const id = Number(req.query.id), db = L.db();
 
     if (req.method === "GET") {
+      // 하단 «아티클» 새 글 숫자: ?count=1&after=<이전에 받은 now> → 그 뒤에 남이 올린 글·피드 수와 지금 DB 시각(now). after 가 없으면 0(처음 쓰는 기기는 지금까지의 것을 «본 것» 으로 시작).
+      if (req.query.count) {
+        const [[t]] = await db.query("SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS now"), after = String(req.query.after || "");
+        if (!/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$/.test(after)) return L.json(res, 200, { count: 0, now: t.now });
+        const [[c]] = await db.query("SELECT COUNT(*) AS n FROM posts WHERE created_at > ? AND (author_id IS NULL OR author_id <> ?)", [after, me.id]);
+        return L.json(res, 200, { count: Number(c.n), now: t.now });
+      }
       if (!req.query.id && req.query.feed) {
         const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20)), before = Number(req.query.before) || 0;
         const [rows] = await db.query(`${SELECT}, p.body FROM posts p LEFT JOIN users u ON u.id = p.author_id LEFT JOIN users t ON t.id = p.target_id WHERE p.kind = 'feed'${before ? " AND p.id < ?" : ""} ORDER BY p.id DESC LIMIT ?`, before ? [me.id, before, limit + 1] : [me.id, limit + 1]);

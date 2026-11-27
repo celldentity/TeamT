@@ -73,7 +73,10 @@
   // 하단 메뉴: 가입·로그인 화면(/join)에는 «로그인» 하나만 가운데에 둔다. 나머지 메뉴는 로그인이 확인된 뒤에만 보인다.
   // 로그인 확인 전(.pending)에는 메뉴를 가리되, 이 브라우저에서 로그인한 적이 있으면(localStorage tt_in) 깜박임 없이 바로 보여 준다.
   const tabPath = /^\/(article|write)$/.test(path) ? "/articles" : path === "/team" ? "/me" : path; // 글 보기·글쓰기도 «아티클», T조 소개는 마이페이지 안에서 여니 «마이페이지» 로 친다
-  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}${p === "/me" && al ? ` aria-label="${l}, 새 소식 ${al}개"` : ""}><span class="tab__ic"${p === "/me" && av ? ` data-sig="${avSig(av).replace(/"/g, "")}"` : ""}>${p === "/me" && av ? avHtml(av) : ic}</span>${l}${p === "/me" ? `<b class="tab__n" id="meN"${al ? "" : " hidden"}>${al > 99 ? "99+" : al || ""}</b>` : ""}</a>`;
+  // 아티클·자료실 하단 메뉴의 «새 게시물» 숫자: 내가 마지막으로 그 페이지를 본 뒤 남이 올린 글·피드(아티클)·링크(자료실) 수. 마이페이지 숫자처럼 지난번 값을 기억해(tt_tn) 처음부터 그린다.
+  const NEWK = { "/articles": "a", "/library": "l" }, NEWL = { a: "아티클", l: "자료실" };
+  let tnv = {}; try { if (localStorage.getItem("tt_in") === "1") tnv = JSON.parse(localStorage.getItem("tt_tn") || "{}") || {}; } catch {}
+  const tabHtml = ([p, l, ic]) => `<a class="tab" href="${p}"${p === tabPath ? ' aria-current="page"' : ""}${p === "/me" && al ? ` aria-label="${l}, 새 소식 ${al}개"` : ""}><span class="tab__ic"${p === "/me" && av ? ` data-sig="${avSig(av).replace(/"/g, "")}"` : ""}>${p === "/me" && av ? avHtml(av) : ic}</span>${l}${p === "/me" ? `<b class="tab__n" id="meN"${al ? "" : " hidden"}>${al > 99 ? "99+" : al || ""}</b>` : ""}${NEWK[p] ? `<b class="tab__n" id="tn_${NEWK[p]}"${tnv[NEWK[p]] ? "" : " hidden"}>${tnv[NEWK[p]] > 99 ? "99+" : tnv[NEWK[p]] || ""}</b>` : ""}</a>`;
   s.insertAdjacentHTML("afterend", GATE
     ? `<nav class="tabbar tabbar--gate" aria-label="하단 메뉴"><a class="tab" href="/join" aria-current="page"><span class="tab__ic">${IC.me}</span>로그인</a></nav>`
     : `<nav class="tabbar tabbar--app" aria-label="하단 메뉴">${TABS.map(tabHtml).join("")}</nav>`);
@@ -264,7 +267,7 @@
   const never = new Promise(() => {}); // 페이지를 떠나는 중이라면 뒤 코드를 실행하지 않는다
   TT.ready = call("/api/me").then(({ user }) => {
     TT.user = user;
-    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr"), localStorage.removeItem("tt_al"), localStorage.removeItem("tt_av")); } catch {}
+    try { user ? localStorage.setItem("tt_in", "1") : (localStorage.removeItem("tt_in"), localStorage.removeItem("tt_pr"), localStorage.removeItem("tt_al"), localStorage.removeItem("tt_tn"), localStorage.removeItem("tt_av")); } catch {}
     if (!user && !GATE) { location.replace("/join"); return never; }
     if (user && GATE) { location.replace("/"); return never; }
     TT.setTabUser(user);
@@ -374,6 +377,25 @@
       seenPut(v); paintAlerts();
     })();
     return TT.alerts;
+  });
+  // 새 게시물 숫자: 서버가 돌려준 now(DB 시각)를 «본 시각» 으로 이 기기·이 계정(tt_seen_<id>)에 둔다. 아티클·자료실 목록 페이지를 열면 그 숫자는 지워진다. 처음 쓰는 기기는 지금까지의 것을 본 것으로 시작한다.
+  TT.tabNewReady = TT.ready.then((u) => {
+    if (!u || GATE) return;
+    (async () => {
+      const v = seenGet(), cnt = {}, tabs = [["a", "/api/posts", "/articles"], ["l", "/api/library", "/library"]];
+      await Promise.all(tabs.map(async ([k, api, page]) => {
+        const r = await fetch(`${api}?count=1${v[k] ? "&after=" + encodeURIComponent(v[k]) : ""}`, { credentials: "same-origin" }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+        if (!r) { cnt[k] = tnv[k] || 0; return; }   // 못 받았으면 지난번 숫자를 그대로 둔다
+        if (v[k] == null || path === page) { v[k] = r.now; cnt[k] = 0; } else cnt[k] = r.count;
+      }));
+      seenPut(v);
+      for (const k of Object.keys(cnt)) {
+        const b = document.getElementById("tn_" + k); if (!b) continue;
+        b.hidden = !cnt[k]; b.textContent = cnt[k] > 99 ? "99+" : cnt[k] || "";
+        b.closest(".tab")?.setAttribute("aria-label", cnt[k] ? `${NEWL[k]}, 새 게시물 ${cnt[k]}개` : NEWL[k]);
+      }
+      try { const o = {}; for (const k of Object.keys(cnt)) if (cnt[k]) o[k] = cnt[k]; Object.keys(o).length ? localStorage.setItem("tt_tn", JSON.stringify(o)) : localStorage.removeItem("tt_tn"); } catch {}
+    })();
   });
   // 발표 시작: 누르면 /present — 아무 키나 눌러 전체화면으로 시작한다.
   // 마우스를 쓰는 PC 는 화면 크기 팝업(주소창 없는 창)으로, 터치 기기는 같은 탭에서 연다.

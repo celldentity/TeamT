@@ -14,6 +14,7 @@ const F_MAX_VIDEO = 100 * 1024 * 1024;  // 피드: 동영상 한 개 최대 100M
 const F_MAX_FILES = 10, F_MAX_VIDEOS = 2; // 피드 글 하나: 사진·동영상 합쳐 10개, 동영상은 그중 2개까지
 const VIDEO_MIME = new Set(["video/mp4", "video/quicktime", "video/webm"]);
 const IMAGE_MIME = "image/jpeg";
+const IMAGE_MIMES = new Set(["image/jpeg", "image/gif"]);   // GIF 는 줄이지 않고 원본 그대로 올려 움직이게 한다(MAX_IMAGE 12MB 이하)
 const PUT_SECONDS = 7200, GET_SECONDS = 3600;
 
 const key = (id, v) => `media/${id}/${v === "thumb" ? "thumb.jpg" : "full"}`;
@@ -35,4 +36,4 @@ const reportUrl = (postId, filename) => getSignedUrl(L.r2(), new GetObjectComman
 const putReport = (postId, buf) => L.r2().send(new PutObjectCommand({ Bucket: bucket(), Key: reportKey(postId), Body: buf, ContentType: "application/pdf" }));
 const shape = (m) => ({ id: m.id, kind: m.kind, w: m.w, h: m.h, thumb: !!m.has_thumb });
 
-module.exports = { reportKey, reportUrl, putReport, F_MAX_VIDEO, F_MAX_FILES, F_MAX_VIDEOS, C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, key, putUrl, getUrl, head, removeFiles, shape };
+module.exports = { reportKey, reportUrl, putReport, F_MAX_VIDEO, F_MAX_FILES, F_MAX_VIDEOS, C_MAX_VIDEO, C_MAX_FILES, C_MAX_VIDEOS, MAX_VIDEO, MAX_IMAGE, MAX_THUMB, MAX_FILES, MAX_VIDEOS, VIDEO_MIME, IMAGE_MIME, IMAGE_MIMES, key, putUrl, getUrl, head, removeFiles, shape };

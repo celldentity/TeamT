@@ -3,6 +3,7 @@
 (() => {
   const FULL = 1920, THUMB = 320;                    // 사진 긴 변 최대 1920px, 썸네일 320px 정사각형(목록에선 88px 로 보이니 2~3배 선명)
   const MAX_VIDEO = 300 * 1024 * 1024;               // 서버(api/_media.js)와 같은 한도
+  const MAX_GIF = 12 * 1024 * 1024;                  // GIF 는 줄이지 않고 올리므로 서버 MAX_IMAGE(12MB)와 같은 한도
   const VIDEO_EXT = { mp4: "video/mp4", m4v: "video/mp4", mov: "video/quicktime", webm: "video/webm" };
   const IMAGE_EXT = /^(jpe?g|png|webp|gif|bmp|heic|heif|avif)$/;
   const fail = (message) => Object.assign(new Error(message), { friendly: true });
@@ -31,9 +32,18 @@
     });
   }
 
+  const isGif = (file) => file.type === "image/gif" || /\.gif$/i.test(file.name || "");
   async function prepareImage(file) {
+    const gif = isGif(file);
+    if (gif && file.size > MAX_GIF) throw fail(`GIF 는 ${Math.round(MAX_GIF / 1048576)}MB 까지 올릴 수 있어요.`);
     const src = await decode(file), sw = src.width || src.naturalWidth, sh = src.height || src.naturalHeight;
     if (!sw || !sh) throw fail("이 사진은 열 수 없어요.");
+    if (gif) {   // GIF 는 줄이면 움직임이 사라지므로 원본 그대로 올리고, 목록용 정지 썸네일만 첫 장면으로 만든다(서버는 GIF 요청엔 원본을 돌려준다)
+      const thumb = await toBlob(square(src, sw, sh), 0.8);
+      if (src.close) src.close();
+      if (!thumb) throw fail("GIF 를 열지 못했어요. 다른 파일로 해 보세요.");
+      return { kind: "image", mime: "image/gif", main: file, thumb, w: sw, h: sh, preview: URL.createObjectURL(thumb) };
+    }
     const k = Math.min(1, FULL / Math.max(sw, sh)), w = Math.round(sw * k), h = Math.round(sh * k);
     const c = document.createElement("canvas"); c.width = w; c.height = h;
     const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, w, h); x.drawImage(src, 0, 0, w, h);   // 투명 PNG 는 흰 바탕 위에
@@ -64,7 +74,7 @@
 
   async function prepare(file, opts = {}) {   // opts.maxVideo: 동영상 한도(바이트, 댓글은 100MB)
     const c = classify(file);
-    if (!c) throw fail("사진(JPG·PNG·WEBP)과 동영상(MP4·MOV·WEBM)만 올릴 수 있어요.");
+    if (!c) throw fail("사진(JPG·PNG·WEBP·GIF)과 동영상(MP4·MOV·WEBM)만 올릴 수 있어요.");
     if (!file.size) throw fail("빈 파일이에요.");
     return c.kind === "image" ? prepareImage(file) : prepareVideo(file, c.mime, opts.maxVideo);
   }

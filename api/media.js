@@ -1,5 +1,5 @@
 // 글에 붙이는 사진·동영상 — 로그인한 사람만.
-//   POST /api/media?a=init   {kind:"image"|"video", mime, size, w, h, thumbSize?}
+//   POST /api/media?a=init   {kind:"image"|"video", mime(image/jpeg·image/gif·동영상), size, w, h, thumbSize?}
 //        → {id, full:{url,type}, thumb:{url,type}|null}   브라우저가 이 주소들로 R2 에 PUT 한다(서버를 거치지 않는다)
 //   POST /api/media?a=done   {id}      → 다 올렸다고 알림. 크기를 R2 에서 직접 확인하고 {media} 를 돌려준다
 //   POST /api/media?a=remove {id}      → 아직 글에 안 붙은 내 파일 지우기
@@ -18,11 +18,11 @@ module.exports = async (req, res) => {
     if (req.method === "GET") {
       const id = Number(req.query.id), v = req.query.v === "thumb" ? "thumb" : "full";
       if (!Number.isInteger(id) || id < 1) return L.json(res, 400, { error: "잘못된 요청입니다." });
-      const [rows] = await db.query("SELECT owner_id, status, has_thumb FROM post_media WHERE id = ?", [id]);
+      const [rows] = await db.query("SELECT owner_id, status, has_thumb, mime FROM post_media WHERE id = ?", [id]);
       const m = rows[0];
       if (!m || (m.status !== 1 && m.owner_id !== me.id) || (v === "thumb" && !m.has_thumb)) return L.json(res, 404, { error: "파일을 찾을 수 없어요." });
       res.statusCode = 302;
-      res.setHeader("Location", await M.getUrl(id, v));
+      res.setHeader("Location", await M.getUrl(id, m.mime === "image/gif" ? "full" : v));   // GIF 는 썸네일(정지 JPEG) 대신 움직이는 원본을 준다 — 목록·댓글·피드 어디에 놓여도 화면에 보이면 바로 재생
       res.setHeader("Cache-Control", "private, max-age=900");   // 임시 주소는 1시간이라 15분 동안 다시 묻지 않는다
       return res.end();
     }
@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
       const mime = String(b.mime || "").toLowerCase(), size = int(b.size, 1e12), thumbSize = b.thumbSize == null ? 0 : int(b.thumbSize, 1e9);
       const w = int(b.w, 20000), h = int(b.h, 20000);
       if (!kind || size === null || size < 1 || thumbSize === null || w === null || h === null) return L.json(res, 400, { error: "올릴 파일 정보가 올바르지 않아요." });
-      if (kind === "image" && mime !== M.IMAGE_MIME) return L.json(res, 400, { error: "사진은 JPG 로 바꿔 올려져요. 다른 사진으로 해 보세요." });
+      if (kind === "image" && !M.IMAGE_MIMES.has(mime)) return L.json(res, 400, { error: "사진은 JPG 로 바꿔 올려져요. 다른 사진으로 해 보세요." });
       if (kind === "video" && !M.VIDEO_MIME.has(mime)) return L.json(res, 400, { error: "동영상은 MP4·MOV·WEBM 만 올릴 수 있어요." });
       if (kind === "image" && size > M.MAX_IMAGE) return L.json(res, 400, { error: "사진 용량이 너무 커요." });
       const cap = b.scope === "comment" ? M.C_MAX_VIDEO : b.scope === "feed" ? M.F_MAX_VIDEO : M.MAX_VIDEO;   // 댓글·피드에 붙일 파일은 동영상 한도가 100MB
